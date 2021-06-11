@@ -68,13 +68,14 @@ I'll refer to the [The misuse of colour in science communication](https://www.na
 
 <td align="left"><img src="pics/choosing-cmap.png" width="500"/></td>
 
-## Choosing the color map for a given type
+## Get the matplotlib cmap
 
-You can get all the available color maps as:
 
 ```python
 plt_cmap_obj = sc_map.get_mpl_color_map()
 ```
+
+## Choosing the color map for a given type
 
 Get the color maps for a given type
 
@@ -181,15 +182,8 @@ plt_cmap_obj = sc_map.get_mpl_color_map()
 We can perform exactly the same fix for diverging, circular, miscellaneous and qualitative color maps. Let's take a diverging color map as an illustrative example:
 
 ```python
-# fixing the color map, using the same minimal lightness (lift=None), 
-# not normalizing to bitone and 
-# smoothing the chroma
-sc_map.unif_sym_cmap(lift=None, 
-                     bitonic=False, 
-                     diffuse=True)
-
-# re-assess the color map after fixing it                     
-f=sc_map.assess_cmap(figsize=(22,10))
+div_map = sc.ScicoDiverging(cmap='vanimo')
+f=div_map.assess_cmap(figsize=(22,10))
 ```
 
 the original color map is as follows
@@ -209,6 +203,7 @@ div_map = sc.ScicoDiverging(cmap='vanimo')
 div_map.unif_sym_cmap(lift=25, 
                       bitonic=False, 
                       diffuse=True)
+f=div_map.assess_cmap(figsize=(22,10))
 ```
 
 

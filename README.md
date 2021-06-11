@@ -290,6 +290,56 @@ f = sc.compare_cmap(image="phase",
 ```
 <td align="left"><img src="pics/phase.png" width="1000"/></td>
 
+# All the built-in color maps
+
+## Sequential
+
+
+```python
+sc.plot_colormap(ctype='sequential', 
+                 cmap_list='all', 
+                 figsize=None, 
+                 n_colors=5, 
+                 facecolor="black", 
+                 uniformize=True, 
+                 symmetrize=False, 
+                 unif_kwargs=None, 
+                 sym_kwargs=None)
+```
+<td align="left"><img src="pics/seq-cmaps-all.png" width="500"/></td>
+
+## Diverging
+
+
+<td align="left"><img src="pics/div-cmaps-all.png" width="500"/></td>
+
+## Mutli-sequential
+
+<td align="left"><img src="pics/multi-cmaps-all.png" width="500"/></td>
+
+## Miscellaneous
+
+<td align="left"><img src="pics/misc-cmaps-all.png" width="500"/></td>
+
+## Circular
+
+<td align="left"><img src="pics/circular-cmaps-all.png" width="500"/></td>
+
+## Qualitative
+
+```python
+sc.plot_colormap(ctype='qualitative', 
+                 cmap_list='all', 
+                 figsize=None, 
+                 n_colors=5, 
+                 facecolor="black", 
+                 uniformize=False, 
+                 symmetrize=False, 
+                 unif_kwargs=None, 
+                 sym_kwargs=None)
+```
+
+<td align="left"><img src="pics/qual-cmaps-all.png" width="500"/></td>
 
 # References
 

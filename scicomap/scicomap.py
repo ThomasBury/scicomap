@@ -1145,6 +1145,7 @@ def plot_colormap(ctype, cmap_list='all', figsize=None, n_colors=10, facecolor="
     # Turn off *all* ticks & spines, not just the ones with colormaps.
     for ax in axes:
         ax.set_axis_off()
+    return fig
 
 
 def plot_colorblind_vision(ctype='sequential', cmap_list='all', figsize=None,

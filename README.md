@@ -88,16 +88,19 @@ sc_map.get_color_map_names()
 dict_keys(['afmhot', 'amber', 'amber_r', 'amp', 'apple', 'apple_r', 'autumn', 'batlow', 'bilbao', 'bilbao_r', 'binary', 'Blues', 'bone', 'BuGn', 'BuPu', 'chroma', 'chroma_r', 'cividis', 'cool', 'copper', 'cosmic', 'cosmic_r', 'deep', 'dense', 'dusk', 'dusk_r', 'eclipse', 'eclipse_r', 'ember', 'ember_r', 'fall', 'fall_r', 'gem', 'gem_r', 'gist_gray', 'gist_heat', 'gist_yarg', 'GnBu', 'Greens', 'gray', 'Greys', 'haline', 'hawaii', 'hawaii_r', 'heat', 'heat_r', 'hot', 'ice', 'inferno', 'imola', 'imola_r', 'lapaz', 'lapaz_r', 'magma', 'matter', 'neon', 'neon_r', 'neutral', 'neutral_r', 'nuuk', 'nuuk_r', 'ocean', 'ocean_r', 'OrRd', 'Oranges', 'pink', 'plasma', 'PuBu', 'PuBuGn', 'PuRd', 'Purples', 'rain', 'rainbow', 'rainbow-sc', 'rainbow-sc_r', 'rainforest', 'rainforest_r', 'RdPu', 'Reds', 'savanna', 'savanna_r', 'sepia', 'sepia_r', 'speed', 'solar', 'spring', 'summer', 'tempo', 'thermal', 'thermal_r', 'thermal-2', 'tokyo', 'tokyo_r', 'tropical', 'tropical_r', 'turbid', 'turku', 'turku_r', 'viridis', 'winter', 'Wistia', 'YlGn', 'YlGnBu', 'YlOrBr', 'YlOrRd'])
 ```
 
-All the sequential color maps that are available
+## Use a custom color map
+
+As long as the color map is a `matplotlib.colors.Colormap`, `matplotlib.colors.LinearSegmentedColormap` or `matplotlib.colors.ListedColormap` object, you can pass it in the different classes.
 
 ```python
-sc_map = sc.ScicoSequential()
-cmap_list = list(sc_map.get_color_map_names())
-# for all the cmap: cmap_list='all'
-sc.plot_colormap(ctype='sequential', cmap_list=cmap_list[:25], n_colors=31, facecolor="black")
-```
+import scicomap as sc
+import matplotlib.pyplot as plt
 
-<td align="left"><img src="pics/seq-cmaps.png" width="1000"/></td>
+# the thing that should not be
+ugly_jet = plt.get_cmap("YlOrBr")
+sc_map =  sc.ScicoMiscellaneous(cmap=ugly_jet)
+f=sc_map.assess_cmap(figsize=(22,10))
+```
 
 ## Assessing a color map
 

@@ -128,11 +128,11 @@ def colorblind_vision(cmap, figsize=None, n_colors=10, facecolor="black"):
         cmap_list, _ = _get_color_weak_cmap(color_map=cmap, n_images=0)
         cmap_dic[cmap.name] = cmap_list
 
-    sub_titles = ["Normal\n~95% of pop"] + \
-                 ["Deuter-50%\nRG-weak, D/P: 5% of male"] + \
-                 ["Prot-50%\nRG-weak, D/P: 5% of male"] + \
-                 ["Deuter-100%\nRG-blind, D/P: 5% of male"] + \
-                 ["Trit-100%\nBY deficient, very rare"]
+    sub_titles = ["Normal\n~95$%$ of pop"] + \
+                 ["Deuter-50$%$\nRG-weak, D/P: 5$%$ of male"] + \
+                 ["Prot-50$%$\nRG-weak, D/P: 5$%$ of male"] + \
+                 ["Deuter-100$%$\nRG-blind, D/P: 5$%$ of male"] + \
+                 ["Trit-100$%$\nBY deficient, very rare"]
 
     nrows = len(spectral_list)
     ncols = len(cmap_dic)

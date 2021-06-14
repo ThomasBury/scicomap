@@ -3,7 +3,7 @@ from . import datasets
 from . import cmath
 from . import cblind
 
-__version__ = "0.1"
+__version__ = "0.2"
 __all__ = ["scicomap", "datasets", "cmath", "cblind", "utils"]
 
 # bound to upper level

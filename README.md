@@ -21,7 +21,7 @@ This package is heavily based on the [Event Horyzon Plot package](https://github
 
 ## Motivation
 
-The accurate representation of data is essential in science communication. However, common color maps visually distort data through uneven colour gradients and are often unreadable to those with color-vision deficiency. An infamous example is the jet or rainbow-like color maps. These color maps do not render all the information you want to illustrate or even worse render false information through artefacts. Scientist or not, your goal is to communicate visual information in the most accurate and appealing fashion. Moreover, do not overlook color-vision deficiency, which represents 8% of the (Caucasian) male population.
+The accurate representation of data is essential. Many common color maps distort data through uneven colour gradients and are often unreadable to those with color-vision deficiency. An infamous example is the jet color map. These color maps do not render all the information you want to illustrate or even worse render false information through artefacts. Scientist or not, your goal is to communicate visual information in the most accurate and appealing fashion. Moreover, do not overlook colour-vision deficiency, which represents 8% of the (Caucasian) male population.
 
 ## Color spaces
 
@@ -352,6 +352,10 @@ sc.plot_colormap(ctype='qualitative',
 
 
 # Changes log
+
+### 0.2
+
+ - [Bug] Fix typo in chart titles
 
 ### 0.1
 

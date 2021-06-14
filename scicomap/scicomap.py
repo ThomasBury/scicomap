@@ -384,7 +384,7 @@ class ScicoSequential(SciCoMap):
     https://betterfigures.org/2015/06/23/picking-a-colour-scale-for-scientific-graphics/
     """
 
-    def __init__(self, cmap="chroma"):
+    def __init__(self, cmap="thermal"):
         super().__init__(cmap=cmap, ctype="sequential")
 
     def __repr__(self):
@@ -944,8 +944,8 @@ def get_cmap_dict():
             "haline": cmocean.cm.haline,
             "hawaii": scico.hawaii,
             "hawaii_r": scico.hawaii,
-            "heat": cmr.heat,
-            "heat_r": cmr.heat_r,
+            "heat": cmr.torch,
+            "heat_r": cmr.torch_r,
             "hot": plt.get_cmap("hot"),
             "ice": cmocean.cm.ice,
             "inferno": plt.get_cmap("inferno"),

@@ -23,15 +23,14 @@ INSTALL_REQUIRES = [
     "matplotlib >= 3.3.0",
 ]
 
-KEYWORDS = "color, color map, scientific color maps, uniform, "
+KEYWORDS = "color, color map, scientific color maps, uniform "
 
 setup(
     name="scicomap",
-    version="0.1",
+    version="0.2",
     description="Scientific color maps",
     long_description=README,
     long_description_content_type="text/markdown",
-    #url="https://github.com/ThomasBury/geomapviz",
     author="Thomas Bury",
     author_email="bury.thomas@gmail.com",
     packages=find_packages(),

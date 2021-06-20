@@ -27,7 +27,7 @@ KEYWORDS = "color, color map, scientific color maps, uniform "
 
 setup(
     name="scicomap",
-    version="0.2",
+    version="0.3",
     description="Scientific color maps",
     long_description=README,
     long_description_content_type="text/markdown",

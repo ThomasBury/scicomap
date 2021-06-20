@@ -1,5 +1,6 @@
 import itertools
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from matplotlib.colors import ListedColormap
@@ -151,7 +152,7 @@ def _plot_e_field(ax, cmap, n_neg_charges=2, facecolor="black", title=False):
     return ax
 
 
-def _plot_examples(color_map, images, arr_3d, figsize, facecolor, cname, cblind=True):
+def _plot_examples(color_map, images, arr_3d, figsize, facecolor, cname, cblind=True, norm=False):
     """Create the figure based on the provided images, continuous colormaps"""
     fig = plt.figure(figsize=figsize, facecolor=facecolor)
     n_images = len(images)
@@ -167,6 +168,7 @@ def _plot_examples(color_map, images, arr_3d, figsize, facecolor, cname, cblind=
     idx_3d = 0
     n_rows = len(c_maps)
     n_cols = len(images)
+
     for c_map, im in itertools.product(c_maps, images):
         
         if isinstance(im, str) and ('3D' in im):
@@ -186,8 +188,9 @@ def _plot_examples(color_map, images, arr_3d, figsize, facecolor, cname, cblind=
             ax = fig.add_subplot(n_rows, n_cols, axi, facecolor=facecolor)
             ax = _plot_complex_arg(ax, c_map, facecolor, title=axi <= n_cols)
         else:
+            cmap_norm = mpl.colors.CenteredNorm() if norm else None
             ax = fig.add_subplot(n_rows, n_cols, axi, facecolor=facecolor)
-            ax.imshow(im, cmap=c_map, aspect="auto")
+            ax.imshow(im, cmap=c_map, aspect="auto", norm=cmap_norm)
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
             ax.set_title(sub_title[axi - 1], color=title_color, fontsize=16, loc="left")

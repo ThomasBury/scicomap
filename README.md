@@ -6,6 +6,10 @@
 
 # Scientific color maps 
 
+## Blog post
+
+[Scicomap Medium blog post (free)](https://towardsdatascience.com/your-colour-map-is-bad-heres-how-to-fix-it-lessons-learnt-from-the-event-horizon-telescope-b82523f09469)
+
 ## Installation
 
 ```shell
@@ -97,7 +101,7 @@ import scicomap as sc
 import matplotlib.pyplot as plt
 
 # the thing that should not be
-ugly_jet = plt.get_cmap("YlOrBr")
+ugly_jet = plt.get_cmap("jet")
 sc_map =  sc.ScicoMiscellaneous(cmap=ugly_jet)
 f=sc_map.assess_cmap(figsize=(22,10))
 ```
@@ -218,6 +222,74 @@ which render as
 
 <td align="left"><img src="pics/vanimo-fixed-examples.png" width="1000"/></td>
 
+
+# Use with matplotlib
+
+## Use a corrected colormap in a matplotlib figure
+
+```python
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+import scicomap as sc
+from scicomap.utils import _fn_with_roots
+
+# load the color map
+div_map = sc.ScicoDiverging(cmap='watermelon')
+
+# correct the colormap
+div_map.unif_sym_cmap(lift=15, 
+                      bitonic=False, 
+                      diffuse=True)
+
+# get the fixed color map
+fixed_cmap = div_map.get_mpl_color_map()
+print(type(fixed_cmap))
+
+# use it as you like
+im = _fn_with_roots()
+norm = mpl.colors.CenteredNorm()
+divnorm = mpl.colors.TwoSlopeNorm(vmin=-1, vcenter=0, vmax=1.25)
+fig = plt.figure(figsize=(3,3), facecolor="white")
+ax = fig.add_subplot(1, 1, 1, facecolor="white")
+pos = ax.imshow(im, cmap=fixed_cmap, aspect="auto", norm=divnorm)
+fig.colorbar(pos, ax=ax);
+```
+<td align="left"><img src="pics/mpl.png" width="250"/></td>
+
+## Correct a matplotlib colormap
+
+
+
+```python
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+import scicomap as sc
+from scicomap.utils import _fn_with_roots
+
+# load the color map
+mpl_cmap_obj = plt.get_cmap("PRGn")
+div_map = sc.ScicoDiverging(cmap=mpl_cmap_obj)
+
+# correct the colormap
+div_map.unif_sym_cmap(lift=None, 
+                      bitonic=False, 
+                      diffuse=True)
+
+# get the fixed color map
+fixed_cmap = div_map.get_mpl_color_map()
+print(type(fixed_cmap))
+
+# use it as you like
+im = _fn_with_roots()
+norm = mpl.colors.CenteredNorm()
+divnorm = mpl.colors.TwoSlopeNorm(vmin=-1, vcenter=0, vmax=1.25)
+fig = plt.figure(figsize=(3,3), facecolor="white")
+ax = fig.add_subplot(1, 1, 1, facecolor="white")
+pos = ax.imshow(im, cmap=fixed_cmap, aspect="auto", norm=divnorm)
+fig.colorbar(pos, ax=ax);
+```
+
+<td align="left"><img src="pics/mpl2.png" width="250"/></td>
 
 # Comparing color maps
 
@@ -352,6 +424,11 @@ sc.plot_colormap(ctype='qualitative',
 
 
 # Changes log
+
+### 0.3
+
+ - Add a section "how to use with matplotlib"
+ - [Bug] Center diverging color map in examples
 
 ### 0.2
 

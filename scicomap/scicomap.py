@@ -577,7 +577,8 @@ class ScicoDiverging(SciCoMap):
                              arr_3d=[(xpyr, ypyr, zpyr), (per_x, per_z, per_z)],
                              figsize=figsize,
                              facecolor=facecolor,
-                             cname=self.cname)
+                             cname=self.cname,
+                             norm=True)
 
         return fig
 
@@ -747,7 +748,8 @@ class ScicoMiscellaneous(SciCoMap):
                              arr_3d=[(xpyr, ypyr, zpyr), (per_x, per_z, per_z)],
                              figsize=figsize,
                              facecolor=facecolor,
-                             cname=self.cname)
+                             cname=self.cname,
+                             norm=True)
 
         return fig
 

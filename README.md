@@ -425,6 +425,10 @@ sc.plot_colormap(ctype='qualitative',
 
 # Changes log
 
+### 0.4
+
+ - Including files in source distributions
+
 ### 0.3
 
  - Add a section "how to use with matplotlib"

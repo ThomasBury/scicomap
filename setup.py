@@ -27,7 +27,7 @@ KEYWORDS = "color, color map, scientific color maps, uniform "
 
 setup(
     name="scicomap",
-    version="0.3",
+    version="0.4",
     description="Scientific color maps",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -40,4 +40,5 @@ setup(
     python_requires=">=3.6",
     license="MIT",
     keywords=KEYWORDS,
+    package_data={'': ['data/*.png', 'data/*.npz', 'data/*.gz', 'data/*.jpg']},
 )

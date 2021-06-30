@@ -1,6 +1,6 @@
 import gzip
 import warnings
-from pkg_resources import resource_stream
+from pkg_resources import resource_stream, resource_filename
 import numpy as np
 import matplotlib.image as mpimg
 from os.path import dirname, join
@@ -38,16 +38,16 @@ def load_pic(name="grmhd"):
         TypeError("name should be a string")
 
     module_path = dirname(__file__)
-    stream = resource_stream(__name__, 'data/grmhd.png')
+    im_path = resource_filename(__name__, 'data/grmhd.png')
     # pic_path = join(module_path, 'data', 'grmhd.png')
     if name == "grmhd":
-        stream = resource_stream(__name__, 'data/grmhd.png')
+        im_path = resource_filename(__name__, 'data/grmhd.png')
     elif name == "vortex":
-        stream = resource_stream(__name__, 'data/vortex.jpg')
+        im_path = resource_filename(__name__, 'data/vortex.jpg')
     elif name == "tng":
-        stream = resource_stream(__name__, 'data/tng.jpg')
+        im_path = resource_filename(__name__, 'data/tng.jpg')
     else:
         warnings.warn("Using a default image, name should be in ['grmhd', 'vortex', 'tng']")
 
-    img = mpimg.imread(stream)
+    img = mpimg.imread(im_path)
     return img[:, :, 0]

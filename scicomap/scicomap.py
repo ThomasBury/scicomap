@@ -44,11 +44,23 @@ from palettable.cartocolors.qualitative import Bold_10, Pastel_10, Prism_10, Viv
 from palettable.colorbrewer.qualitative import Set1_9
 
 # internal import
-from scicomap.cmath import uniformize_cmap, symmetrize_cmap, unif_sym_cmap, \
-    _ax_cylinder_JCh, _ax_scatter_Jpapbp
+from scicomap.cmath import (
+    uniformize_cmap,
+    symmetrize_cmap,
+    unif_sym_cmap,
+    _ax_cylinder_JCh,
+    _ax_scatter_Jpapbp,
+)
 from scicomap.cblind import _get_color_weak_cmap, colorblind_vision
-from scicomap.utils import _pyramid, _pyramid_zombie, _fn_with_roots, \
-    _periodic_fn, _plot_examples, _plot_examples_qual, _complex_phase
+from scicomap.utils import (
+    _pyramid,
+    _pyramid_zombie,
+    _fn_with_roots,
+    _periodic_fn,
+    _plot_examples,
+    _plot_examples_qual,
+    _complex_phase,
+)
 
 
 class SciCoMap:
@@ -137,19 +149,20 @@ class SciCoMap:
         self.color_map_dic = get_cmap_dict()
 
         self.cmap = cmap
-        self.cname = 'cmap'
+        self.cname = "cmap"
         self.uniformized = False
 
     def __repr__(self):
 
-        s = "SciCoMap(ctype={ctype}, \n" \
-            "     cmap={cmap})".format(ctype=self.ctype, cmap=self.cname)
+        s = "SciCoMap(ctype={ctype}, \n" "     cmap={cmap})".format(
+            ctype=self.ctype, cmap=self.cname
+        )
 
         return s
 
     @classmethod
     def get_ctype(cls):
-        """ return the colormap type """
+        """return the colormap type"""
         return get_cmap_dict().keys()
 
     def get_mpl_color_map(self):
@@ -184,10 +197,9 @@ class SciCoMap:
         :return:
         """
         self.get_mpl_color_map()
-        self.cmap, self.uniformized = uniformize_cmap(cmap=self.cmap,
-                                                      name=self.cname,
-                                                      lift=lift,
-                                                      uniformized=self.uniformized)
+        self.cmap, self.uniformized = uniformize_cmap(
+            cmap=self.cmap, name=self.cname, lift=lift, uniformized=self.uniformized
+        )
 
     def symmetrize_cmap(self, bitonic=True, diffuse=True):
         """
@@ -204,10 +216,9 @@ class SciCoMap:
         :return:
         """
         self.get_mpl_color_map()
-        self.cmap = symmetrize_cmap(cmap=self.cmap,
-                                    name=self.cname,
-                                    bitonic=bitonic,
-                                    diffuse=diffuse)
+        self.cmap = symmetrize_cmap(
+            cmap=self.cmap, name=self.cname, bitonic=bitonic, diffuse=diffuse
+        )
 
     def unif_sym_cmap(self, lift=None, bitonic=True, diffuse=True):
         """
@@ -229,12 +240,14 @@ class SciCoMap:
         :return:
         """
         self.get_mpl_color_map()
-        self.cmap, self.uniformized = unif_sym_cmap(cmap=self.cmap,
-                                                    name=self.cname,
-                                                    lift=lift,
-                                                    uniformized=self.uniformized,
-                                                    bitonic=bitonic,
-                                                    diffuse=diffuse)
+        self.cmap, self.uniformized = unif_sym_cmap(
+            cmap=self.cmap,
+            name=self.cname,
+            lift=lift,
+            uniformized=self.uniformized,
+            bitonic=bitonic,
+            diffuse=diffuse,
+        )
 
     def get_color_map_names(self):
         """
@@ -317,11 +330,13 @@ class SciCoMap:
 
         :return:
         """
-        plot_colorblind_vision(ctype=self.ctype,
-                               cmap_list=[self.get_mpl_color_map()],
-                               figsize=figsize,
-                               n_colors=n_colors,
-                               facecolor=facecolor)
+        plot_colorblind_vision(
+            ctype=self.ctype,
+            cmap_list=[self.get_mpl_color_map()],
+            figsize=figsize,
+            n_colors=n_colors,
+            facecolor=facecolor,
+        )
 
 
 class ScicoSequential(SciCoMap):
@@ -402,13 +417,15 @@ class ScicoSequential(SciCoMap):
         per_x, per_z, per_z = _periodic_fn()
         images = [elevation, scan_im, zpyr, "3D", per_z, "3D"]
 
-        fig = _plot_examples(color_map=color_map,
-                             images=images,
-                             arr_3d=[(xpyr, ypyr, zpyr), (per_x, per_z, per_z)],
-                             figsize=figsize,
-                             facecolor=facecolor,
-                             cname=self.cname,
-                             cblind=cblind)
+        fig = _plot_examples(
+            color_map=color_map,
+            images=images,
+            arr_3d=[(xpyr, ypyr, zpyr), (per_x, per_z, per_z)],
+            figsize=figsize,
+            facecolor=facecolor,
+            cname=self.cname,
+            cblind=cblind,
+        )
 
         return fig
 
@@ -487,13 +504,15 @@ class ScicoMultiSequential(SciCoMap):
         per_x, per_z, per_z = _periodic_fn()
         images = [elevation, scan_im, zpyr, "3D", per_z, "3D"]
 
-        fig = _plot_examples(color_map=color_map,
-                             images=images,
-                             arr_3d=[(xpyr, ypyr, zpyr), (per_x, per_z, per_z)],
-                             figsize=figsize,
-                             facecolor=facecolor,
-                             cname=self.cname,
-                             cblind=cblind)
+        fig = _plot_examples(
+            color_map=color_map,
+            images=images,
+            arr_3d=[(xpyr, ypyr, zpyr), (per_x, per_z, per_z)],
+            figsize=figsize,
+            facecolor=facecolor,
+            cname=self.cname,
+            cblind=cblind,
+        )
 
         return fig
 
@@ -570,15 +589,17 @@ class ScicoDiverging(SciCoMap):
         xpyr, ypyr, zpyr = _pyramid_zombie(stacked=False)
         per_x, per_z, per_z = _periodic_fn()
 
-        images = [image_div, zpyr, '3D', per_z, "3D"]
+        images = [image_div, zpyr, "3D", per_z, "3D"]
 
-        fig = _plot_examples(color_map=color_map,
-                             images=images,
-                             arr_3d=[(xpyr, ypyr, zpyr), (per_x, per_z, per_z)],
-                             figsize=figsize,
-                             facecolor=facecolor,
-                             cname=self.cname,
-                             norm=True)
+        fig = _plot_examples(
+            color_map=color_map,
+            images=images,
+            arr_3d=[(xpyr, ypyr, zpyr), (per_x, per_z, per_z)],
+            figsize=figsize,
+            facecolor=facecolor,
+            cname=self.cname,
+            norm=True,
+        )
 
         return fig
 
@@ -657,13 +678,15 @@ class ScicoCircular(SciCoMap):
         per_x, per_z, per_z = _periodic_fn()
         images = [elevation, scan_im, "electric", "complex"]
 
-        fig = _plot_examples(color_map=color_map,
-                             images=images,
-                             arr_3d=None,
-                             figsize=figsize,
-                             facecolor=facecolor,
-                             cname=self.cname,
-                             cblind=cblind)
+        fig = _plot_examples(
+            color_map=color_map,
+            images=images,
+            arr_3d=None,
+            figsize=figsize,
+            facecolor=facecolor,
+            cname=self.cname,
+            cblind=cblind,
+        )
 
         return fig
 
@@ -741,15 +764,17 @@ class ScicoMiscellaneous(SciCoMap):
         xpyr, ypyr, zpyr = _pyramid_zombie(stacked=False)
         per_x, per_z, per_z = _periodic_fn()
 
-        images = [image_div, zpyr, '3D', per_z, "3D"]
+        images = [image_div, zpyr, "3D", per_z, "3D"]
 
-        fig = _plot_examples(color_map=color_map,
-                             images=images,
-                             arr_3d=[(xpyr, ypyr, zpyr), (per_x, per_z, per_z)],
-                             figsize=figsize,
-                             facecolor=facecolor,
-                             cname=self.cname,
-                             norm=True)
+        fig = _plot_examples(
+            color_map=color_map,
+            images=images,
+            arr_3d=[(xpyr, ypyr, zpyr), (per_x, per_z, per_z)],
+            figsize=figsize,
+            facecolor=facecolor,
+            cname=self.cname,
+            norm=True,
+        )
 
         return fig
 
@@ -826,33 +851,37 @@ class ScicoQualitative(SciCoMap):
         # https://population.un.org/wpp/, license: CC BY 3.0 IGO
         year = [1950, 1960, 1970, 1980, 1990, 2000, 2010, 2018]
         population_by_continent = {
-            'africa': [228, 284, 365, 477, 631, 814, 1044, 1275],
-            'americas': [340, 425, 519, 619, 727, 840, 943, 1006],
-            'asia': [1394, 1686, 2120, 2625, 3202, 3714, 4169, 4560],
-            'europe': [220, 253, 276, 295, 310, 303, 294, 293],
-            'oceania': [12, 15, 19, 22, 26, 31, 36, 39],
+            "africa": [228, 284, 365, 477, 631, 814, 1044, 1275],
+            "americas": [340, 425, 519, 619, 727, 840, 943, 1006],
+            "asia": [1394, 1686, 2120, 2625, 3202, 3714, 4169, 4560],
+            "europe": [220, 253, 276, 295, 310, 303, 294, 293],
+            "oceania": [12, 15, 19, 22, 26, 31, 36, 39],
         }
         x = np.linspace(0, 10)
         # Fixing random state for reproducibility
         np.random.seed(19680801)
         noisy_trends = np.array(
-            [np.sin(x) + x + np.random.randn(50),
-             np.sin(x) + 0.5 * x + np.random.randn(50),
-             np.sin(x) + 2 * x + np.random.randn(50),
-             np.sin(x) - 0.5 * x + np.random.randn(50),
-             np.sin(x) - 2 * x + np.random.randn(50),
-             np.sin(x) + np.random.randn(50)]
+            [
+                np.sin(x) + x + np.random.randn(50),
+                np.sin(x) + 0.5 * x + np.random.randn(50),
+                np.sin(x) + 2 * x + np.random.randn(50),
+                np.sin(x) - 0.5 * x + np.random.randn(50),
+                np.sin(x) - 2 * x + np.random.randn(50),
+                np.sin(x) + np.random.randn(50),
+            ]
         )
         noisy_trends = noisy_trends.T
 
         dict_arr = [population_by_continent, "scatter", noisy_trends]
 
-        return _plot_examples_qual(color_map=color_map,
-                                   dict_arr=dict_arr,
-                                   figsize=figsize,
-                                   facecolor=facecolor,
-                                   cname=self.cname,
-                                   year=year)
+        return _plot_examples_qual(
+            color_map=color_map,
+            dict_arr=dict_arr,
+            figsize=figsize,
+            facecolor=facecolor,
+            cname=self.cname,
+            year=year,
+        )
 
 
 def get_cmap_dict():
@@ -1036,21 +1065,30 @@ def get_cmap_dict():
             "turbo": plt.get_cmap("turbo"),
         },
         "qualitative": {
-            "538": ListedColormap([[0, 143 / 255, 213 / 255],
-                                   [252 / 255, 79 / 255, 48 / 255],
-                                   [229 / 255, 174 / 255, 56 / 255],
-                                   [109 / 255, 144 / 255, 79 / 255],
-                                   [139 / 255, 139 / 255, 139 / 255],
-                                   [129 / 255, 15 / 255, 124 / 255]], name="538"),
+            "538": ListedColormap(
+                [
+                    [0, 143 / 255, 213 / 255],
+                    [252 / 255, 79 / 255, 48 / 255],
+                    [229 / 255, 174 / 255, 56 / 255],
+                    [109 / 255, 144 / 255, 79 / 255],
+                    [139 / 255, 139 / 255, 139 / 255],
+                    [129 / 255, 15 / 255, 124 / 255],
+                ],
+                name="538",
+            ),
             "bold": ListedColormap(Bold_10.mpl_colors, name="bold"),
             "brewer": ListedColormap(Set1_9.mpl_colors, name="brewer"),
             "colorblind": ListedColormap(
-                [[0.1, 0.1, 0.1],
-                 [230 / 255, 159 / 255, 0],
-                 [86 / 255, 180 / 255, 233 / 255],
-                 [0, 158 / 255, 115 / 255],
-                 [213 / 255, 94 / 255, 0],
-                 [0, 114 / 255, 178 / 255]], name="colorblind"),
+                [
+                    [0.1, 0.1, 0.1],
+                    [230 / 255, 159 / 255, 0],
+                    [86 / 255, 180 / 255, 233 / 255],
+                    [0, 158 / 255, 115 / 255],
+                    [213 / 255, 94 / 255, 0],
+                    [0, 114 / 255, 178 / 255],
+                ],
+                name="colorblind",
+            ),
             "glasbey": cc.cm.glasbey,
             "glasbey_bw": cc.cm.glasbey_bw,
             "glasbey_category10": cc.cm.glasbey_category10,
@@ -1066,13 +1104,21 @@ def get_cmap_dict():
 
 
 def get_available_ctype():
-    """ return available the colormap type """
+    """return available the colormap type"""
     return get_cmap_dict.keys()
 
 
-def plot_colormap(ctype, cmap_list='all', figsize=None, n_colors=10, facecolor="black",
-                  uniformize=True, symmetrize=False, unif_kwargs=None, sym_kwargs=None
-                  ):
+def plot_colormap(
+    ctype,
+    cmap_list="all",
+    figsize=None,
+    n_colors=10,
+    facecolor="black",
+    uniformize=True,
+    symmetrize=False,
+    unif_kwargs=None,
+    sym_kwargs=None,
+):
     """
     Plot the gradient of the corresponding color palette (or bar plot if qualitative)
 
@@ -1105,7 +1151,7 @@ def plot_colormap(ctype, cmap_list='all', figsize=None, n_colors=10, facecolor="
     gradient = np.linspace(0, 1, n_colors)
     gradient = np.vstack((gradient, gradient))
 
-    if cmap_list == 'all':
+    if cmap_list == "all":
         cmap_list = list(SciCoMap(ctype=ctype).get_color_map_names())
 
     nrows = len(cmap_list)
@@ -1114,7 +1160,7 @@ def plot_colormap(ctype, cmap_list='all', figsize=None, n_colors=10, facecolor="
         figsize = (10, 0.25 * nrows)
 
     fontcolor = "white" if facecolor == "black" else "black"
-    font = {'color': fontcolor, 'size': 16}
+    font = {"color": fontcolor, "size": 16}
     fig, axes = plt.subplots(nrows=nrows, figsize=figsize, facecolor=facecolor)
     fig.subplots_adjust(top=0.95, bottom=0.01, left=0.2, right=0.99)
     axes[0].set_title("Colormaps", fontdict=font)
@@ -1141,7 +1187,7 @@ def plot_colormap(ctype, cmap_list='all', figsize=None, n_colors=10, facecolor="
         x_text = pos[0] - 0.01
         y_text = pos[1] + pos[3] / 2.0
 
-        font = {'color': fontcolor, 'size': 12}
+        font = {"color": fontcolor, "size": 12}
         fig.text(x_text, y_text, name, va="center", ha="right", fontdict=font)
 
     # Turn off *all* ticks & spines, not just the ones with colormaps.
@@ -1150,9 +1196,17 @@ def plot_colormap(ctype, cmap_list='all', figsize=None, n_colors=10, facecolor="
     return fig
 
 
-def plot_colorblind_vision(ctype='sequential', cmap_list='all', figsize=None,
-                           n_colors=10, facecolor="black", uniformize=True,
-                           symmetrize=False, unif_kwargs=None, sym_kwargs=None):
+def plot_colorblind_vision(
+    ctype="sequential",
+    cmap_list="all",
+    figsize=None,
+    n_colors=10,
+    facecolor="black",
+    uniformize=True,
+    symmetrize=False,
+    unif_kwargs=None,
+    sym_kwargs=None,
+):
     """
 
     Render the color map (adjusted or not) in different color deficiencies vision
@@ -1185,7 +1239,7 @@ def plot_colorblind_vision(ctype='sequential', cmap_list='all', figsize=None,
         unif_kwargs = {}
     cm_list = []
 
-    if cmap_list == 'all':
+    if cmap_list == "all":
         cmap_list = list(SciCoMap(ctype=ctype).get_color_map_names())
 
     for name in cmap_list:
@@ -1197,11 +1251,24 @@ def plot_colorblind_vision(ctype='sequential', cmap_list='all', figsize=None,
         cmap = cmap.get_mpl_color_map()
         cm_list.append(cmap)
 
-    return colorblind_vision(cmap=cm_list, figsize=figsize, n_colors=n_colors, facecolor=facecolor)
+    return colorblind_vision(
+        cmap=cm_list, figsize=figsize, n_colors=n_colors, facecolor=facecolor
+    )
 
 
-def compare_cmap(image='scan', ctype="sequential", cm_list=None, ncols=3, uniformize=True,
-                 symmetrize=False, unif_kwargs=None, sym_kwargs=None, facecolor="black"):
+def compare_cmap(
+    image="scan",
+    ctype="sequential",
+    cm_list=None,
+    ncols=3,
+    uniformize=True,
+    title=True,
+    symmetrize=False,
+    unif_kwargs=None,
+    sym_kwargs=None,
+    facecolor="black",
+    figsize=None,
+):
     """
     Utility function to visualize how the different color maps render the details and the information.
     You can pass the image of your choice, like a topographic profile for sequential and sea-earth level for
@@ -1219,6 +1286,8 @@ def compare_cmap(image='scan', ctype="sequential", cm_list=None, ncols=3, unifor
         the number of columns in the matplotlib subplot figure
     :param uniformize: Boolean, default=True
         uniformize or not the cmap before plotting
+    :param title: Boolean, default=True
+        display the cmap name as a title
     :param symmetrize: Boolean, default=False
         symmetrize or not the cmap before plotting
     :param unif_kwargs: dict or None
@@ -1228,6 +1297,8 @@ def compare_cmap(image='scan', ctype="sequential", cm_list=None, ncols=3, unifor
     :param facecolor: str
         the chart face color. It should be a string of builtin matplotlib colors or a string
         corresponding to a hex color.
+    :param figsize: tuple or None
+        the figure size
 
     :return: f, matplotlib figure
     """
@@ -1270,7 +1341,8 @@ def compare_cmap(image='scan', ctype="sequential", cm_list=None, ncols=3, unifor
     n_charts = len(cm_list)
     n_subplots = nrows * ncols
 
-    figsize = (2 * ncols, 2.5 * nrows)
+    if figsize is None:
+        figsize = (2 * ncols, 2.5 * nrows)
     f, axs = plt.subplots(
         nrows=nrows,
         ncols=ncols,
@@ -1299,7 +1371,8 @@ def compare_cmap(image='scan', ctype="sequential", cm_list=None, ncols=3, unifor
             chartcm.symmetrize_cmap(**sym_kwargs)
 
         ax.imshow(lum_img, cmap=chartcm.get_mpl_color_map())
-        ax.set_title(color_map, fontsize=16, color=fontcolor)
+        if title:
+            ax.set_title(color_map, fontsize=16, color=fontcolor)
         # Remove axis clutter
         ax.set_axis_off()
 
@@ -1310,7 +1383,9 @@ def compare_cmap(image='scan', ctype="sequential", cm_list=None, ncols=3, unifor
 
     # Display the figure
     # plt.tight_layout(pad=0, w_pad=0.5, h_pad=0)
-    f.subplots_adjust(wspace=0, hspace=.25)
+    h_space = 0.25 if title else 0.0
+    f.subplots_adjust(wspace=0.0, hspace=h_space)
+
     return f
 
 

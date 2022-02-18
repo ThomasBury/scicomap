@@ -36,7 +36,7 @@ def get_ctab(cmap):
 
 
 def max_chroma(
-        Jp, hp, Cpmin=0.0, Cpmax="auto", eps=1024 * np.finfo(np.float).eps, clip=True
+    Jp, hp, Cpmin=0.0, Cpmax="auto", eps=1024 * np.finfo(np.float).eps, clip=True
 ):
     """
     Compute the maximum allowed chroma given lightness J' and hue h', from the CAM02-UCS
@@ -134,7 +134,9 @@ def classify(Jpapbp):
 
     N = Jpapbp.shape[0]
     large_diff_lum = Jpapbp[:, 0].max() - Jpapbp[:, 0].min() > 0.5
-    first_and_last_simeq = sum(abs(np.floor(Jpapbp[0, ...]) - np.floor(Jpapbp[-1, ...]))) < 4
+    first_and_last_simeq = (
+        sum(abs(np.floor(Jpapbp[0, ...]) - np.floor(Jpapbp[-1, ...]))) < 4
+    )
 
     # some of the cmcrameri colormaps have kind of a small hook at the end of the array
     # artifact increasing the number of extrema by +1. A rough fix is not considering the
@@ -181,7 +183,14 @@ def uniformize(Jpapbp, JpL=None, JpR=None, Jplower=None, Jpupper=None):
 
 
 def factor(
-        Cp, softening=1.0, bitonic=True, diffuse=True, CpL=None, CpR=None, verbose=False, diverging=False
+    Cp,
+    softening=1.0,
+    bitonic=True,
+    diffuse=True,
+    CpL=None,
+    CpR=None,
+    verbose=False,
+    diverging=False,
 ):
     """Compute the factor required to perform several chroma operations"""
     S = Cp + softening
@@ -235,8 +244,8 @@ def adjust_sequential(Jpapbp, roundup=None, bi_seq=False):
 
     if bi_seq:
         x_boundary = extrema(Jpapbp[:, 0])[0]
-        Jpapbp1 = Jpapbp[:x_boundary + 1, ...].copy()
-        Jpapbp2 = Jpapbp[x_boundary + 1:, ...].copy()
+        Jpapbp1 = Jpapbp[: x_boundary + 1, ...].copy()
+        Jpapbp2 = Jpapbp[x_boundary + 1 :, ...].copy()
         Jp = Jpapbp1[:, 0]
         Jplower = min(Jp[0], Jp[-1])
         if roundup is not None:
@@ -286,7 +295,7 @@ def adjust_circular(Jpapbp, roundup=None):
 
     L = uniformize(Jpapbp[: h + 1, :], Jplower=Jplower, Jpupper=Jpupper)
     R = uniformize(Jpapbp[H:, :], Jplower=Jplower, Jpupper=Jpupper)
-    return np.append(L, R[N % 2:, :], axis=0)
+    return np.append(L, R[N % 2 :, :], axis=0)
 
 
 def adjust_divergent(Jpapbp, roundup=None, circular=False, symmetric=True):
@@ -317,12 +326,12 @@ def adjust_divergent(Jpapbp, roundup=None, circular=False, symmetric=True):
 
     L = uniformize(Jpapbp[: h + 1, :], Jplower=Jplower, Jpupper=Jpupper)
     R = uniformize(Jpapbp[H:, :], Jplower=Jplower, Jpupper=Jpupper)
-    Jpapbp_unif = np.append(L, R[N % 2:, :], axis=0)
+    Jpapbp_unif = np.append(L, R[N % 2 :, :], axis=0)
 
     if circular:
         theta = 2 * np.pi * np.linspace(0, 1, out.shape[0])
         out[0, 1:3] = out[-1, 1:3]
-        cs = CubicSpline(theta, out[:, 1:3], bc_type='periodic')
+        cs = CubicSpline(theta, out[:, 1:3], bc_type="periodic")
         Jpapbp_unif[:, 1:3] = cs(theta)
     return Jpapbp_unif
 
@@ -364,8 +373,10 @@ def uniformize_cmap(cmap, name="new_cmap", lift=None, uniformized=False):
         elif cmap_type == "circular-div":
             lin_ctab = adjust_divergent(t_ctab, roundup=lift, circular=True)
         else:
-            warnings.warn("The colormap {} type is unknown (not recognized as sequential or divergent)\n"
-                          "Not uniformized".format(name))
+            warnings.warn(
+                "The colormap {} type is unknown (not recognized as sequential or divergent)\n"
+                "Not uniformized".format(name)
+            )
             lin_ctab = t_ctab
 
         lin_cmap = transform(ctab=lin_ctab, inverse=True)
@@ -405,7 +416,9 @@ def symmetrize_cmap(cmap, name="new_cmap", bitonic=True, diffuse=True):
     return ListedColormap(np.clip(s_cmap, 0, 1), name=name)
 
 
-def unif_sym_cmap(cmap, name="new_cmap", lift=None, uniformized=False, bitonic=True, diffuse=True):
+def unif_sym_cmap(
+    cmap, name="new_cmap", lift=None, uniformized=False, bitonic=True, diffuse=True
+):
     """
     Uniformize the color map (perceptually homogeneous) and Symmetrize the color map
     (symmetric saturation for even perception of both sides of the cmap)
@@ -427,8 +440,13 @@ def unif_sym_cmap(cmap, name="new_cmap", lift=None, uniformized=False, bitonic=T
     :return: cmap object
         a matplotlib colormap
     """
-    uni_cmap, uniformized = uniformize_cmap(cmap, name=name, lift=lift, uniformized=uniformized)
-    return symmetrize_cmap(uni_cmap, name=name, bitonic=bitonic, diffuse=diffuse), uniformized
+    uni_cmap, uniformized = uniformize_cmap(
+        cmap, name=name, lift=lift, uniformized=uniformized
+    )
+    return (
+        symmetrize_cmap(uni_cmap, name=name, bitonic=bitonic, diffuse=diffuse),
+        uniformized,
+    )
 
 
 def _ax_cylinder_JCh(ax, cmap, title):
@@ -470,11 +488,9 @@ def _ax_scatter_Jpapbp(ax, cmap, title):
     x_dots = np.linspace(0, 1, Jpapbp.shape[0])
     RGB_dots = cmap(x_dots)[:, :3]
     Jpapbp_dots = transform(RGB_dots)
-    ax.scatter(Jpapbp_dots[:, 1],
-               Jpapbp_dots[:, 2],
-               Jpapbp_dots[:, 0],
-               c=RGB_dots[:, :],
-               s=80)
+    ax.scatter(
+        Jpapbp_dots[:, 1], Jpapbp_dots[:, 2], Jpapbp_dots[:, 0], c=RGB_dots[:, :], s=80
+    )
     ax.set_xlabel("a' (green -> red)")
     ax.set_ylabel("b' (blue -> yellow)")
     ax.set_zlabel("J'/K (black -> white)")

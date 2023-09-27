@@ -5,13 +5,13 @@ This package is built on matplotlib, colorspacious, viscm and EHTplot packages f
 the color mathematics and transformations and uses colormaps coming from different packages aiming
 to provide scientific colormaps but requiring some adjustments.
 
- - Provide sequential, multi-sequential, diverging, circular and qualitative (discrete) cmaps
- - Uniformize: linearize the CAM02-UCS lightness J'
- - Symmetrize: make the CAM02-UCS chroma C' symmetrical, bitonic or not, smooth or not
- - Get the matplotlib cmap object, before and after the adjustments
- - Charts to assess the quality of the colormaps (JCh plot)
- - Charts to assess the readability by colour weak/deficient/blind people
- - Charts for illustrating all the available colormaps
+- Provide sequential, multi-sequential, diverging, circular and qualitative (discrete) cmaps
+- Uniformize: linearize the CAM02-UCS lightness J'
+- Symmetrize: make the CAM02-UCS chroma C' symmetrical, bitonic or not, smooth or not
+- Get the matplotlib cmap object, before and after the adjustments
+- Charts to assess the quality of the colormaps (JCh plot)
+- Charts to assess the readability by colour weak/deficient/blind people
+- Charts for illustrating all the available colormaps
 
 The module structure is the following:
 ---------------------------------------
@@ -30,9 +30,10 @@ The module structure is the following:
 
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
-from matplotlib.colors import ListedColormap
+from matplotlib.colors import Colormap, ListedColormap
 import numpy as np
 from scicomap.datasets import load_hill_topography, load_scan_image, load_pic
+from typing import List, Tuple, Union, Callable, Optional, Dict, Any
 
 # Scientific Colours
 import colorcet as cc
@@ -65,119 +66,95 @@ from scicomap.utils import (
 
 class SciCoMap:
     """
-    Get a matplotlib compatible color map from different packages.
-    Mainly scientific color maps. Some are suited to a dark background and others for light backgrounds.
+    Get a matplotlib-compatible colormap from different packages, mainly scientific color maps [1]_ [2]_ [3]_ [4]_
 
-    Params:
+    Parameters
+    ----------
+    ctype : str, optional
+        Color map type, one of {'sequential', 'multi-sequential', 'diverging',
+        'circular', 'miscellaneous', 'qualitative'}. Default is 'sequential'.
+    cmap : str or cmap object, optional
+        The name of the color map you want to use or the matplotlib cmap object.
+        Default is 'thermal'.
+
+    Attributes
+    ----------
+    color_map_dic : dict
+        The mapping dictionary for some colormaps.
+    ctype : str
+        Color map type, one of {'sequential', 'diverging', 'qualitative'}.
+    cname : str
+        The name of the color map.
+    cmap : matplotlib cmap or list of hex/rgb
+        The color map.
+    uniformized : bool
+        If the cmap has been uniformized or not.
+
+    Methods
     -------
-    :param ctype: str
-        color map type, either 'sequential', 'multi-sequential', 'diverging',
-         'circular', 'miscellaneous'  or 'qualitative'
-    :param cmap: str or cmap object
-        the name of the color map you want to use or the matplotlib cmap object
-
-
-    Attributes:
-    -----------
-    color_map_dic: dict
-        the mapping dictionary for some colormaps
-    ctype: str,
-        color map type, either 'sequential', 'diverging' or 'qualitative'
-    cname: str,
-        the name of the color map you want to use
-    cmap: matplotlib cmap or list of hex/rgb
-        the color map
-    uniformized: Boolean
-        if the cmap has been uniformized or not
-
-    Methods:
-    --------
     get_ctype()
-        get the colormap type
-
+        Get the colormap type.
     get_mpl_color_map()
-        get the matplotlib color map (cmap object)
-
+        Get the matplotlib colormap (cmap object).
     uniformize_cmap(lift=None)
-        uniformize the colormap (linearize the brightness J')
-        You can use `lift` to make it brighter (increase the
-        minimum brightness of the colormap)
-
+        Uniformize the colormap (linearize the brightness J').
     symmetrize_cmap(bitonic=True, diffuse=True)
-        symmetrise the hue (h'), using bi-tonic or not
-        and smoothing or not the hue curve
-
+        Symmetrize the hue (h').
     unif_sym_cmap(lift=None, bitonic=True, diffuse=True)
-        uniformize and symmetrize at once (first uniformize and then symmetrize)
-
+        Uniformize and symmetrize at once.
     get_color_map_names()
-        get the name of all the available color maps
-
+        Get the name of all the available color maps.
     get_color_map_dic()
-        get the color maps dictionary
-
+        Get the color maps dictionary.
     assess_cmap(figsize=(18, 8))
-        plot the Jch tensor to visualize the brightness (J'), the hue (h')
-        and the chroma (c')
-
-    illustrate_palettes(figsize=(12, 10), n_colors=256):
-        plot the gradient or the discrete palettes of all the colormaps of the given type
-
+        Plot the Jch tensor to visualize the brightness (J'), the hue (h'), and the chroma (c').
+    illustrate_palettes(figsize=(12, 10), n_colors=256)
+        Plot the gradient or discrete palettes of all the colormaps of the given type.
     colorblind(figsize=(12, 5), n_colors=256, facecolor="black")
-        plot the gradient or barchart of the colormap for different kinds of color deficiencies
+        Plot the gradient or barchart of the colormap for different kinds of color deficiencies.
 
-    Example:
+    Examples
     --------
-    ccmap = SciCoMap(ctype='sequential', cname='thermal')
+    ccmap = SciCoMap(ctype='sequential', cmap='thermal')
     mpl_map = ccmap.get_mpl_color_map()
 
-
-
-    References:
-    -----------
-    https://www.kennethmoreland.com/color-advice/
-    https://mycarta.wordpress.com/2012/05/29/the-rainbow-is-dead-long-live-the-rainbow-series-outline/
-    http://www.fabiocrameri.ch/colourmaps.php
-    https://betterfigures.org/2015/06/23/picking-a-colour-scale-for-scientific-graphics/
-
-    etc.
+    References
+    ----------
+    [1] https://www.kennethmoreland.com/color-advice/
+    [2] https://mycarta.wordpress.com/2012/05/29/the-rainbow-is-dead-long-live-the-rainbow-series-outline/
+    [3] http://www.fabiocrameri.ch/colourmaps.php
+    [4] https://betterfigures.org/2015/06/23/picking-a-colour-scale-for-scientific-graphics/
     """
 
-    def __init__(self, ctype="sequential", cmap="thermal"):
-
+    def __init__(self, ctype: str = "sequential", cmap: Union[str, Colormap] = "thermal"):
         self.ctype = ctype
         self.color_map_dic = get_cmap_dict()
-
         self.cmap = cmap
         self.cname = "cmap"
         self.uniformized = False
 
     def __repr__(self):
-
-        s = "SciCoMap(ctype={ctype}, \n" "     cmap={cmap})".format(
-            ctype=self.ctype, cmap=self.cname
-        )
-
+        s = f"SciCoMap(ctype={self.ctype}, cmap={self.cname})"
         return s
 
     @classmethod
-    def get_ctype(cls):
-        """return the colormap type"""
-        return get_cmap_dict().keys()
+    def get_ctype(cls) -> List[str]:
+        """Return the colormap type."""
+        return list(get_cmap_dict().keys())
 
-    def get_mpl_color_map(self):
+    def get_mpl_color_map(self) -> Colormap:
         """
-        Get the matplotlib colormap object
+        Get the matplotlib colormap object.
 
-        :return:
-         color_map: mpl colormap
+        Returns
+        -------
+        color_map : mpl colormap
+            The colormap object.
         """
         if isinstance(self.cmap, str):
             if self.cmap not in self.color_map_dic[self.ctype].keys():
                 raise ValueError(
-                    "Current builtin cmap are: {}".format(
-                        self.color_map_dic[self.ctype].keys()
-                    )
+                    f"Current built-in cmaps are: {self.color_map_dic[self.ctype].keys()}"
                 )
             self.cname = self.cmap
             self.cmap = self.color_map_dic[self.ctype][self.cmap]
@@ -186,58 +163,74 @@ class SciCoMap:
 
         return self.cmap
 
-    def uniformize_cmap(self, lift=None):
+    def uniformize_cmap(self, lift: Optional[int] = None):
         """
         Uniformize the colormap, meaning linearizing the brightness (J')
         in the CAM02-UCS color space.
 
-        :param lift: None or int in [0, 100]
-            lift or not the darkest part of the cmap
+        Parameters
+        ----------
+        lift : None or int in [0, 100], optional
+            Lift or not the darkest part of the colormap.
 
-        :return:
+        Returns
+        -------
+        None
         """
         self.get_mpl_color_map()
         self.cmap, self.uniformized = uniformize_cmap(
             cmap=self.cmap, name=self.cname, lift=lift, uniformized=self.uniformized
         )
 
-    def symmetrize_cmap(self, bitonic=True, diffuse=True):
+    def symmetrize_cmap(self, bitonic: bool = True, diffuse: bool = True):
         """
         Symmetrize the colormap (the hue) in the CAM02-UCS color space.
         It can be symmetrized in a bitonic way or not (if bitonic, the hue
-        curve will be symmetric with an extremum at its centre)
+        curve will be symmetric with an extremum at its center).
 
-        The hue curve can be smoothed (diffuse) or not (edges might occur)
+        The hue curve can be smoothed (diffuse) or not (edges might occur).
 
-        :param bitonic: Boolean, default=True
-            Bitonic symmetrization or not (extremum located at the centre of the hue curve)
-        :param diffuse: Boolean, default=True
-            Smooth hue curve or not (if not, edges might occur)
-        :return:
+        Parameters
+        ----------
+        bitonic : bool, optional (default=True)
+            Bitonic symmetrization or not (extremum located at the center of the hue curve).
+        diffuse : bool, optional (default=True)
+            Smooth hue curve or not (if not, edges might occur).
+
+        Returns
+        -------
+        None
         """
         self.get_mpl_color_map()
         self.cmap = symmetrize_cmap(
             cmap=self.cmap, name=self.cname, bitonic=bitonic, diffuse=diffuse
         )
 
-    def unif_sym_cmap(self, lift=None, bitonic=True, diffuse=True):
+    def unif_sym_cmap(
+        self, lift: Optional[int] = None, bitonic: bool = True, diffuse: bool = True
+    ):
         """
         First, uniformize the colormap, meaning linearizing the brightness (J')
         in the CAM02-UCS color space.
 
         Second, symmetrize the colormap (the hue) in the CAM02-UCS color space.
         It can be symmetrized in a bitonic way or not (if bitonic, the hue
-        curve will be symmetric with an extremum at its centre)
+        curve will be symmetric with an extremum at its center).
 
-        The hue curve can be smoothed (diffuse) or not (edges might occur)
+        The hue curve can be smoothed (diffuse) or not (edges might occur).
 
-        :param lift: None or int in [0, 100]
-            lift or not the darkest part of the cmap
-        :param bitonic: Boolean, default=True
-            Bitonic symmetrization or not (extremum located at the centre of the hue curve)
-        :param diffuse: Boolean, default=True
-            Smooth hue curve or not (if not, edges might occur)
-        :return:
+        Parameters
+        ----------
+        lift : None or int in [0, 100], optional
+            Lift or not the darkest part of the colormap.
+        bitonic : bool, optional (default=True)
+            Bitonic symmetrization or not (extremum located at the center of the hue curve).
+        diffuse : bool, optional (default=True)
+            Smooth hue curve or not (if not, edges might occur).
+
+        Returns
+        -------
+        None
         """
         self.get_mpl_color_map()
         self.cmap, self.uniformized = unif_sym_cmap(
@@ -249,86 +242,101 @@ class SciCoMap:
             diffuse=diffuse,
         )
 
-    def get_color_map_names(self):
+    def get_color_map_names(self) -> List[str]:
         """
-        Get the names of the implemented colormaps for the chosen ctype
+        Get the names of the implemented colormaps for the chosen ctype.
 
-        :return: list
-            list of colormap names
+        Returns
+        -------
+        List of str
+            List of colormap names.
         """
-        return self.color_map_dic[self.ctype].keys()
+        return list(self.color_map_dic[self.ctype].keys())
 
     @classmethod
-    def get_color_map_dic(cls):
+    def get_color_map_dic(cls) -> dict:
         """
-        Get the mapping dict of all the available color maps
+        Get the mapping dict of all the available color maps.
 
-        :return: dict,
-            the dictionary of all the color maps for all ctypes
+        Returns
+        -------
+        dict
+            The dictionary of all the color maps for all ctypes.
         """
         return get_cmap_dict()
 
-    def assess_cmap(self, figsize=(18, 8)):
+    def assess_cmap(self, figsize: Tuple[int, int] = (18, 8)) -> plt.figure:
         """
-        Stolen from the ehtplot package
+        Plot J', C', and h' of a colormap as a function of the mapped value.
 
-        Plot J', C', and h' of a colormap as function of the mapped value
-
-        The CAM02-UCS lightness J' is linearized for
-        generating perceptually uniform colormaps (working definition of Perceptually
-        Uniform Sequential colormaps by matplotlib).
+        The CAM02-UCS lightness J' is linearized for generating perceptually uniform colormaps
+        (working definition of Perceptually Uniform Sequential colormaps by matplotlib).
 
         Hue h' can encode an additional physical quantity in an image
         (when used in this way, the change of hue should be linearly
-        proportional to the quantity)
+        proportional to the quantity).
 
         The other dimension chroma is less recognizable and should not be
         used to encode physical information. Since sRGB is only a subset
         of the Lab color space, there are human recognizable colors that
         are not displayable. In order to accurately represent the physical
-        quantities
+        quantities.
 
-        :param figsize: 2-uple of int
-            the figure size
-        :return fig object
-            the matplotlib figure object
+        Parameters
+        ----------
+        figsize : 2-tuple of int, optional
+            The figure size.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+            The matplotlib figure object.
         """
         color_map = self.get_mpl_color_map()
         return jch_plot(cmap=color_map, figsize=figsize)
 
-    def illustrate_palettes(self, figsize=(12, 10), n_colors=256, facecolor="black"):
+    def illustrate_palettes(
+        self, figsize: Tuple[int, int] = (12, 10), n_colors: int = 256, facecolor: str = "black"
+    ):
         """
-        Draw the gradient or discrete color palettes for each colormaps of the chosen ctype
+        Draw the gradient or discrete color palettes for each colormap of the chosen ctype.
 
-        :param figsize: 2-uple of int
-            the figure size
-        :param n_colors: int, default=10
-            the number of colors to plot (e.g. 10 for qualitative and 256 for continuous)
-        :param facecolor: str
-            the chart face color. It should be a string of builtin matplotlib colors or a string
-            corresponding to a hex color.
+        Parameters
+        ----------
+        figsize : 2-tuple of int, optional
+            The figure size.
+        n_colors : int, optional
+            The number of colors to plot (e.g., 10 for qualitative and 256 for continuous).
+        facecolor : str, optional
+            The chart face color. It should be a string of built-in matplotlib colors or a hex color.
 
-        :return:
+        Returns
+        -------
+        None
         """
         cmap_list = self.get_color_map_names()
         ctype = self.ctype
         plot_colormap(ctype, cmap_list, figsize, n_colors, facecolor)
         plt.show()
 
-    def colorblind(self, figsize=(12, 5), n_colors=256, facecolor="black"):
+    def colorblind(
+        self, figsize: Tuple[int, int] = (12, 5), n_colors: int = 256, facecolor: str = "black"
+    ):
         """
-        Draw the gradient or discrete color palettes for different kind of color vision deficiencies
-        (provide the color vision deficiencies rendering of the visible spectrum for comparison).
+        Draw the gradient or discrete color palettes for different kinds of color vision deficiencies.
 
-        :param figsize: 2-uple of int
-            the figure size
-        :param n_colors: int, default=10
-            the number of colors to plot (e.g. 10 for qualitative and 256 for continuous)
-        :param facecolor: str
-            the chart face color. It should be a string of builtin matplotlib colors or a string
-            corresponding to a hex color.
+        Parameters
+        ----------
+        figsize : 2-tuple of int, optional
+            The figure size.
+        n_colors : int, optional
+            The number of colors to plot (e.g., 10 for qualitative and 256 for continuous).
+        facecolor : str, optional
+            The chart face color. It should be a string of built-in matplotlib colors or a hex color.
 
-        :return:
+        Returns
+        -------
+        None
         """
         plot_colorblind_vision(
             ctype=self.ctype,
@@ -338,78 +346,78 @@ class SciCoMap:
             facecolor=facecolor,
         )
 
-
 class ScicoSequential(SciCoMap):
     """
-    Get a matplotlib compatible sequential color map from different packages
-    providing scientific color maps. The color map can be uniformized and symmetrized if needed.
-    The perception can be assessed as well as the color vision deficient rendering.
+    Get a matplotlib-compatible sequential color map from different packages providing scientific color maps [1]_ [2]_ [3]_ [4]_
 
-    This is useful for continuous values, for which there is no "centre" or mid value.
+    Parameters
+    ----------
+    cmap : str or matplotlib colormap, optional
+        The name of the color map you want to use. Default is 'thermal'.
 
-    Some are suited to a dark background and other for light backgrounds.
+    Attributes
+    ----------
+    color_map_dic : dict
+        The mapping dictionary for some colormaps.
+    ctype : str
+        Color map type, one of {'sequential', 'diverging', 'qualitative'}.
+    cname : str
+        The name of the color map.
+    cmap : matplotlib colormap or list of hex/rgb
+        The color map.
 
-    Params:
+    Methods
     -------
-    :param cmap: str or matplotlib cmap
-        the name of the color map you want to use
-
-
-    Attributes:
-    -----------
-    color_map_dic: dict
-        the mapping dictionary for some colormaps
-    ctype: str,
-        color map type, either 'sequential', 'diverging' or 'qualitative'
-    cname: str,
-        the name of the color map you want to use
-    cmap: matplotlib cmap or list of hex/rgb
-        the color map
-
-    Methods:
-    --------
     get_mpl_color_map()
-        get the matplotlib color map (or list of hex/rgb colors for qualitative)
-
+        Get the matplotlib color map (or list of hex/rgb colors for qualitative).
     get_color_map_names()
-        get the name of all the available color maps
-
+        Get the name of all the available color maps.
     get_color_map_dic()
-        get the color maps dictionary
-
-    illustrate_palettes():
-        plot the gradient or the discrete palettes (all of them)
-
+        Get the color maps dictionary.
+    illustrate_palettes()
+        Plot the gradient or the discrete palettes (all of them).
     draw_example(facecolor="black")
-        draw two charts for illustrative purposes
+        Draw two charts for illustrative purposes.
 
-    Example:
+    Examples
     --------
     sc_map = ScicoSequential(cname='chroma')
     mpl_map = sc_map.get_mpl_color_map()
     sc_map.draw_example()
 
-
-
-    References:
-    -----------
-    https://www.kennethmoreland.com/color-advice/
-    https://mycarta.wordpress.com/2012/05/29/the-rainbow-is-dead-long-live-the-rainbow-series-outline/
-    http://www.fabiocrameri.ch/colourmaps.php
-    https://betterfigures.org/2015/06/23/picking-a-colour-scale-for-scientific-graphics/
+    References
+    ----------
+    [1] https://www.kennethmoreland.com/color-advice/
+    [2] https://mycarta.wordpress.com/2012/05/29/the-rainbow-is-dead-long-live-the-rainbow-series-outline/
+    [3] http://www.fabiocrameri.ch/colourmaps.php
+    [4] https://betterfigures.org/2015/06/23/picking-a-colour-scale-for-scientific-graphics/
     """
 
-    def __init__(self, cmap="thermal"):
+    def __init__(self, cmap: Union[str, Colormap] = "thermal"):
         super().__init__(cmap=cmap, ctype="sequential")
 
     def __repr__(self):
-
-        s = "ScicoSequential(cmap={cmap})".format(cmap=self.cname)
-
+        s = f"ScicoSequential(cmap={self.cname})"
         return s
 
+    def draw_example(self, facecolor: str = "black", figsize: tuple = (20, 20), cblind: bool = True):
+        """
+        Draw two charts for illustrative purposes.
 
-    def draw_example(self, facecolor="black", figsize=(20, 20), cblind=True):
+        Parameters
+        ----------
+        facecolor : str, optional
+            The chart face color. It should be a string of built-in matplotlib colors or a hex color.
+        figsize : tuple, optional
+            The figure size.
+        cblind : bool, optional
+            Whether to simulate color vision deficiencies.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+            The matplotlib figure object.
+        """
         color_map = self.get_mpl_color_map()
         elevation = load_hill_topography()
         scan_im = load_scan_image()
@@ -429,74 +437,80 @@ class ScicoSequential(SciCoMap):
 
         return fig
 
-
 class ScicoMultiSequential(SciCoMap):
     """
-    Get a matplotlib compatible sequential color map from different packages.
-    This is useful for continuous values, for which there is no "centre" or mid value
-    (if there is one, use ScicoDiverging)
-    Some are suited to a dark background and others for light backgrounds.
+    Get a matplotlib-compatible sequential color map from different packages.
+    Useful for continuous values, for which there is no "centre" or mid-value.
+    Some are suited to a dark background, and others for light backgrounds.
 
-    Params:
+    Parameters
+    ----------
+    cmap : str or matplotlib colormap, optional
+        The name of the color map you want to use. Default is 'chroma'.
+
+    Attributes
+    ----------
+    color_map_dic : dict
+        The mapping dictionary for some colormaps.
+    ctype : str
+        Color map type, one of {'sequential', 'diverging', 'qualitative'}.
+    cname : str
+        The name of the color map.
+    cmap : matplotlib colormap or list of hex/rgb
+        The color map.
+
+    Methods
     -------
-    :param cmap: str or matplotlib cmap
-        the name of the color map you want to use
-
-
-    Attributes:
-    -----------
-    color_map_dic: dict
-        the mapping dictionary for some colormaps
-    ctype: str,
-        color map type, either 'sequential', 'diverging' or 'qualitative'
-    cname: str,
-        the name of the color map you want to use
-    cmap: matplotlib cmap or list of hex/rgb
-        the color map
-
-    Methods:
-    --------
     get_mpl_color_map()
-        get the matplotlib color map (or list of hex/rgb colors for qualitative)
-
+        Get the matplotlib color map (or list of hex/rgb colors for qualitative).
     get_color_map_names()
-        get the name of all the available color maps
-
+        Get the name of all the available color maps.
     get_color_map_dic()
-        get the color maps dictionary
-
-    illustrate_palettes():
-        plot the gradient or the discrete palettes (all of them)
-
+        Get the color maps dictionary.
+    illustrate_palettes()
+        Plot the gradient or the discrete palettes (all of them).
     draw_example(facecolor="black")
-        draw two charts for illustrative purposes
+        Draw two charts for illustrative purposes.
 
-    Example:
+    Examples
     --------
-    sc_map = ScicoSequential(cname='chroma')
+    sc_map = ScicoMultiSequential(cname='chroma')
     mpl_map = sc_map.get_mpl_color_map()
     sc_map.draw_example()
 
-
-
-    References:
-    -----------
-    https://www.kennethmoreland.com/color-advice/
-    https://mycarta.wordpress.com/2012/05/29/the-rainbow-is-dead-long-live-the-rainbow-series-outline/
-    http://www.fabiocrameri.ch/colourmaps.php
-    https://betterfigures.org/2015/06/23/picking-a-colour-scale-for-scientific-graphics/
+    References
+    ----------
+    [1] https://www.kennethmoreland.com/color-advice/
+    [2] https://mycarta.wordpress.com/2012/05/29/the-rainbow-is-dead-long-live-the-rainbow-series-outline/
+    [3] http://www.fabiocrameri.ch/colourmaps.php
+    [4] https://betterfigures.org/2015/06/23/picking-a-colour-scale-for-scientific-graphics/
     """
 
-    def __init__(self, cmap="chroma"):
+    def __init__(self, cmap: Union[str, Colormap] = "chroma"):
         super().__init__(cmap=cmap, ctype="multi-sequential")
 
     def __repr__(self):
-
-        s = "ScicoMultiSequential(cmap={cmap})".format(cmap=self.cname)
-
+        s = f"ScicoMultiSequential(cmap={self.cname})"
         return s
 
-    def draw_example(self, facecolor="black", figsize=(20, 20), cblind=True):
+    def draw_example(self, facecolor: str = "black", figsize: tuple = (20, 20), cblind: bool = True):
+        """
+        Draw two charts for illustrative purposes.
+
+        Parameters
+        ----------
+        facecolor : str, optional
+            The chart face color. It should be a string of built-in matplotlib colors or a hex color.
+        figsize : tuple, optional
+            The figure size.
+        cblind : bool, optional
+            Whether to simulate color vision deficiencies.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+            The matplotlib figure object.
+        """
         color_map = self.get_mpl_color_map()
         elevation = load_hill_topography()
         scan_im = load_scan_image()
@@ -519,70 +533,76 @@ class ScicoMultiSequential(SciCoMap):
 
 class ScicoDiverging(SciCoMap):
     """
-    Get a matplotlib compatible diverging color map from different packages.
-    This is useful for continuous values, for which there is a "centre" or mid value
-    (if there isn't, use ScicoSequential)
-    Some are suited to a dark background and others for light backgrounds.
+    Get a matplotlib-compatible diverging color map from different packages.
+    Useful for continuous values with a "center" or mid-value.
+    Some are suited to dark backgrounds, and others for light backgrounds [1]_ [2]_ [3]_ [4]_
 
-    Params:
+    Parameters
+    ----------
+    cmap : str or matplotlib colormap, optional
+        The name of the color map you want to use. Default is 'wildfire'.
+
+    Attributes
+    ----------
+    color_map_dic : dict
+        The mapping dictionary for some colormaps.
+    ctype : str
+        Color map type, one of {'sequential', 'diverging', 'qualitative'}.
+    cname : str
+        The name of the color map.
+    cmap : matplotlib colormap or list of hex/rgb
+        The color map.
+
+    Methods
     -------
-    :param cmap: str or matplotlib cmap
-        the name of the color map you want to use
-
-    Attributes:
-    -----------
-    color_map_dic: dict
-        the mapping dictionary for some colormaps
-    ctype: str,
-        color map type, either 'sequential', 'diverging' or 'qualitative'
-    cname: str,
-        the name of the color map you want to use
-    cmap: matplotlib cmap or list of hex/rgb
-        the color map
-
-    Methods:
-    --------
     get_mpl_color_map()
-        get the matplotlib color map (or list of hex/rgb colors for qualitative)
-
+        Get the matplotlib color map (or list of hex/rgb colors for qualitative).
     get_color_map_names()
-        get the name of all the available color maps
-
+        Get the name of all the available color maps.
     get_color_map_dic()
-        get the color maps dictionary
-
-    illustrate_palettes():
-        plot the gradient or the discrete palettes (all of them)
-
+        Get the color maps dictionary.
+    illustrate_palettes()
+        Plot the gradient or the discrete palettes (all of them).
     draw_example(facecolor="black")
-        draw two charts for illustrative purposes
+        Draw two charts for illustrative purposes.
 
-    Example:
+    Examples
     --------
     sc_map = ScicoDiverging(cname='redshift')
     mpl_map = sc_map.get_mpl_color_map()
     sc_map.draw_example()
 
-
-
-    References:
-    -----------
-    https://www.kennethmoreland.com/color-advice/
-    https://mycarta.wordpress.com/2012/05/29/the-rainbow-is-dead-long-live-the-rainbow-series-outline/
-    http://www.fabiocrameri.ch/colourmaps.php
-    https://betterfigures.org/2015/06/23/picking-a-colour-scale-for-scientific-graphics/
+    References
+    ----------
+    [1] https://www.kennethmoreland.com/color-advice/
+    [2] https://mycarta.wordpress.com/2012/05/29/the-rainbow-is-dead-long-live-the-rainbow-series-outline/
+    [3] http://www.fabiocrameri.ch/colourmaps.php
+    [4] https://betterfigures.org/2015/06/23/picking-a-colour-scale-for-scientific-graphics/
     """
 
-    def __init__(self, cmap="wildfire"):
+    def __init__(self, cmap: Union[str, Colormap] = "wildfire"):
         super().__init__(cmap=cmap, ctype="diverging")
 
     def __repr__(self):
-
-        s = "ScicoDiverging(cmap={cmap})".format(cmap=self.cname)
-
+        s = f"ScicoDiverging(cmap={self.cname})"
         return s
 
-    def draw_example(self, facecolor="black", figsize=(20, 20)):
+    def draw_example(self, facecolor: str = "black", figsize: tuple = (20, 20)):
+        """
+        Draw two charts for illustrative purposes.
+
+        Parameters
+        ----------
+        facecolor : str, optional
+            The chart face color. It should be a string of built-in matplotlib colors or a hex color.
+        figsize : tuple, optional
+            The figure size.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+            The matplotlib figure object.
+        """
         color_map = self.get_mpl_color_map()
         # Create diverging image data
         image_div = _fn_with_roots()
@@ -606,72 +626,79 @@ class ScicoDiverging(SciCoMap):
 
 class ScicoCircular(SciCoMap):
     """
-    Get a matplotlib compatible circular color map from different packages.
-    This is useful for anglular values (circular "flat" as the phase cmap),
-    for which there is no "centre" or mid value
-    (if there is one, use ScicoDiverging)
-    Some are suited to a dark background and others for light backgrounds.
+    Get a matplotlib-compatible circular color map from different packages.
+    Useful for angular values (circular "flat" as the phase cmap).
+    There is no "center" or mid-value for circular color maps.
+    Some are suited for dark backgrounds, and others for light backgrounds [1]_ [2]_ [3]_ [4]_
 
-    Params:
+    Parameters
+    ----------
+    cmap : str or matplotlib colormap, optional
+        The name of the color map you want to use. Default is 'colorwheel'.
+
+    Attributes
+    ----------
+    color_map_dic : dict
+        The mapping dictionary for some colormaps.
+    ctype : str
+        Color map type, one of {'sequential', 'diverging', 'qualitative'}.
+    cname : str
+        The name of the color map.
+    cmap : matplotlib colormap or list of hex/rgb
+        The color map.
+
+    Methods
     -------
-    :param cmap: str or matplotlib cmap
-        the name of the color map you want to use
-
-
-    Attributes:
-    -----------
-    color_map_dic: dict
-        the mapping dictionary for some colormaps
-    ctype: str,
-        color map type, either 'sequential', 'diverging' or 'qualitative'
-    cname: str,
-        the name of the color map you want to use
-    cmap: matplotlib cmap or list of hex/rgb
-        the color map
-
-    Methods:
-    --------
     get_mpl_color_map()
-        get the matplotlib color map (or list of hex/rgb colors for qualitative)
-
+        Get the matplotlib color map (or list of hex/rgb colors for qualitative).
     get_color_map_names()
-        get the name of all the available color maps
-
+        Get the name of all the available color maps.
     get_color_map_dic()
-        get the color maps dictionary
-
-    illustrate_palettes():
-        plot the gradient or the discrete palettes (all of them)
-
+        Get the color maps dictionary.
+    illustrate_palettes()
+        Plot the gradient or the discrete palettes (all of them).
     draw_example(facecolor="black")
-        draw two charts for illustrative purposes
+        Draw two charts for illustrative purposes.
 
-    Example:
+    Examples
     --------
-    sc_map = ScicoSequential(cname='chroma')
+    sc_map = ScicoCircular(cname='colorwheel')
     mpl_map = sc_map.get_mpl_color_map()
     sc_map.draw_example()
 
-
-
-    References:
-    -----------
-    https://www.kennethmoreland.com/color-advice/
-    https://mycarta.wordpress.com/2012/05/29/the-rainbow-is-dead-long-live-the-rainbow-series-outline/
-    http://www.fabiocrameri.ch/colourmaps.php
-    https://betterfigures.org/2015/06/23/picking-a-colour-scale-for-scientific-graphics/
+    References
+    ----------
+    [1] https://www.kennethmoreland.com/color-advice/
+    [2] https://mycarta.wordpress.com/2012/05/29/the-rainbow-is-dead-long-live-the-rainbow-series-outline/
+    [3] http://www.fabiocrameri.ch/colourmaps.php
+    [4] https://betterfigures.org/2015/06/23/picking-a-colour-scale-for-scientific-graphics/
     """
 
-    def __init__(self, cmap="colorwheel"):
+    def __init__(self, cmap: Union[str, Colormap] = "colorwheel"):
         super().__init__(cmap=cmap, ctype="circular")
 
     def __repr__(self):
-
-        s = "ScicoCircular(cmap={cmap})".format(cmap=self.cname)
-
+        s = f"ScicoCircular(cmap={self.cname})"
         return s
 
-    def draw_example(self, facecolor="black", figsize=(20, 20), cblind=True):
+    def draw_example(self, facecolor: str = "black", figsize: tuple = (20, 20), cblind: bool = True):
+        """
+        Draw two charts for illustrative purposes.
+
+        Parameters
+        ----------
+        facecolor : str, optional
+            The chart face color. It should be a string of built-in matplotlib colors or a hex color.
+        figsize : tuple, optional
+            The figure size.
+        cblind : bool, optional
+            Plot the colorblind version. Default is True.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+            The matplotlib figure object.
+        """
         color_map = self.get_mpl_color_map()
         elevation = load_hill_topography()
         scan_im = load_scan_image()
@@ -693,73 +720,77 @@ class ScicoCircular(SciCoMap):
 
 class ScicoMiscellaneous(SciCoMap):
     """
-    Get a matplotlib compatible sequential color map from different packages.
-    This is useful for continuous values, for which there is no "center" or mid value
-    (if there is one, use ScicoDiverging)
-    Some are suited to a dark background and others for light backgrounds.
+    Get a matplotlib-compatible sequential color map from different packages.
+    Useful for continuous values, for which there is no "center" or mid-value.
+    Some are suited for dark backgrounds, and others for light backgrounds [1]_ [2]_ [3]_ [4]_
 
-    Params:
+    Parameters
+    ----------
+    cmap : str or matplotlib colormap, optional
+        The name of the color map you want to use. Default is 'turbo'.
+
+    Attributes
+    ----------
+    color_map_dic : dict
+        The mapping dictionary for some colormaps.
+    ctype : str
+        Color map type, one of {'sequential', 'diverging', 'qualitative'}.
+    cname : str
+        The name of the color map.
+    cmap : matplotlib colormap or list of hex/rgb
+        The color map.
+
+    Methods
     -------
-    :param cmap: str or matplotlib cmap
-        the name of the color map you want to use
-
-
-    Attributes:
-    -----------
-    color_map_dic: dict
-        the mapping dictionary for some colormaps
-    ctype: str,
-        color map type, either 'sequential', 'diverging' or 'qualitative'
-    cname: str,
-        the name of the color map you want to use
-    cmap: matplotlib cmap or list of hex/rgb
-        the color map
-
-    Methods:
-    --------
     get_mpl_color_map()
-        get the matplotlib color map (or list of hex/rgb colors for qualitative)
-
+        Get the matplotlib color map (or list of hex/rgb colors for qualitative).
     get_color_map_names()
-        get the name of all the available color maps
-
+        Get the name of all the available color maps.
     get_color_map_dic()
-        get the color maps dictionary
-
-    illustrate_palettes():
-        plot the gradient or the discrete palettes (all of them)
-
+        Get the color maps dictionary.
+    illustrate_palettes()
+        Plot the gradient or the discrete palettes (all of them).
     draw_example(facecolor="black")
-        draw two charts for illustrative purposes
+        Draw two charts for illustrative purposes.
 
-    Example:
+    Examples
     --------
     sc_map = ScicoSequential(cname='chroma')
     mpl_map = sc_map.get_mpl_color_map()
     sc_map.draw_example()
 
-
-
-    References:
-    -----------
-    https://www.kennethmoreland.com/color-advice/
-    https://mycarta.wordpress.com/2012/05/29/the-rainbow-is-dead-long-live-the-rainbow-series-outline/
-    http://www.fabiocrameri.ch/colourmaps.php
-    https://betterfigures.org/2015/06/23/picking-a-colour-scale-for-scientific-graphics/
+    References
+    ----------
+    [1] https://www.kennethmoreland.com/color-advice/
+    [2] https://mycarta.wordpress.com/2012/05/29/the-rainbow-is-dead-long-live-the-rainbow-series-outline/
+    [3] http://www.fabiocrameri.ch/colourmaps.php
+    [4] https://betterfigures.org/2015/06/23/picking-a-colour-scale-for-scientific-graphics/
     """
 
-    def __init__(self, cmap="turbo"):
+    def __init__(self, cmap: Union[str, Colormap] = "turbo"):
         super().__init__(cmap=cmap, ctype="miscellaneous")
 
     def __repr__(self):
-
-        s = "ScicoMiscellaneous(cmap={cmap})".format(cmap=self.cname)
-
+        s = f"ScicoMiscellaneous(cmap={self.cname})"
         return s
 
-    def draw_example(self, facecolor="black", figsize=(20, 20)):
+    def draw_example(self, facecolor: str = "black", figsize: tuple = (20, 20)):
+        """
+        Draw two charts for illustrative purposes.
+
+        Parameters
+        ----------
+        facecolor : str, optional
+            The chart face color. It should be a string of built-in matplotlib colors or a hex color.
+        figsize : tuple, optional
+            The figure size.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+            The matplotlib figure object.
+        """
         color_map = self.get_mpl_color_map()
-        # Create diverging image data
         image_div = _fn_with_roots()
         xpyr, ypyr, zpyr = _pyramid_zombie(stacked=False)
         per_x, per_z, per_z = _periodic_fn()
@@ -781,70 +812,76 @@ class ScicoMiscellaneous(SciCoMap):
 
 class ScicoQualitative(SciCoMap):
     """
-    Get a matplotlib compatible qualitative list of colors from different packages.
-    This is useful for discrete values or categorical variables.
-    Some are suited to a dark background and others for light backgrounds.
+    Get a matplotlib-compatible qualitative list of colors from different packages.
+    Useful for discrete values or categorical variables.
+    Some are suited for dark backgrounds, and others for light backgrounds [1]_ [2]_ [3]_ [4]_
 
-    Params:
+    Parameters
+    ----------
+    cmap : str or matplotlib colormap, optional
+        The name of the color map you want to use. Default is 'glasbey_dark'.
+
+    Attributes
+    ----------
+    color_map_dic : dict
+        The mapping dictionary for some colormaps.
+    ctype : str
+        Color map type, one of {'sequential', 'diverging', 'qualitative'}.
+    cname : str
+        The name of the color map.
+    cmap : matplotlib colormap or list of hex/rgb
+        The color map.
+
+    Methods
     -------
-    :param cmap: str or matplotlib cmap
-        the name of the color map you want to use
-
-
-    Attributes:
-    -----------
-    color_map_dic: dict
-        the mapping dictionary for some colormaps
-    ctype: str,
-        color map type, either 'sequential', 'diverging' or 'qualitative'
-    cname: str,
-        the name of the color map you want to use
-    cmap: matplotlib cmap or list of hex/rgb
-        the color map
-
-    Methods:
-    --------
     get_mpl_color_map()
-        get the matplotlib color map (or list of hex/rgb colors for qualitative)
-
+        Get the matplotlib color map (or list of hex/rgb colors for qualitative).
     get_color_map_names()
-        get the name of all the available color maps
-
+        Get the name of all the available color maps.
     get_color_map_dic()
-        get the color maps dictionary
-
-    illustrate_palettes():
-        plot the gradient or the discrete palettes (all of them)
-
+        Get the color maps dictionary.
+    illustrate_palettes()
+        Plot the gradient or the discrete palettes (all of them).
     draw_example(facecolor="black")
-        draw two charts for illustrative purposes
+        Draw two charts for illustrative purposes.
 
-    Example:
+    Examples
     --------
     sc_map = ScicoQualitative(cname='glasbey_dark')
     mpl_map = sc_map.get_mpl_color_map()
     sc_map.draw_example()
 
-
-
-    References:
-    -----------
-    https://www.kennethmoreland.com/color-advice/
-    https://mycarta.wordpress.com/2012/05/29/the-rainbow-is-dead-long-live-the-rainbow-series-outline/
-    http://www.fabiocrameri.ch/colourmaps.php
-    https://betterfigures.org/2015/06/23/picking-a-colour-scale-for-scientific-graphics/
+    References
+    ----------
+    [1] https://www.kennethmoreland.com/color-advice/
+    [2] https://mycarta.wordpress.com/2012/05/29/the-rainbow-is-dead-long-live-the-rainbow-series-outline/
+    [3] http://www.fabiocrameri.ch/colourmaps.php
+    [4] https://betterfigures.org/2015/06/23/picking-a-colour-scale-for-scientific-graphics/
     """
 
-    def __init__(self, cmap="glasbey_dark"):
+    def __init__(self, cmap: Union[str, Colormap] = "glasbey_dark"):
         super().__init__(cmap=cmap, ctype="qualitative")
 
     def __repr__(self):
-
-        s = "ScicoQualitative(cmap={cmap})".format(cmap=self.cname)
-
+        s = f"ScicoQualitative(cmap={self.cname})"
         return s
 
-    def draw_example(self, facecolor="black", figsize=(20, 20)):
+    def draw_example(self, facecolor: str = "black", figsize: tuple = (20, 20)):
+        """
+        Draw two charts for illustrative purposes.
+
+        Parameters
+        ----------
+        facecolor : str, optional
+            The chart face color. It should be a string of built-in matplotlib colors or a hex color.
+        figsize : tuple, optional
+            The figure size.
+
+        Returns
+        -------
+        matplotlib.figure.Figure
+            The matplotlib figure object.
+        """
         color_map = self.get_mpl_color_map()
 
         # data from United Nations World Population Prospects (Revision 2019)
@@ -884,7 +921,17 @@ class ScicoQualitative(SciCoMap):
         )
 
 
-def get_cmap_dict():
+def get_cmap_dict() -> Dict[str, Dict[str, Any]]:
+    """
+    Get a dictionary of color maps organized by categories.
+
+    Returns
+    -------
+    dict
+        A nested dictionary containing various color maps categorized as 'diverging', 'sequential',
+        'multi-sequential', 'circular', 'miscellaneous', and 'qualitative'. Each category
+        contains a dictionary of color maps with their associated names.
+    """
     cmap_dict = {
         "diverging": {
             "berlin": scico.berlin,
@@ -1423,7 +1470,7 @@ def jch_plot(cmap, figsize=(12, 10)):
     f.suptitle(title_str, fontsize=24)
 
     ax0 = f.add_subplot(2, 4, 1)
-    ax0 = _ax_cylinder_JCh(ax0, cmap, title="Normal (90-95% of pop)")
+    ax0 = _ax_cylinder_JCh(ax0, cmap, title="Normal (90-95%% of pop)")
 
     ax2 = f.add_subplot(2, 4, 3)
     ax2 = _ax_cylinder_JCh(ax2, deuter50_cm, title="Deuter-50%, RG-weak")
@@ -1435,7 +1482,7 @@ def jch_plot(cmap, figsize=(12, 10)):
     ax6 = _ax_cylinder_JCh(ax6, trit100_cm, title="Trit-100%, BY deficient")
 
     ax3d = f.add_subplot(2, 4, 2, projection="3d", elev=25, azim=-75)
-    ax3d = _ax_scatter_Jpapbp(ax3d, cmap, title="Normal (90-95% of pop)")
+    ax3d = _ax_scatter_Jpapbp(ax3d, cmap, title="Normal (90-95%% of pop)")
 
     ax3d2 = f.add_subplot(2, 4, 4, projection="3d", elev=25, azim=-75)
     ax3d2 = _ax_scatter_Jpapbp(ax3d2, deuter50_cm, title="Deuter-50%, RG-weak")

@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.dynamic]
+version = {attr = "scicomap.__version__"}
+
+[tool.setuptools]
+package-data = {"scicomap.data" = ["*.png", "*.npz", "*.gz", "*.jpg"]}
+
+[project]
+name = "scicomap"
+dynamic = ["version"]
+requires-python = ">=3.8"
+description = "data visualization on maps with varying levels of granularity"
+authors = [{name = "Thomas Bury", email = "bury.thomas@gmail.com"}]
+readme = {file = "README.md", content-type = "text/markdown"}
+keywords = ["visualization", "color", "uniform", "scientific"]
+license = {file = "LICENSE.md"}
+classifiers = [
+    "Programming Language :: Python :: 3"
+]
+
+dependencies = [
+    "numpy",
+    "pandas",
+    "scipy",
+    "colorspacious",
+    "colorcet",
+    "cmcrameri",
+    "cmocean",
+    "cmasher >= 1.5.8",
+    "palettable >= 3.3.0",
+    "matplotlib >= 3.3.0",
+]
+
+[project.urls]
+homepage = "https://github.com/ThomasBury/scicomap"
+documentation = "https://github.com/ThomasBury/scicomap"
+repository = "https://github.com/ThomasBury/scicomap.git"
+changelog = "https://github.com/ThomasBury/scicomap"
+Tracker = "https://github.com/ThomasBury/scicomap/issues"
+
+[project.optional-dependencies]
+doc = [
+    "ipykernel",
+    "ipython_genutils",
+    "pandoc",
+    "sphinx",
+    "sphinxawesome-theme==5.0.0b5",
+    "nbsphinx",
+    "sphinx-autodoc-typehints",
+    "sphinx-copybutton",
+    "sphinx-tabs",
+]
+lint = [
+    "black",
+    "flake8"
+]
+test = [
+    "pytest",
+    "pytest-cov",
+]

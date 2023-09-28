@@ -1,0 +1,19 @@
+numpy
+pandas
+scipy
+colorspacious
+colorcet
+cmcrameri
+cmocean
+cmasher >= 1.5.8
+palettable >= 3.3.0
+matplotlib >= 3.3.0
+ipykernel
+ipython_genutils
+pandoc
+sphinx
+sphinxawesome-theme==5.0.0b5
+nbsphinx
+sphinx-autodoc-typehints
+sphinx-copybutton
+sphinx-tabs

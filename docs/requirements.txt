@@ -17,3 +17,4 @@ nbsphinx
 sphinx-autodoc-typehints
 sphinx-copybutton
 sphinx-tabs
+sphinx-autoapi

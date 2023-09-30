@@ -10,6 +10,8 @@
 
 [Scicomap Medium blog post (free)](https://towardsdatascience.com/your-colour-map-is-bad-heres-how-to-fix-it-lessons-learnt-from-the-event-horizon-telescope-b82523f09469)
 
+[Official Documentation](https://towardsdatascience.com/your-colour-map-is-bad-heres-how-to-fix-it-lessons-learnt-from-the-event-horizon-telescope-b82523f09469)
+
 [Tutorial notebook](./docs/notebooks/tutorial.ipynb)
 
 ## Installation

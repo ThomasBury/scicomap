@@ -62,7 +62,7 @@ def max_chroma(
     hp: Union[float, np.ndarray], 
     Cpmin: float = 0.0, 
     Cpmax: Union[float, str] = "auto", 
-    eps: float = 1024 * np.finfo(np.float).eps, 
+    eps: float = 1024 * np.finfo(float).eps, 
     clip: bool = True
 ) -> Union[float, np.ndarray]:
     """
@@ -79,7 +79,7 @@ def max_chroma(
     Cpmax : float or str, optional (default="auto")
         Maximum allowable chroma value (range: [Cpmin, sqrt(100*Jp)]).
         If set to "auto", it will be calculated based on Jp.
-    eps : float, optional (default=1024 * np.finfo(np.float).eps)
+    eps : float, optional (default=1024 * np.finfo(float).eps)
         A small value used to handle numerical precision issues.
     clip : bool, optional (default=True)
         If True, clip Jp values to the valid range before calculation.

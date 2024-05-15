@@ -11,7 +11,7 @@ package-data = {"scicomap.data" = ["*.png", "*.npz", "*.gz", "*.jpg"]}
 [project]
 name = "scicomap"
 dynamic = ["version"]
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 description = "data visualization on maps with varying levels of granularity"
 authors = [{name = "Thomas Bury", email = "bury.thomas@gmail.com"}]
 readme = {file = "README.md", content-type = "text/markdown"}

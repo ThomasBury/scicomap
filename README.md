@@ -23,6 +23,7 @@ pip install scicomap
 ## Development
 
 Use `uv` for local development and dependency synchronization.
+Notebook docs rendered with `nbsphinx` require a `pandoc` binary.
 
 ```shell
 # create/update the lockfile

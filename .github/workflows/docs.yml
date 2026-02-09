@@ -30,6 +30,9 @@ jobs:
         with:
           enable-cache: true
 
+      - name: Set up Pandoc
+        uses: r-lib/actions/setup-pandoc@v2
+
       - name: Sync docs environment
         run: uv sync --extra docs
 

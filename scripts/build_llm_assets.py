@@ -7,7 +7,7 @@ import argparse
 import datetime as dt
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Iterable
+from typing import Iterator, TypedDict
 
 
 EXCLUDED_FILENAMES = {
@@ -29,6 +29,24 @@ PRIORITY_PAGES = [
 ]
 
 
+class DocEntry(TypedDict):
+    """Metadata for one canonical documentation page.
+
+    Attributes
+    ----------
+    title : str
+        Human-readable page title extracted from HTML.
+    html_rel : str
+        Relative path to the HTML page from the docs root.
+    md_rel : str
+        Relative path to the generated markdown page from the docs root.
+    """
+
+    title: str
+    html_rel: str
+    md_rel: str
+
+
 class HtmlToMarkdownParser(HTMLParser):
     """Extract readable markdown-like text from an HTML document."""
 
@@ -46,6 +64,15 @@ class HtmlToMarkdownParser(HTMLParser):
         self.blocks: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        """Handle opening HTML tags during parsing.
+
+        Parameters
+        ----------
+        tag : str
+            Name of the opening tag.
+        attrs : list[tuple[str, str | None]]
+            Parsed attributes for the current tag.
+        """
         attrs_dict = dict(attrs)
         classes = set((attrs_dict.get("class") or "").split())
 
@@ -89,6 +116,13 @@ class HtmlToMarkdownParser(HTMLParser):
             self._current_link = attrs_dict.get("href")
 
     def handle_endtag(self, tag: str) -> None:
+        """Handle closing HTML tags and emit markdown blocks.
+
+        Parameters
+        ----------
+        tag : str
+            Name of the closing tag.
+        """
         if tag == "title":
             self._in_title = False
             return
@@ -141,6 +175,13 @@ class HtmlToMarkdownParser(HTMLParser):
             self._current_link = None
 
     def handle_data(self, data: str) -> None:
+        """Handle text data from HTML tags.
+
+        Parameters
+        ----------
+        data : str
+            Raw text payload from the HTML parser.
+        """
         if self._skip_depth > 0:
             return
 
@@ -163,7 +204,19 @@ class HtmlToMarkdownParser(HTMLParser):
         self._text_chunks.append(cleaned)
 
 
-def iter_html_pages(html_dir: Path) -> Iterable[Path]:
+def iter_html_pages(html_dir: Path) -> Iterator[Path]:
+    """Yield canonical HTML pages that should be mirrored.
+
+    Parameters
+    ----------
+    html_dir : Path
+        Root directory containing generated Sphinx HTML output.
+
+    Yields
+    ------
+    Path
+        Paths to HTML pages that are included in the markdown mirror.
+    """
     for html_file in sorted(html_dir.rglob("*.html")):
         rel = html_file.relative_to(html_dir)
         if html_file.name in EXCLUDED_FILENAMES:
@@ -174,6 +227,18 @@ def iter_html_pages(html_dir: Path) -> Iterable[Path]:
 
 
 def to_markdown(html_path: Path) -> tuple[str, str]:
+    """Convert one HTML page into markdown content.
+
+    Parameters
+    ----------
+    html_path : Path
+        Path to a generated Sphinx HTML page.
+
+    Returns
+    -------
+    tuple[str, str]
+        A tuple with the resolved page title and markdown payload.
+    """
     parser = HtmlToMarkdownParser()
     parser.feed(html_path.read_text(encoding="utf-8", errors="ignore"))
     title = parser.title or html_path.stem.replace("_", " ").title()
@@ -186,8 +251,22 @@ def to_markdown(html_path: Path) -> tuple[str, str]:
     return title, markdown
 
 
-def build_markdown_mirror(html_dir: Path, markdown_dir: Path) -> list[dict[str, str]]:
-    generated: list[dict[str, str]] = []
+def build_markdown_mirror(html_dir: Path, markdown_dir: Path) -> list[DocEntry]:
+    """Generate markdown mirrors for all selected HTML pages.
+
+    Parameters
+    ----------
+    html_dir : Path
+        Root directory containing generated Sphinx HTML output.
+    markdown_dir : Path
+        Destination directory where markdown mirrors are written.
+
+    Returns
+    -------
+    list[DocEntry]
+        Metadata for all generated markdown pages.
+    """
+    generated: list[DocEntry] = []
     markdown_dir.mkdir(parents=True, exist_ok=True)
 
     for html_path in iter_html_pages(html_dir):
@@ -209,10 +288,21 @@ def build_markdown_mirror(html_dir: Path, markdown_dir: Path) -> list[dict[str, 
     return generated
 
 
-def write_llms_txt(html_dir: Path, base_url: str, docs: list[dict[str, str]]) -> None:
+def write_llms_txt(html_dir: Path, base_url: str, docs: list[DocEntry]) -> None:
+    """Write an ``llms.txt`` manifest for generated docs.
+
+    Parameters
+    ----------
+    html_dir : Path
+        Root directory containing generated Sphinx HTML output.
+    base_url : str
+        Canonical public base URL for the documentation site.
+    docs : list[DocEntry]
+        Metadata describing each generated markdown mirror.
+    """
     now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
     doc_map = {doc["html_rel"]: doc for doc in docs}
-    ordered: list[dict[str, str]] = []
+    ordered: list[DocEntry] = []
 
     for page in PRIORITY_PAGES:
         if page in doc_map:
@@ -255,6 +345,13 @@ def write_llms_txt(html_dir: Path, base_url: str, docs: list[dict[str, str]]) ->
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments for the asset build script.
+
+    Returns
+    -------
+    argparse.Namespace
+        Parsed options for HTML source directory and base URL.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--html-dir",
@@ -271,6 +368,20 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    """Build markdown mirrors and an ``llms.txt`` manifest.
+
+    Returns
+    -------
+    int
+        Process exit code. Returns ``0`` on success.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the input HTML directory does not exist.
+    RuntimeError
+        If no eligible HTML pages are found for conversion.
+    """
     args = parse_args()
     html_dir = args.html_dir.resolve()
     markdown_dir = html_dir / "llm"

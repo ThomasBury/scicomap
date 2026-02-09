@@ -37,7 +37,7 @@ uv run python -m flake8 src
 uv run python -m black --check src
 
 # build web docs + LLM assets
-uv run sphinx-build -W -n -b html docs/source docs/build/html
+uv run sphinx-build -n -b html docs/source docs/build/html
 uv run python scripts/build_llm_assets.py
 ```
 

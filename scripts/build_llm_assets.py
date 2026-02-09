@@ -228,8 +228,21 @@ def write_llms_txt(html_dir: Path, base_url: str, docs: list[dict[str, str]]) ->
         "preferred_format: markdown",
         f"generated_utc: {now}",
         "",
-        "## Canonical Documents",
+        "## Start Here",
     ]
+
+    for page in PRIORITY_PAGES:
+        doc = next((item for item in ordered if item["html_rel"] == page), None)
+        if doc is None:
+            continue
+        lines.append(f"- {doc['title']}: {base_url.rstrip('/')}/{doc['md_rel']}")
+
+    lines.extend(
+        [
+            "",
+        "## Canonical Documents",
+        ]
+    )
 
     for doc in ordered:
         html_url = f"{base_url.rstrip('/')}/{doc['html_rel']}"

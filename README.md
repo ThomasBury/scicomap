@@ -33,8 +33,8 @@ uv sync --extra lint --extra test --extra docs
 
 # run commands in the project environment
 uv run python -m pytest
-uv run python -m flake8 src
-uv run python -m black --check src
+uv run python -m flake8 scicomap
+uv run python -m black --check scicomap
 ```
 
 ## Introduction 

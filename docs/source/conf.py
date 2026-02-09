@@ -17,7 +17,7 @@ import sys
 import os
 import datetime
 
-sys.path.insert(0, os.path.abspath("../../scicomap"))
+sys.path.insert(0, os.path.abspath("../../src"))
 # -- Project information -----------------------------------------------------
 
 project = "scicomap"
@@ -36,12 +36,7 @@ release = "1.0.1"
 # Don't add the same path again, remove the following line:
 # sys.path.insert(0, os.path.abspath(".."))
 
-sys.path.append(os.path.abspath(os.path.join(__file__, "../../scicomap")))
-autodoc_mock_imports = ["_tkinter", "sphinx_tabs.tabs"]
-
-# Get the project root dir, which is the parent dir of this
-cwd = os.getcwd()
-project_root = os.path.dirname(cwd)
+autodoc_mock_imports = ["_tkinter", "sphinx_tabs.tabs", "pkg_resources"]
 
 
 # -- General configuration ---------------------------------------------------
@@ -54,13 +49,10 @@ extensions = [
     "sphinx.ext.autosectionlabel",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
-    'autoapi.extension',
     "sphinx_copybutton",
     "nbsphinx",
     "sphinx_tabs.tabs",
 ]
-
-autoapi_dirs = ["../../src"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]

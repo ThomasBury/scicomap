@@ -20,12 +20,16 @@ EXCLUDED_DIR_NAMES = {
     "_modules",
     "_sources",
     "_static",
+    "autoapi",
 }
 PRIORITY_PAGES = [
     "index.html",
-    "Introduction.html",
+    "getting-started.html",
+    "user-guide.html",
+    "api-reference.html",
+    "faq.html",
+    "troubleshooting.html",
     "notebooks/tutorial.html",
-    "autoapi/index.html",
 ]
 
 

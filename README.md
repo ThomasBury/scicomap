@@ -10,7 +10,7 @@
 
 [Scicomap Medium blog post (free)](https://towardsdatascience.com/your-colour-map-is-bad-heres-how-to-fix-it-lessons-learnt-from-the-event-horizon-telescope-b82523f09469)
 
-[Official Documentation](https://scicomap.readthedocs.io/en/latest/)
+[Official Documentation](https://thomasbury.github.io/scicomap/)
 
 [Tutorial notebook](./docs/source/notebooks/tutorial.ipynb)
 
@@ -33,9 +33,15 @@ uv sync --extra lint --extra test --extra docs
 
 # run commands in the project environment
 uv run python -m pytest
-uv run python -m flake8 scicomap
-uv run python -m black --check scicomap
+uv run python -m flake8 src
+uv run python -m black --check src
+
+# build web docs + LLM assets
+uv run sphinx-build -W -n -b html docs/source docs/build/html
+uv run python scripts/build_llm_assets.py
 ```
+
+`Read the Docs` is kept as a temporary fallback during the Pages rollout.
 
 ## Introduction 
 

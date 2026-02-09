@@ -20,6 +20,23 @@
 pip install scicomap
 ```
 
+## Development
+
+Use `uv` for local development and dependency synchronization.
+
+```shell
+# create/update the lockfile
+uv lock
+
+# create the virtual environment and install project + extras
+uv sync --extra lint --extra test --extra docs
+
+# run commands in the project environment
+uv run python -m pytest
+uv run python -m flake8 scicomap
+uv run python -m black --check scicomap
+```
+
 ## Introduction 
 
 Scicomap is a package that provides scientific color maps and tools to standardize your favourite color maps if you don't like the built-in ones.

@@ -42,7 +42,7 @@ changelog = "https://github.com/ThomasBury/scicomap"
 Tracker = "https://github.com/ThomasBury/scicomap/issues"
 
 [project.optional-dependencies]
-doc = [
+docs = [
     "ipykernel",
     "ipython_genutils",
     "pandoc",
@@ -52,6 +52,7 @@ doc = [
     "sphinx-autodoc-typehints",
     "sphinx-copybutton",
     "sphinx-tabs",
+    "sphinx-autoapi",
 ]
 lint = [
     "black",

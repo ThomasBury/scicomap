@@ -1,0 +1,43 @@
+name: Docs Quality
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Sync docs environment
+        run: uv sync --extra docs
+
+      - name: Build Sphinx docs with warnings as errors
+        run: uv run sphinx-build -W -n -b html docs/source docs/build/html
+
+      - name: Build LLM assets
+        run: uv run python scripts/build_llm_assets.py
+
+      - name: Validate generated LLM assets
+        run: uv run python -c "from pathlib import Path; root=Path('docs/build/html'); llms=root/'llms.txt'; md=list((root/'llm').rglob('*.md')); assert llms.exists(), 'llms.txt missing'; assert md, 'No markdown mirrors generated'"

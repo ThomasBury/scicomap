@@ -1,29 +1,31 @@
-.. scicomap documentation master file, created by
-   sphinx-quickstart on Fri Sep 29 17:21:16 2023.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+scicomap documentation
+======================
 
-Welcome to scicomap's documentation!
-====================================
+Use this documentation to choose colormaps, assess visual artifacts, and apply
+uniformization workflows in practical plotting pipelines.
 
 Documentation last change: |today|
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Start here
 
    Introduction
+   getting-started
 
 .. toctree::
-    :maxdepth: 2
-    :glob:
-    :caption: Tutorials 
+   :maxdepth: 2
+   :caption: Guides
 
-    notebooks/tutorial.ipynb
+   user-guide
+   api-reference
+   faq
+   troubleshooting
+   llm-access
+   contributing
 
-Indices and tables
-==================
+.. toctree::
+   :maxdepth: 2
+   :caption: Tutorials
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   notebooks/tutorial.ipynb

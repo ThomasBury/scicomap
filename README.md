@@ -6,6 +6,9 @@
 
 # Scientific color maps 
 
+Scicomap helps you choose, assess, and improve scientific colormaps so your
+figures remain readable and faithful to the underlying data.
+
 ## Blog post
 
 [Scicomap Medium blog post (free)](https://towardsdatascience.com/your-colour-map-is-bad-heres-how-to-fix-it-lessons-learnt-from-the-event-horizon-telescope-b82523f09469)
@@ -19,6 +22,24 @@
 ```shell
 pip install scicomap
 ```
+
+## Quickstart
+
+```python
+import scicomap as sc
+
+cmap = sc.ScicoSequential(cmap="hawaii")
+cmap.assess_cmap(figsize=(14, 6))
+cmap.draw_example()
+```
+
+## Documentation map
+
+- [Getting Started](https://thomasbury.github.io/scicomap/getting-started.html): install and first workflow
+- [User Guide](https://thomasbury.github.io/scicomap/user-guide.html): choosing, assessing, and correcting colormaps
+- [API Reference](https://thomasbury.github.io/scicomap/api-reference.html): module and class reference
+- [FAQ](https://thomasbury.github.io/scicomap/faq.html) and [Troubleshooting](https://thomasbury.github.io/scicomap/troubleshooting.html): practical answers for common issues
+- [LLM Access](https://thomasbury.github.io/scicomap/llm-access.html): `llms.txt` and markdown mirror policy
 
 ## Development
 
@@ -43,6 +64,9 @@ uv run python scripts/build_llm_assets.py
 ```
 
 `Read the Docs` is kept as a temporary fallback during the Pages rollout.
+
+Contribution guidelines are available in `CONTRIBUTING.md`.
+Release notes are tracked in `CHANGELOG.md` and GitHub releases.
 
 ## Introduction 
 

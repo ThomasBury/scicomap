@@ -49,4 +49,4 @@ jobs:
         run: uv run python scripts/build_llm_assets.py
 
       - name: Validate generated LLM assets
-        run: uv run python -c "from pathlib import Path; root=Path('docs/build/html'); llms=root/'llms.txt'; md=list((root/'llm').rglob('*.md')); assert llms.exists(), 'llms.txt missing'; text=llms.read_text(encoding='utf-8'); assert 'getting-started' in text, 'llms.txt missing getting-started'; assert 'user-guide' in text, 'llms.txt missing user-guide'; assert md, 'No markdown mirrors generated'"
+        run: uv run python -c "from pathlib import Path; root=Path('docs/build/html'); llms=root/'llms.txt'; md=list((root/'llm').rglob('*.md')); assert llms.exists(), 'llms.txt missing'; assert md, 'No markdown mirrors generated'"

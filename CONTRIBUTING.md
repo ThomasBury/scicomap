@@ -16,7 +16,16 @@ uv run python -m flake8 src
 uv run python -m black --check src
 uv run sphinx-build -n -b html docs/source docs/build/html
 uv run python scripts/build_llm_assets.py
+uv run python -m pytest tests/docs/test_build_llm_assets.py
 ```
+
+## LLM docs maintenance
+
+If you update the docs theme or Sphinx structure, validate parser assumptions:
+
+- Ensure parser tests pass.
+- Rebuild HTML docs and regenerate LLM assets.
+- Spot-check that markdown mirrors keep one H1 and no sidebar content.
 
 ## Pull requests
 

@@ -26,4 +26,4 @@ API reference page is empty
 
 - Ensure the package imports in the docs environment.
 - Confirm Sphinx can resolve ``src`` in ``docs/source/conf.py``.
-- Rebuild with verbosity: ``sphinx-build -n -b html docs/source docs/build/html``
+- Rebuild with verbosity: ``sphinx-build -n -v -b html docs/source docs/build/html``

@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Build LLM-friendly assets from generated Sphinx HTML docs."""
+"""Build LLM-friendly assets from generated Sphinx HTML docs.
+
+The parser prefers semantic content containers (``<main>`` and ``role="main"``)
+and falls back to common documentation wrappers used by Sphinx themes.
+If theme markup changes, update ``CONTENT_CONTAINER_CLASSES`` and skip selectors.
+"""
 
 from __future__ import annotations
 
@@ -22,6 +27,15 @@ EXCLUDED_DIR_NAMES = {
     "_static",
     "autoapi",
 }
+CONTENT_CONTAINER_CLASSES = {
+    "bd-main",
+    "document",
+    "documentwrapper",
+    "main",
+    "wy-nav-content",
+    "wy-nav-content-wrap",
+}
+THEME_TITLE_SUFFIX = " | scicomap documentation"
 PRIORITY_PAGES = [
     "index.html",
     "getting-started.html",
@@ -52,12 +66,19 @@ class DocEntry(TypedDict):
 
 
 class HtmlToMarkdownParser(HTMLParser):
-    """Extract readable markdown-like text from an HTML document."""
+    """Extract readable markdown-like text from an HTML document.
+
+    Notes
+    -----
+    This parser relies on common Sphinx theme structure. Review content and
+    sidebar selectors when changing or upgrading the docs theme.
+    """
 
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
+        self._skip_tag_stack: list[str] = []
         self._skip_depth = 0
-        self._in_main = False
+        self._content_tag_stack: list[str] = []
         self._heading_level = 0
         self._in_code = False
         self._in_list_item = False
@@ -66,6 +87,39 @@ class HtmlToMarkdownParser(HTMLParser):
         self._current_link: str | None = None
         self.title = ""
         self.blocks: list[str] = []
+
+    def _enter_skip(self, tag: str) -> None:
+        """Start ignoring content until matching closing tag.
+
+        Parameters
+        ----------
+        tag : str
+            Name of the tag that started the skipped region.
+        """
+        self._skip_tag_stack.append(tag)
+        self._skip_depth = len(self._skip_tag_stack)
+
+    def _exit_skip(self, tag: str) -> None:
+        """Stop ignoring content when a skipped region closes.
+
+        Parameters
+        ----------
+        tag : str
+            Name of the closing tag.
+        """
+        if not self._skip_tag_stack:
+            return
+
+        for index in range(len(self._skip_tag_stack) - 1, -1, -1):
+            if self._skip_tag_stack[index] == tag:
+                del self._skip_tag_stack[index:]
+                break
+
+        self._skip_depth = len(self._skip_tag_stack)
+
+    def _in_content(self) -> bool:
+        """Return whether parser is inside a content container."""
+        return bool(self._content_tag_stack)
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Handle opening HTML tags during parsing.
@@ -79,30 +133,37 @@ class HtmlToMarkdownParser(HTMLParser):
         """
         attrs_dict = dict(attrs)
         classes = set((attrs_dict.get("class") or "").split())
+        role = attrs_dict.get("role")
 
-        if tag in {"script", "style", "noscript"}:
-            self._skip_depth += 1
+        if self._skip_tag_stack:
+            if tag in {"script", "style", "noscript"}:
+                self._enter_skip(tag)
+            elif tag in {"nav", "header", "footer", "aside"}:
+                self._enter_skip(tag)
+            elif "wy-nav-side" in classes:
+                self._enter_skip(tag)
             return
 
-        if self._skip_depth > 0:
+        if tag in {"script", "style", "noscript"}:
+            self._enter_skip(tag)
             return
 
         if tag == "title":
             self._in_title = True
             return
 
-        if tag == "main":
-            self._in_main = True
+        if tag == "main" or role == "main" or classes.intersection(CONTENT_CONTAINER_CLASSES):
+            self._content_tag_stack.append(tag)
 
         if "wy-nav-side" in classes:
-            self._skip_depth += 1
+            self._enter_skip(tag)
             return
 
         if tag in {"nav", "header", "footer", "aside"}:
-            self._skip_depth += 1
+            self._enter_skip(tag)
             return
 
-        if not self._in_main:
+        if not self._in_content():
             return
 
         if tag in {"h1", "h2", "h3", "h4", "h5", "h6"}:
@@ -131,19 +192,16 @@ class HtmlToMarkdownParser(HTMLParser):
             self._in_title = False
             return
 
-        if tag in {"script", "style", "noscript", "nav", "header", "footer", "aside"}:
-            if self._skip_depth > 0:
-                self._skip_depth -= 1
+        if self._skip_tag_stack:
+            self._exit_skip(tag)
             return
 
-        if self._skip_depth > 0:
-            return
+        if self._content_tag_stack and self._content_tag_stack[-1] == tag:
+            self._content_tag_stack.pop()
+            if not self._in_content():
+                return
 
-        if tag == "main":
-            self._in_main = False
-            return
-
-        if not self._in_main:
+        if not self._in_content():
             return
 
         text = " ".join(chunk.strip() for chunk in self._text_chunks if chunk.strip())
@@ -186,7 +244,7 @@ class HtmlToMarkdownParser(HTMLParser):
         data : str
             Raw text payload from the HTML parser.
         """
-        if self._skip_depth > 0:
+        if self._skip_tag_stack:
             return
 
         cleaned = data.strip()
@@ -197,7 +255,7 @@ class HtmlToMarkdownParser(HTMLParser):
             self.title = cleaned
             return
 
-        if not self._in_main:
+        if not self._in_content():
             return
 
         if self._current_link:
@@ -246,10 +304,19 @@ def to_markdown(html_path: Path) -> tuple[str, str]:
     parser = HtmlToMarkdownParser()
     parser.feed(html_path.read_text(encoding="utf-8", errors="ignore"))
     title = parser.title or html_path.stem.replace("_", " ").title()
+    if title.endswith(THEME_TITLE_SUFFIX):
+        title = title.removesuffix(THEME_TITLE_SUFFIX)
 
-    content = [f"# {title}"]
-    for block in parser.blocks:
-        content.append(block)
+    blocks = list(parser.blocks)
+    if blocks and blocks[0].startswith("# "):
+        first_h1 = blocks[0][2:].strip()
+        first_h1 = first_h1.split(" (#", maxsplit=1)[0].rstrip(" #").strip()
+        if first_h1 == title:
+            content = blocks
+        else:
+            content = [f"# {title}", *blocks]
+    else:
+        content = [f"# {title}", *blocks]
 
     markdown = "\n\n".join(content).strip() + "\n"
     return title, markdown

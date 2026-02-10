@@ -1,13 +1,29 @@
 Introduction
 ============
 
-Accurate data representation is of paramount importance. Frequently used color maps often introduce data distortion
-due to uneven color gradients, making them challenging to interpret, especially for individuals with color-vision deficiencies. 
-One notorious example is the jet color map. Such color maps may fail to convey the complete information you intend to illustrate and, 
-in some cases, even convey incorrect information due to artifacts. Whether you're a scientist or not, the aim is to present visual 
-information both accurately and attractively. Additionally, it's crucial not to disregard color-vision deficiencies,
-which affect approximately 8% of the Caucasian male population.
+scicomap helps you build scientific visualizations with perceptually safer
+colormaps.
 
-Scicomap will have your back when it comes to generating uniform color maps.
+Many default colormaps can create false boundaries and hide important structure.
+The problem gets worse for readers with color-vision deficiency. scicomap gives
+you tools to inspect these issues and correct them.
 
-`pip install -U scicomap`
+What you can do with scicomap
+-----------------------------
+
+- Browse colormaps by purpose (sequential, diverging, circular, qualitative).
+- Assess lightness, chroma symmetry, and colorblind accessibility.
+- Uniformize and symmetrize existing colormaps.
+- Generate examples that make artifacts easy to spot.
+
+Who this project is for
+-----------------------
+
+- Researchers and engineers preparing figures for publications.
+- Data scientists building dashboards where color meaning must stay clear.
+- Anyone who needs better colormap defaults in Matplotlib workflows.
+
+Next step
+---------
+
+Go to :doc:`getting-started` for a copy-paste quickstart.

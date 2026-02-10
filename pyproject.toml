@@ -36,9 +36,9 @@ dependencies = [
 
 [project.urls]
 homepage = "https://github.com/ThomasBury/scicomap"
-documentation = "https://github.com/ThomasBury/scicomap"
+documentation = "https://thomasbury.github.io/scicomap/"
 repository = "https://github.com/ThomasBury/scicomap.git"
-changelog = "https://github.com/ThomasBury/scicomap"
+changelog = "https://github.com/ThomasBury/scicomap/releases"
 Tracker = "https://github.com/ThomasBury/scicomap/issues"
 
 [project.optional-dependencies]

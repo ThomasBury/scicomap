@@ -33,8 +33,14 @@ jobs:
       - name: Set up Pandoc
         uses: r-lib/actions/setup-pandoc@v2
 
-      - name: Sync docs environment
-        run: uv sync --extra docs
+      - name: Sync docs and test environment
+        run: uv sync --extra docs --extra test
+
+      - name: Run parser regression tests
+        run: uv run python -m pytest tests/docs/test_build_llm_assets.py
+
+      - name: Clean previous docs build
+        run: rm -rf docs/build/html
 
       - name: Build Sphinx docs
         run: uv run sphinx-build -n -b html docs/source docs/build/html

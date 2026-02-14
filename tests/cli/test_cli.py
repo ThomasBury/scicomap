@@ -91,6 +91,62 @@ def test_wizard_noninteractive_diagnose_json() -> None:
     assert "diagnostics" in payload["data"]
 
 
+def test_report_diagnose_writes_bundle(tmp_path: Path) -> None:
+    runner = CliRunner()
+    out_dir = tmp_path / "report-diagnose"
+    result = runner.invoke(
+        app,
+        [
+            "report",
+            "--cmap",
+            "thermal",
+            "--type",
+            "sequential",
+            "--out",
+            str(out_dir),
+            "--format",
+            "json",
+        ],
+    )
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["ok"] is True
+    assert (out_dir / "report.json").exists()
+    assert (out_dir / "summary.txt").exists()
+    assert (out_dir / "assess.png").exists()
+
+
+def test_report_apply_writes_image(tmp_path: Path) -> None:
+    runner = CliRunner()
+    image_path = tmp_path / "input.png"
+    out_dir = tmp_path / "report-apply"
+    arr = np.linspace(0, 1, 64).reshape(8, 8)
+    plt.imsave(image_path, arr, cmap="gray")
+
+    result = runner.invoke(
+        app,
+        [
+            "report",
+            "--cmap",
+            "thermal",
+            "--type",
+            "sequential",
+            "--goal",
+            "apply",
+            "--image",
+            str(image_path),
+            "--out",
+            str(out_dir),
+            "--format",
+            "json",
+        ],
+    )
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["ok"] is True
+    assert (out_dir / "applied.png").exists()
+
+
 def test_apply_grayscale_image(tmp_path: Path) -> None:
     runner = CliRunner()
     image_path = tmp_path / "gray.png"

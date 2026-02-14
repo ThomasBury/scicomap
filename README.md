@@ -56,6 +56,10 @@ scicomap apply thermal --type sequential --image input.png --out output.png
 # explicit long-form aliases for automation
 scicomap cmap assess --cmap hawaii --type sequential --out hawaii-assess.png
 scicomap docs llm-assets --html-dir docs/build/html
+
+# one-command workflow report bundle
+scicomap report --cmap hawaii --type sequential --out reports/hawaii
+scicomap report --cmap thermal --image input.png --goal apply --format json
 ```
 
 ## Documentation map

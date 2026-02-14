@@ -42,12 +42,20 @@ scicomap list sequential
 scicomap check hawaii
 scicomap preview hawaii --type sequential --out hawaii-assess.png
 
+# guided workflow and environment checks
+scicomap wizard
+scicomap doctor --json
+
 # compare and fix
 scicomap compare hawaii viridis thermal --type sequential --out compare.png
 scicomap fix hawaii --type sequential --out hawaii-fixed.png
 
 # apply a colormap to your own image
 scicomap apply thermal --type sequential --image input.png --out output.png
+
+# explicit long-form aliases for automation
+scicomap cmap assess --cmap hawaii --type sequential --out hawaii-assess.png
+scicomap docs llm-assets --html-dir docs/build/html
 ```
 
 ## Documentation map

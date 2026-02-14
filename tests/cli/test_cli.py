@@ -29,6 +29,11 @@ def test_check_thermal_json() -> None:
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
     assert payload["ok"] is True
+    assert payload["data"]["status"] in {
+        "good",
+        "caution",
+        "fix-recommended",
+    }
     assert payload["data"]["classification"] in {
         "circular-div",
         "circular-flat",
@@ -49,6 +54,41 @@ def test_long_form_alias_list_json() -> None:
     payload = json.loads(result.stdout)
     assert payload["ok"] is True
     assert payload["data"]["family"] == "sequential"
+
+
+def test_doctor_json(tmp_path: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        ["doctor", "--out-dir", str(tmp_path), "--json"],
+    )
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["ok"] is True
+    assert payload["data"]["status"] == "healthy"
+
+
+def test_wizard_noninteractive_diagnose_json() -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        app,
+        [
+            "wizard",
+            "--goal",
+            "diagnose",
+            "--type",
+            "sequential",
+            "--cmap",
+            "thermal",
+            "--no-interactive",
+            "--json",
+        ],
+    )
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["ok"] is True
+    assert payload["data"]["goal"] == "diagnose"
+    assert "diagnostics" in payload["data"]
 
 
 def test_apply_grayscale_image(tmp_path: Path) -> None:

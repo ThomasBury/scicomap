@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+from importlib.util import find_spec
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +28,8 @@ BUILTIN_IMAGES = {
     "vortex",
     "tng",
 }
+VALID_GOALS = {"diagnose", "improve", "apply"}
+VALID_MODES = {"luminance", "first-channel", "gray-only"}
 
 app = typer.Typer(help="Scientific colormap tools for humans and agents.")
 cmap_app = typer.Typer(help="Explicit colormap command aliases.")
@@ -120,6 +123,43 @@ def _normalize(values: np.ndarray) -> np.ndarray:
     return (values - vmin) / (vmax - vmin)
 
 
+def _diagnose_cmap(cmap_obj: Any) -> dict[str, Any]:
+    ctab = get_ctab(cmap_obj)
+    jpapbp = transform(ctab)
+    j_values = jpapbp[:, 0]
+    j_diff = np.diff(j_values)
+    is_monotonic = bool(np.all(j_diff >= 0) or np.all(j_diff <= 0))
+    cmap_class = classify(jpapbp)
+    n_extrema = int(len(extrema(j_values)))
+
+    reasons: list[str] = []
+    status = "good"
+    if not is_monotonic:
+        status = "fix-recommended"
+        reasons.append("lightness is not monotonic")
+    elif cmap_class in {"asym_div", "unknown"}:
+        status = "caution"
+        reasons.append(f"classification is '{cmap_class}'")
+
+    if n_extrema > 2:
+        if status == "good":
+            status = "caution"
+        reasons.append("lightness has many extrema")
+
+    recommendation = "good to use"
+    if status in {"caution", "fix-recommended"}:
+        recommendation = "consider fix"
+
+    return {
+        "classification": cmap_class,
+        "monotonic_lightness": is_monotonic,
+        "extrema_count": n_extrema,
+        "status": status,
+        "reasons": reasons,
+        "recommendation": recommendation,
+    }
+
+
 @app.command(name="list")
 def list_command(
     family: str | None = typer.Argument(
@@ -167,33 +207,25 @@ def check(
     ctype: str | None = typer.Option(None, "--type", help="Colormap family."),
     as_json: bool = typer.Option(False, "--json", help="Output JSON."),
 ) -> None:
-    """Diagnose one colormap and print key metrics."""
+    """Diagnose one colormap and print key metrics.
+
+    Examples
+    --------
+    scicomap check hawaii
+    scicomap check hawaii --type sequential --json
+    """
     try:
         resolved_type, cmap_obj = _resolve_cmap(cmap, ctype)
     except ValueError as exc:
         _fail("scicomap check", str(exc), as_json)
 
-    ctab = get_ctab(cmap_obj)
-    jpapbp = transform(ctab)
-    j_values = jpapbp[:, 0]
-    j_diff = np.diff(j_values)
-    is_monotonic = bool(np.all(j_diff >= 0) or np.all(j_diff <= 0))
-    cmap_class = classify(jpapbp)
-    n_extrema = int(len(extrema(j_values)))
-    recommendation = "good to use"
-    if not is_monotonic or cmap_class in {"asym_div", "unknown"}:
-        recommendation = "consider fix"
+    diagnostics = _diagnose_cmap(cmap_obj)
 
     payload = {
         "ok": True,
         "command": "scicomap check",
         "inputs": {"cmap": cmap, "type": resolved_type},
-        "data": {
-            "classification": cmap_class,
-            "monotonic_lightness": is_monotonic,
-            "extrema_count": n_extrema,
-            "recommendation": recommendation,
-        },
+        "data": diagnostics,
         "warnings": [],
         "errors": [],
     }
@@ -370,8 +402,7 @@ def apply(
     as_json: bool = typer.Option(False, "--json", help="Output JSON."),
 ) -> None:
     """Apply a colormap to a user-provided image."""
-    valid_modes = {"luminance", "first-channel", "gray-only"}
-    if mode not in valid_modes:
+    if mode not in VALID_MODES:
         _fail("scicomap apply", f"Invalid mode '{mode}'.", as_json)
 
     try:
@@ -476,6 +507,241 @@ def docs_llm(
             "llms_txt": str((html_root / "llms.txt").resolve()),
         },
         "warnings": [],
+        "errors": [],
+    }
+    _emit(payload, as_json=as_json)
+
+
+@app.command()
+def doctor(
+    out_dir: Path = typer.Option(
+        Path("."), "--out-dir", help="Directory for generated artifacts."
+    ),
+    image: Path | None = typer.Option(
+        None, "--image", help="Optional image path to validate."
+    ),
+    as_json: bool = typer.Option(False, "--json", help="Output JSON."),
+) -> None:
+    """Validate local environment and common CLI prerequisites.
+
+    Examples
+    --------
+    scicomap doctor
+    scicomap doctor --out-dir outputs --json
+    """
+    checks: list[dict[str, Any]] = []
+    warnings: list[str] = []
+    errors: list[str] = []
+
+    for module_name in ["typer", "rich", "colorspacious", "matplotlib"]:
+        installed = find_spec(module_name) is not None
+        checks.append(
+            {
+                "name": f"dependency:{module_name}",
+                "ok": installed,
+            }
+        )
+        if not installed:
+            errors.append(f"Missing dependency: {module_name}")
+
+    backend = plt.get_backend()
+    checks.append({"name": "matplotlib_backend", "ok": bool(backend)})
+    if "agg" in backend.lower():
+        warnings.append(
+            "Matplotlib backend is non-interactive (Agg). "
+            "Use --out for image commands."
+        )
+
+    out_ok = True
+    try:
+        out_dir.mkdir(parents=True, exist_ok=True)
+        probe = out_dir / ".scicomap_write_test"
+        probe.write_text("ok", encoding="utf-8")
+        probe.unlink()
+    except OSError:
+        out_ok = False
+        errors.append(f"Output directory is not writable: {out_dir}")
+    checks.append({"name": "output_directory", "ok": out_ok})
+
+    if image is not None:
+        image_ok = image.exists() and image.is_file()
+        checks.append({"name": "image_path", "ok": image_ok})
+        if not image_ok:
+            errors.append(f"Image path is invalid: {image}")
+
+    payload = {
+        "ok": not errors,
+        "command": "scicomap doctor",
+        "inputs": {
+            "out_dir": str(out_dir.resolve()),
+            "image": None if image is None else str(image.resolve()),
+        },
+        "data": {
+            "checks": checks,
+            "backend": backend,
+            "status": "healthy" if not errors else "action-required",
+        },
+        "warnings": warnings,
+        "errors": errors,
+    }
+    _emit(payload, as_json=as_json)
+    if errors:
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def wizard(
+    goal: str | None = typer.Option(
+        None,
+        "--goal",
+        help="Workflow goal: diagnose, improve, apply.",
+    ),
+    ctype: str | None = typer.Option(None, "--type", help="Colormap family."),
+    cmap: str | None = typer.Option(None, "--cmap", help="Colormap name."),
+    image: Path | None = typer.Option(
+        None, "--image", help="Image path for apply."
+    ),
+    out: Path | None = typer.Option(
+        None, "--out", help="Optional output path."
+    ),
+    mode: str = typer.Option(
+        "luminance",
+        "--mode",
+        help="Image mode for apply: luminance, first-channel, gray-only.",
+    ),
+    as_json: bool = typer.Option(False, "--json", help="Output JSON."),
+    interactive: bool = typer.Option(
+        True,
+        "--interactive/--no-interactive",
+        help="Prompt for missing values.",
+    ),
+) -> None:
+    """Run a guided workflow for diagnose, improve, or apply.
+
+    Examples
+    --------
+    scicomap wizard
+    scicomap wizard --goal diagnose --cmap thermal --type sequential \
+        --no-interactive --json
+    """
+    selected_goal = goal
+    selected_type = ctype
+    selected_cmap = cmap
+    selected_image = image
+
+    if interactive:
+        if selected_goal is None:
+            selected_goal = typer.prompt(
+                "Goal (diagnose/improve/apply)", default="diagnose"
+            )
+        if selected_type is None:
+            selected_type = typer.prompt("Colormap type", default=DEFAULT_TYPE)
+        if selected_cmap is None:
+            selected_cmap = typer.prompt("Colormap name", default=DEFAULT_CMAP)
+        if selected_goal == "apply" and selected_image is None:
+            selected_image = Path(typer.prompt("Image path"))
+        if out is None and typer.confirm(
+            "Save output to file?", default=False
+        ):
+            out = Path(typer.prompt("Output path"))
+
+    if selected_goal is None:
+        _fail(
+            "scicomap wizard",
+            "Missing --goal in non-interactive mode.",
+            as_json,
+        )
+    if selected_goal not in VALID_GOALS:
+        _fail("scicomap wizard", f"Invalid goal '{selected_goal}'.", as_json)
+    if selected_cmap is None:
+        _fail("scicomap wizard", "Missing --cmap value.", as_json)
+    if mode not in VALID_MODES:
+        _fail("scicomap wizard", f"Invalid mode '{mode}'.", as_json)
+
+    try:
+        resolved_type, cmap_obj = _resolve_cmap(selected_cmap, selected_type)
+    except ValueError as exc:
+        _fail("scicomap wizard", str(exc), as_json)
+
+    result: dict[str, Any] = {
+        "goal": selected_goal,
+        "cmap": selected_cmap,
+        "type": resolved_type,
+    }
+    warnings: list[str] = []
+
+    if selected_goal == "diagnose":
+        result["diagnostics"] = _diagnose_cmap(cmap_obj)
+        result["next_step"] = "run 'scicomap fix <cmap>' if status is caution"
+    elif selected_goal == "improve":
+        chart = SciCoMap(ctype=resolved_type, cmap=selected_cmap)
+        chart.unif_sym_cmap(lift=None, bitonic=True, diffuse=True)
+        figure = chart.assess_cmap()
+        result["artifact"] = _save_figure(figure, out)
+        result["next_step"] = "use the fixed colormap in your plot pipeline"
+    else:
+        if selected_image is None:
+            _fail("scicomap wizard", "Apply goal requires --image.", as_json)
+        if not selected_image.exists():
+            _fail(
+                "scicomap wizard",
+                f"Image path does not exist: {selected_image}",
+                as_json,
+            )
+        if out is None:
+            warnings.append(
+                "No --out provided; writing 'scicomap-applied.png' in cwd."
+            )
+            out = Path("scicomap-applied.png")
+        arr = plt.imread(selected_image)
+        if arr.ndim == 2:
+            scalar = arr.astype(float)
+        elif arr.ndim == 3 and arr.shape[2] >= 3:
+            rgb = arr[..., :3].astype(float)
+            if mode == "gray-only":
+                _fail(
+                    "scicomap wizard",
+                    "gray-only mode requires a grayscale image.",
+                    as_json,
+                )
+            if mode == "first-channel":
+                scalar = rgb[..., 0]
+            else:
+                scalar = (
+                    0.2126 * rgb[..., 0]
+                    + 0.7152 * rgb[..., 1]
+                    + 0.0722 * rgb[..., 2]
+                )
+        else:
+            _fail("scicomap wizard", "Unsupported image format.", as_json)
+
+        mapped = cmap_obj(_normalize(scalar))
+        out_path = out.resolve()
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        plt.imsave(out_path, mapped)
+        result["artifact"] = str(out_path)
+        result["next_step"] = (
+            "preview the generated image and compare with original"
+        )
+
+    payload = {
+        "ok": True,
+        "command": "scicomap wizard",
+        "inputs": {
+            "goal": selected_goal,
+            "type": resolved_type,
+            "cmap": selected_cmap,
+            "image": (
+                None
+                if selected_image is None
+                else str(selected_image.resolve())
+            ),
+            "out": None if out is None else str(out.resolve()),
+            "mode": mode,
+            "interactive": interactive,
+        },
+        "data": result,
+        "warnings": warnings,
         "errors": [],
     }
     _emit(payload, as_json=as_json)

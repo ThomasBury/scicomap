@@ -1,9 +1,8 @@
 import gzip
 import warnings
-from pkg_resources import resource_stream, resource_filename
+from importlib.resources import files
 import numpy as np
 import matplotlib.image as mpimg
-from os.path import dirname, join
 
 
 def load_hill_topography() -> np.ndarray:
@@ -31,11 +30,10 @@ def load_hill_topography() -> np.ndarray:
     >>> print(elevation_data.shape)  # Print the shape of the loaded elevation data.
 
     """
-    stream = resource_stream(__name__, "data/jacksboro_fault_dem.npz")
-    # module_path = dirname(__file__)
-    # data_file_name = join(module_path, 'data', 'jacksboro_fault_dem.npz')
-    with np.load(stream) as dem:
-        elevation = dem["elevation"]
+    resource = files("scicomap").joinpath("data/jacksboro_fault_dem.npz")
+    with resource.open("rb") as stream:
+        with np.load(stream) as dem:
+            elevation = dem["elevation"]
     return elevation
 
 
@@ -64,10 +62,8 @@ def load_scan_image() -> np.ndarray:
     >>> print(scan_image.shape)  # Print the shape of the loaded scanned image.
 
     """
-    # module_path = dirname(__file__)
-    # data_file_name = join(module_path, 'data', 's1045.ima.gz')
-    stream = resource_stream(__name__, "data/s1045.ima.gz")
-    with gzip.open(stream) as dfile:
+    resource = files("scicomap").joinpath("data/s1045.ima.gz")
+    with resource.open("rb") as stream, gzip.open(stream) as dfile:
         scan_im = np.frombuffer(dfile.read(), np.uint16).reshape((256, 256))
     return scan_im
 
@@ -111,19 +107,19 @@ def load_pic(name: str = "grmhd") -> np.ndarray:
     if not isinstance(name, str):
         TypeError("name should be a string")
 
-    module_path = dirname(__file__)
-    im_path = resource_filename(__name__, "data/grmhd.png")
-    # pic_path = join(module_path, 'data', 'grmhd.png')
+    resource_name = "data/grmhd.png"
     if name == "grmhd":
-        im_path = resource_filename(__name__, "data/grmhd.png")
+        resource_name = "data/grmhd.png"
     elif name == "vortex":
-        im_path = resource_filename(__name__, "data/vortex.jpg")
+        resource_name = "data/vortex.jpg"
     elif name == "tng":
-        im_path = resource_filename(__name__, "data/tng.jpg")
+        resource_name = "data/tng.jpg"
     else:
         warnings.warn(
             "Using a default image, name should be in ['grmhd', 'vortex', 'tng']"
         )
 
-    img = mpimg.imread(im_path)
+    resource = files("scicomap").joinpath(resource_name)
+    with resource.open("rb") as handle:
+        img = mpimg.imread(handle)
     return img[:, :, 0]

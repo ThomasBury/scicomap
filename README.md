@@ -31,6 +31,25 @@ cmap.assess_cmap(figsize=(14, 6))
 cmap.draw_example()
 ```
 
+## CLI quickstart
+
+```shell
+# list families and colormaps
+scicomap list
+scicomap list sequential
+
+# diagnose and preview
+scicomap check hawaii
+scicomap preview hawaii --type sequential --out hawaii-assess.png
+
+# compare and fix
+scicomap compare hawaii viridis thermal --type sequential --out compare.png
+scicomap fix hawaii --type sequential --out hawaii-fixed.png
+
+# apply a colormap to your own image
+scicomap apply thermal --type sequential --image input.png --out output.png
+```
+
 ## Documentation map
 
 - [Getting Started](https://thomasbury.github.io/scicomap/getting-started.html): install and first workflow

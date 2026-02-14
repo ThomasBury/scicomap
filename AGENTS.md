@@ -107,9 +107,14 @@ Follow existing style in touched files. For new code, use these defaults.
 - Preserve established domain names (`cmap`, `Jpapbp`, `uniformized`).
 
 ### Docstrings
-- Use NumPy-style docstrings for public APIs.
-- Keep parameter and return docs synchronized with implementation.
+- Use NumPy-style docstrings for new/modified public modules, classes, functions, and methods.
+- Preferred section order: summary, optional extended summary, `Parameters`, `Returns`/`Yields`, `Raises` (when applicable), optional `Notes`, optional `Examples`.
+- Keep parameter names and defaults synchronized with function signatures and implementation behavior.
+- In `Parameters`, include concrete constraints when non-obvious (accepted values, shapes, units, range).
+- In `Returns`/`Yields`, describe output type and shape for arrays/tuples when relevant.
+- In `Raises`, document specific exception types and the condition that triggers them.
 - Include short examples only when non-obvious behavior needs clarification.
+- Legacy docstrings are being normalized incrementally; when touching legacy APIs, migrate to NumPy style when practical within scope.
 
 ### Error Handling
 - Raise specific exceptions (`ValueError`, `TypeError`, etc.).

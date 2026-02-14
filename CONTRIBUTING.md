@@ -19,6 +19,14 @@ uv run python scripts/build_llm_assets.py
 uv run python -m pytest tests/docs/test_build_llm_assets.py
 ```
 
+## Docstring style
+
+- Use NumPy-style docstrings for new and modified public APIs.
+- Keep docstrings synchronized with parameters/defaults/return values.
+- Legacy docstrings are normalized incrementally; convert touched legacy docstrings when practical.
+
+Ruff enforces a phased subset of docstring style checks while this migration is in progress.
+
 ## LLM docs maintenance
 
 If you update the docs theme or Sphinx structure, validate parser assumptions:

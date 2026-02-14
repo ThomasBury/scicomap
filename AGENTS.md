@@ -145,7 +145,21 @@ Run the smallest check that proves your change:
 - Keep changes scoped to one outcome.
 - Update docs when user-facing behavior changes.
 - Report exact validation commands run.
-- Follow conventional commit style if creating commits.
+- Follow conventional commit style for every commit.
+
+### Conventional Commits (required)
+- Format: `<type>(<optional-scope>): <imperative summary>`
+- Keep summary concise and action-oriented (for example: `fix(parser): handle nested skip depth`).
+- Common types in this repo: `feat`, `fix`, `docs`, `refactor`, `test`, `build`, `ci`, `chore`.
+- Use `!` or a `BREAKING CHANGE:` footer for breaking API/behavior changes.
+- Add a body when useful to explain why the change was needed.
+
+### Conventional Comments (required for review feedback)
+- Structure comments as `<label> [non-blocking]: <message>`.
+- Use labels from Conventional Comments where possible: `issue`, `suggestion`, `question`, `praise`, `nitpick`, `thought`, `chore`.
+- Mark non-critical suggestions as `non-blocking`.
+- Keep comments specific, actionable, and tied to observed code behavior.
+- Avoid vague style-only feedback unless it violates documented repository conventions.
 
 ## Recommended Agent Workflow
 1. Read relevant module(s) and nearby tests first.

@@ -1443,17 +1443,14 @@ def compare_cmap(
         facecolor=facecolor,
         # gridspec_kw={"hspace": 0.0, "wspace": 0.5},
     )
-    # Make the axes accessible with single indexing
-    axs = axs.flatten()
+    # Normalize axes to 1D so single-subplot layouts are handled uniformly.
+    axs = np.atleast_1d(axs).ravel()
     fontcolor = "white" if facecolor == "black" else "black"
 
     # loop over the columns to illustrate
     for i, color_map in enumerate(cm_list):
         # select the axis where the map will go
-        if n_charts > 1:
-            ax = axs[i]
-        else:
-            ax = axs
+        ax = axs[i]
 
         chartcm = SciCoMap(ctype=ctype, cmap=color_map)
 

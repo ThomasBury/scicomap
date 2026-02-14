@@ -148,6 +148,34 @@ def test_report_apply_writes_image(tmp_path: Path) -> None:
     assert (out_dir / "applied.png").exists()
 
 
+def test_report_apply_builtin_image_writes_image(tmp_path: Path) -> None:
+    runner = CliRunner()
+    out_dir = tmp_path / "report-apply-builtin"
+
+    result = runner.invoke(
+        app,
+        [
+            "report",
+            "--cmap",
+            "thermal",
+            "--type",
+            "sequential",
+            "--goal",
+            "apply",
+            "--image",
+            "grmhd",
+            "--out",
+            str(out_dir),
+            "--format",
+            "json",
+        ],
+    )
+    assert result.exit_code == 0
+    payload = json.loads(result.stdout)
+    assert payload["ok"] is True
+    assert (out_dir / "applied.png").exists()
+
+
 @pytest.mark.parametrize(
     ("kwargs", "expected"),
     [

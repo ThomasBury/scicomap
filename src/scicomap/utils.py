@@ -12,7 +12,6 @@ from os.path import dirname, join
 from scicomap.cblind import _get_color_weak_ctab, _get_color_weak_cmap
 
 
-
 def _pyramid(n=513):
     """Create a pyramid function"""
     s = np.linspace(-1.0, 1.0, n)

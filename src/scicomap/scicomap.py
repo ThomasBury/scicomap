@@ -126,7 +126,9 @@ class SciCoMap:
     [4] https://betterfigures.org/2015/06/23/picking-a-colour-scale-for-scientific-graphics/
     """
 
-    def __init__(self, ctype: str = "sequential", cmap: Union[str, Colormap] = "thermal"):
+    def __init__(
+        self, ctype: str = "sequential", cmap: Union[str, Colormap] = "thermal"
+    ):
         self.ctype = ctype
         self.color_map_dic = get_cmap_dict()
         self.cmap = cmap
@@ -296,7 +298,10 @@ class SciCoMap:
         return jch_plot(cmap=color_map, figsize=figsize)
 
     def illustrate_palettes(
-        self, figsize: Tuple[int, int] = (12, 10), n_colors: int = 256, facecolor: str = "black"
+        self,
+        figsize: Tuple[int, int] = (12, 10),
+        n_colors: int = 256,
+        facecolor: str = "black",
     ):
         """
         Draw the gradient or discrete color palettes for each colormap of the chosen ctype.
@@ -320,7 +325,10 @@ class SciCoMap:
         plt.show()
 
     def colorblind(
-        self, figsize: Tuple[int, int] = (12, 5), n_colors: int = 256, facecolor: str = "black"
+        self,
+        figsize: Tuple[int, int] = (12, 5),
+        n_colors: int = 256,
+        facecolor: str = "black",
     ):
         """
         Draw the gradient or discrete color palettes for different kinds of color vision deficiencies.
@@ -345,6 +353,7 @@ class SciCoMap:
             n_colors=n_colors,
             facecolor=facecolor,
         )
+
 
 class ScicoSequential(SciCoMap):
     """
@@ -400,7 +409,9 @@ class ScicoSequential(SciCoMap):
         s = f"ScicoSequential(cmap={self.cname})"
         return s
 
-    def draw_example(self, facecolor: str = "black", figsize: tuple = (20, 20), cblind: bool = True):
+    def draw_example(
+        self, facecolor: str = "black", figsize: tuple = (20, 20), cblind: bool = True
+    ):
         """
         Draw two charts for illustrative purposes.
 
@@ -436,6 +447,7 @@ class ScicoSequential(SciCoMap):
         )
 
         return fig
+
 
 class ScicoMultiSequential(SciCoMap):
     """
@@ -493,7 +505,9 @@ class ScicoMultiSequential(SciCoMap):
         s = f"ScicoMultiSequential(cmap={self.cname})"
         return s
 
-    def draw_example(self, facecolor: str = "black", figsize: tuple = (20, 20), cblind: bool = True):
+    def draw_example(
+        self, facecolor: str = "black", figsize: tuple = (20, 20), cblind: bool = True
+    ):
         """
         Draw two charts for illustrative purposes.
 
@@ -681,7 +695,9 @@ class ScicoCircular(SciCoMap):
         s = f"ScicoCircular(cmap={self.cname})"
         return s
 
-    def draw_example(self, facecolor: str = "black", figsize: tuple = (20, 20), cblind: bool = True):
+    def draw_example(
+        self, facecolor: str = "black", figsize: tuple = (20, 20), cblind: bool = True
+    ):
         """
         Draw two charts for illustrative purposes.
 

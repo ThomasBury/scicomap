@@ -12,6 +12,5 @@ from .datasets import *
 from .cmath import *
 from .cblind import *
 
-
 # Author declaration
 __author__ = "Thomas Bury"

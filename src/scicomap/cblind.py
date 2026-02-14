@@ -74,8 +74,7 @@ def colorblind_transform(RGBA: np.ndarray, colorblind_space: callable) -> np.nda
 
 
 def _get_color_weak_cmap(
-    color_map: Union[str, Colormap],
-    n_images: int
+    color_map: Union[str, Colormap], n_images: int
 ) -> Tuple[List[Union[str, Colormap]], List[str]]:
     """
     Generate color maps for different color vision deficiencies.
@@ -136,8 +135,7 @@ def _get_color_weak_cmap(
 
 
 def _get_color_weak_ctab(
-    color_map: Union[str, Callable],
-    n_blank: int
+    color_map: Union[str, Callable], n_blank: int
 ) -> Tuple[List[np.ndarray], List[str]]:
     """
     Generate color tables (ctabs) for different color vision deficiencies.
@@ -203,8 +201,7 @@ def _get_color_weak_ctab(
 
 
 def _colorblind_cmap(
-    cmap: Union[str, Callable],
-    c_space_transf: Callable
+    cmap: Union[str, Callable], c_space_transf: Callable
 ) -> ListedColormap:
     """
     Create a colorblind-friendly colormap by applying a color space transformation to a base colormap.
@@ -239,11 +236,12 @@ def _colorblind_cmap(
     ctab_cb = c_space_transf(ctab)
     return ListedColormap(np.clip(ctab_cb, 0, 1))
 
+
 def colorblind_vision(
     cmap: Union[str, List[str], List[Colormap]],
     figsize: Optional[Tuple[int, int]] = None,
     n_colors: int = 10,
-    facecolor: str = "black"
+    facecolor: str = "black",
 ) -> plt.Figure:
     """
     Generate a visualization of colorblind-friendly colormaps.

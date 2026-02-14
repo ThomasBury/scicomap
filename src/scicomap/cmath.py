@@ -56,14 +56,13 @@ def get_ctab(cmap: Union[Colormap, list]) -> np.ndarray:
         TypeError("`cmap` is neither a matplotlib Colormap nor a list of str/uples")
 
 
-
 def max_chroma(
-    Jp: Union[float, np.ndarray], 
-    hp: Union[float, np.ndarray], 
-    Cpmin: float = 0.0, 
-    Cpmax: Union[float, str] = "auto", 
-    eps: float = 1024 * np.finfo(float).eps, 
-    clip: bool = True
+    Jp: Union[float, np.ndarray],
+    hp: Union[float, np.ndarray],
+    Cpmin: float = 0.0,
+    Cpmax: Union[float, str] = "auto",
+    eps: float = 1024 * np.finfo(float).eps,
+    clip: bool = True,
 ) -> Union[float, np.ndarray]:
     """
     Calculate the maximum chroma (Cp) for a given lightness (Jp) and hue (hp) in the CAM02-UCS color space.
@@ -149,10 +148,7 @@ def max_chroma(
 
 
 def transform(
-    ctab: np.ndarray,
-    src: str = "sRGB1",
-    dst: str = "CAM02-UCS",
-    inverse: bool = False
+    ctab: np.ndarray, src: str = "sRGB1", dst: str = "CAM02-UCS", inverse: bool = False
 ) -> np.ndarray:
     """
     Transform a color table from one color space to another.
@@ -188,11 +184,7 @@ def transform(
     return out
 
 
-def interp(
-    x: float,
-    xp: np.ndarray,
-    yp: np.ndarray
-) -> float:
+def interp(x: float, xp: np.ndarray, yp: np.ndarray) -> float:
     """
     One-dimensional linear interpolation.
 
@@ -335,8 +327,13 @@ def classify(Jpapbp: np.ndarray) -> str:
         return "unknown"
 
 
-def uniformize(Jpapbp: np.ndarray, JpL: float = None, JpR: float = None,
-               Jplower: float = None, Jpupper: float = None) -> np.ndarray:
+def uniformize(
+    Jpapbp: np.ndarray,
+    JpL: float = None,
+    JpR: float = None,
+    Jplower: float = None,
+    Jpupper: float = None,
+) -> np.ndarray:
     """
     Uniformize a colormap in the Jpapbp color space, linear in lightness J'
 
@@ -675,7 +672,7 @@ def adjust_divergent(
     Jpapbp: np.ndarray,
     roundup: float = None,
     circular: bool = False,
-    symmetric: bool = True
+    symmetric: bool = True,
 ) -> np.ndarray:
     """
     Adjust a divergent colormap.
@@ -751,7 +748,7 @@ def uniformize_cmap(
     cmap: ListedColormap,
     name: str = "new_cmap",
     lift: float = None,
-    uniformized: bool = False
+    uniformized: bool = False,
 ) -> Tuple[ListedColormap, bool]:
     """
     Uniformize a colormap.
@@ -834,7 +831,7 @@ def symmetrize_cmap(
     cmap: ListedColormap,
     name: str = "new_cmap",
     bitonic: bool = True,
-    diffuse: bool = True
+    diffuse: bool = True,
 ) -> ListedColormap:
     """
     Symmetrize a colormap.
@@ -893,7 +890,7 @@ def unif_sym_cmap(
     lift: float = None,
     uniformized: bool = False,
     bitonic: bool = True,
-    diffuse: bool = True
+    diffuse: bool = True,
 ) -> tuple[ListedColormap, bool]:
     """
     Uniformize and symmetrize a colormap (perceptually homogeneous).
@@ -952,9 +949,7 @@ def unif_sym_cmap(
 
 
 def _ax_cylinder_JCh(
-    ax: matplotlib.axes.Axes,
-    cmap: Colormap,
-    title: str
+    ax: matplotlib.axes.Axes, cmap: Colormap, title: str
 ) -> matplotlib.axes.Axes:
     """
     Plot Jp, Cp, and hp coordinates in a cylindrical representation for a colormap.
@@ -1022,9 +1017,7 @@ def _ax_cylinder_JCh(
 
 
 def _ax_scatter_Jpapbp(
-    ax: matplotlib.axes.Axes,
-    cmap: Colormap,
-    title: str
+    ax: matplotlib.axes.Axes, cmap: Colormap, title: str
 ) -> matplotlib.axes.Axes:
     """
     Create a scatter plot in 3D to visualize Jpapbp coordinates of a colormap.

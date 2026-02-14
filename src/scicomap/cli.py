@@ -364,7 +364,9 @@ def _resolve_profile_config(
 
 @app.command(name="list")
 def list_command(
-    family: str | None = typer.Argument(None, help="Optional colormap family."),
+    family: str | None = typer.Argument(
+        None, help="Optional colormap family."
+    ),
     as_json: bool = typer.Option(False, "--json", help="Output JSON."),
 ) -> None:
     """List colormap families or names."""
@@ -436,7 +438,9 @@ def check(
 def preview(
     cmap: str = typer.Argument(DEFAULT_CMAP, help="Colormap name."),
     ctype: str | None = typer.Option(None, "--type", help="Colormap family."),
-    out: Path | None = typer.Option(None, "--out", help="Optional output file path."),
+    out: Path | None = typer.Option(
+        None, "--out", help="Optional output file path."
+    ),
     as_json: bool = typer.Option(False, "--json", help="Output JSON."),
 ) -> None:
     """Render a diagnostic figure for one colormap."""
@@ -463,14 +467,20 @@ def preview(
 def compare(
     cmaps: list[str] = typer.Argument(..., help="Colormap names to compare."),
     ctype: str = typer.Option(DEFAULT_TYPE, "--type", help="Colormap family."),
-    image: str = typer.Option("scan", "--image", help="Builtin key or image path."),
-    out: Path | None = typer.Option(None, "--out", help="Optional output file path."),
+    image: str = typer.Option(
+        "scan", "--image", help="Builtin key or image path."
+    ),
+    out: Path | None = typer.Option(
+        None, "--out", help="Optional output file path."
+    ),
     ncols: int = typer.Option(3, "--ncols", help="Number of subplot columns."),
     as_json: bool = typer.Option(False, "--json", help="Output JSON."),
 ) -> None:
     """Compare multiple colormaps on one image."""
     if len(cmaps) < 2:
-        _fail("scicomap compare", "Provide at least two colormap names.", as_json)
+        _fail(
+            "scicomap compare", "Provide at least two colormap names.", as_json
+        )
 
     try:
         for name in cmaps:
@@ -513,7 +523,9 @@ def fix(
     diffuse: bool = typer.Option(
         True, "--diffuse/--no-diffuse", help="Diffuse symmetrization."
     ),
-    out: Path | None = typer.Option(None, "--out", help="Optional output file path."),
+    out: Path | None = typer.Option(
+        None, "--out", help="Optional output file path."
+    ),
     as_json: bool = typer.Option(False, "--json", help="Output JSON."),
 ) -> None:
     """Apply uniformize+symmetrize and preview result."""
@@ -547,8 +559,12 @@ def fix(
 def cvd_command(
     cmap: str = typer.Argument(DEFAULT_CMAP, help="Colormap name."),
     ctype: str | None = typer.Option(None, "--type", help="Colormap family."),
-    out: Path | None = typer.Option(None, "--out", help="Optional output file path."),
-    n_colors: int = typer.Option(256, "--n-colors", help="Number of color bins."),
+    out: Path | None = typer.Option(
+        None, "--out", help="Optional output file path."
+    ),
+    n_colors: int = typer.Option(
+        256, "--n-colors", help="Number of color bins."
+    ),
     as_json: bool = typer.Option(False, "--json", help="Output JSON."),
 ) -> None:
     """Render color-vision-deficiency simulation for one colormap."""
@@ -610,7 +626,11 @@ def apply(
         if mode == "first-channel":
             scalar = rgb[..., 0]
         else:
-            scalar = 0.2126 * rgb[..., 0] + 0.7152 * rgb[..., 1] + 0.0722 * rgb[..., 2]
+            scalar = (
+                0.2126 * rgb[..., 0]
+                + 0.7152 * rgb[..., 1]
+                + 0.0722 * rgb[..., 2]
+            )
     else:
         _fail("scicomap apply", "Unsupported image format.", as_json)
 
@@ -654,16 +674,22 @@ def docs_llm(
     if not script_path.exists():
         _fail("scicomap docs-llm", f"Missing script: {script_path}", as_json)
 
-    spec = importlib.util.spec_from_file_location("build_llm_assets", script_path)
+    spec = importlib.util.spec_from_file_location(
+        "build_llm_assets", script_path
+    )
     if spec is None or spec.loader is None:
-        _fail("scicomap docs-llm", "Unable to load build_llm_assets.py", as_json)
+        _fail(
+            "scicomap docs-llm", "Unable to load build_llm_assets.py", as_json
+        )
 
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
 
     html_root = html_dir.resolve()
     markdown_dir = html_root / "llm"
-    docs = module.build_markdown_mirror(html_dir=html_root, markdown_dir=markdown_dir)
+    docs = module.build_markdown_mirror(
+        html_dir=html_root, markdown_dir=markdown_dir
+    )
     if not docs:
         _fail(
             "scicomap docs-llm",
@@ -782,8 +808,12 @@ def wizard(
     ),
     ctype: str | None = typer.Option(None, "--type", help="Colormap family."),
     cmap: str | None = typer.Option(None, "--cmap", help="Colormap name."),
-    image: Path | None = typer.Option(None, "--image", help="Image path for apply."),
-    out: Path | None = typer.Option(None, "--out", help="Optional output path."),
+    image: Path | None = typer.Option(
+        None, "--image", help="Image path for apply."
+    ),
+    out: Path | None = typer.Option(
+        None, "--out", help="Optional output path."
+    ),
     mode: str = typer.Option(
         "luminance",
         "--mode",
@@ -876,7 +906,9 @@ def wizard(
             selected_cmap = typer.prompt("Colormap name", default=DEFAULT_CMAP)
         if selected_goal == "apply" and selected_image is None:
             selected_image = Path(typer.prompt("Image path"))
-        if out is None and typer.confirm("Save output to file?", default=False):
+        if out is None and typer.confirm(
+            "Save output to file?", default=False
+        ):
             out = Path(typer.prompt("Output path"))
 
     if selected_cmap is None:
@@ -920,7 +952,9 @@ def wizard(
                 as_json,
             )
         if out is None:
-            warnings.append("No --out provided; writing 'scicomap-applied.png' in cwd.")
+            warnings.append(
+                "No --out provided; writing 'scicomap-applied.png' in cwd."
+            )
             out = Path("scicomap-applied.png")
         arr = plt.imread(selected_image)
         if arr.ndim == 2:
@@ -937,7 +971,9 @@ def wizard(
                 scalar = rgb[..., 0]
             else:
                 scalar = (
-                    0.2126 * rgb[..., 0] + 0.7152 * rgb[..., 1] + 0.0722 * rgb[..., 2]
+                    0.2126 * rgb[..., 0]
+                    + 0.7152 * rgb[..., 1]
+                    + 0.0722 * rgb[..., 2]
                 )
         else:
             _fail("scicomap wizard", "Unsupported image format.", as_json)
@@ -947,7 +983,9 @@ def wizard(
         out_path.parent.mkdir(parents=True, exist_ok=True)
         plt.imsave(out_path, mapped)
         result["artifact"] = str(out_path)
-        result["next_step"] = "preview the generated image and compare with original"
+        result["next_step"] = (
+            "preview the generated image and compare with original"
+        )
 
     payload = {
         "ok": True,
@@ -957,7 +995,9 @@ def wizard(
             "type": resolved_type,
             "cmap": selected_cmap,
             "image": (
-                None if selected_image is None else str(selected_image.resolve())
+                None
+                if selected_image is None
+                else str(selected_image.resolve())
             ),
             "out": None if out is None else str(out.resolve()),
             "mode": mode,
@@ -1029,7 +1069,9 @@ def report(
         "--diffuse/--no-diffuse",
         help="Diffuse symmetrization for fix stage.",
     ),
-    out: Path | None = typer.Option(None, "--out", help="Output report directory."),
+    out: Path | None = typer.Option(
+        None, "--out", help="Output report directory."
+    ),
     output_format: str = typer.Option(
         "text",
         "--format",
@@ -1083,7 +1125,9 @@ def report(
         chart = SciCoMap(ctype=resolved_type, cmap=cmap)
         assess_path = report_dir / "assess.png"
         artifact = _save_figure(chart.assess_cmap(), assess_path)
-        artifacts.append({"kind": "assessment", "path": artifact, "format": "png"})
+        artifacts.append(
+            {"kind": "assessment", "path": artifact, "format": "png"}
+        )
 
     if run_fix:
         fixed_chart = SciCoMap(ctype=resolved_type, cmap=cmap)
@@ -1106,7 +1150,9 @@ def report(
             n_colors=256,
         )
         artifact = _save_figure(cvd_fig, cvd_path)
-        artifacts.append({"kind": "colorblind", "path": artifact, "format": "png"})
+        artifacts.append(
+            {"kind": "colorblind", "path": artifact, "format": "png"}
+        )
 
     if run_apply:
         applied_path = report_dir / "applied.png"
@@ -1161,7 +1207,9 @@ def report(
             mapped = cmap_obj(_normalize(scalar))
             plt.imsave(applied_path, mapped)
             artifact = str(applied_path.resolve())
-        artifacts.append({"kind": "applied", "path": artifact, "format": "png"})
+        artifacts.append(
+            {"kind": "applied", "path": artifact, "format": "png"}
+        )
 
     next_step = "run 'scicomap report --fix' to improve the colormap"
     if diagnostics["status"] == "good":
@@ -1220,7 +1268,9 @@ def report(
 
 
 @app.command()
-def version(as_json: bool = typer.Option(False, "--json", help="Output JSON.")) -> None:
+def version(
+    as_json: bool = typer.Option(False, "--json", help="Output JSON."),
+) -> None:
     """Print installed scicomap version."""
     from scicomap import __version__
 
@@ -1256,7 +1306,9 @@ def cmap_list_alias(
 def cmap_assess_alias(
     cmap: str = typer.Option(DEFAULT_CMAP, "--cmap", help="Colormap name."),
     ctype: str | None = typer.Option(None, "--type", help="Colormap family."),
-    out: Path | None = typer.Option(None, "--out", help="Optional output file path."),
+    out: Path | None = typer.Option(
+        None, "--out", help="Optional output file path."
+    ),
     as_json: bool = typer.Option(False, "--json", help="Output JSON."),
 ) -> None:
     """Alias for `scicomap preview`."""
@@ -1267,8 +1319,12 @@ def cmap_assess_alias(
 def cmap_compare_alias(
     cmaps: list[str] = typer.Option(..., "--cmaps", help="Colormap names."),
     ctype: str = typer.Option(DEFAULT_TYPE, "--type", help="Colormap family."),
-    image: str = typer.Option("scan", "--image", help="Builtin key or image path."),
-    out: Path | None = typer.Option(None, "--out", help="Optional output file path."),
+    image: str = typer.Option(
+        "scan", "--image", help="Builtin key or image path."
+    ),
+    out: Path | None = typer.Option(
+        None, "--out", help="Optional output file path."
+    ),
     ncols: int = typer.Option(3, "--ncols", help="Number of subplot columns."),
     as_json: bool = typer.Option(False, "--json", help="Output JSON."),
 ) -> None:
@@ -1296,7 +1352,9 @@ def cmap_fix_alias(
     diffuse: bool = typer.Option(
         True, "--diffuse/--no-diffuse", help="Diffuse symmetrization."
     ),
-    out: Path | None = typer.Option(None, "--out", help="Optional output file path."),
+    out: Path | None = typer.Option(
+        None, "--out", help="Optional output file path."
+    ),
     as_json: bool = typer.Option(False, "--json", help="Output JSON."),
 ) -> None:
     """Alias for `scicomap fix`."""
@@ -1315,8 +1373,12 @@ def cmap_fix_alias(
 def cmap_colorblind_alias(
     cmap: str = typer.Option(DEFAULT_CMAP, "--cmap", help="Colormap name."),
     ctype: str | None = typer.Option(None, "--type", help="Colormap family."),
-    out: Path | None = typer.Option(None, "--out", help="Optional output file path."),
-    n_colors: int = typer.Option(256, "--n-colors", help="Number of color bins."),
+    out: Path | None = typer.Option(
+        None, "--out", help="Optional output file path."
+    ),
+    n_colors: int = typer.Option(
+        256, "--n-colors", help="Number of color bins."
+    ),
     as_json: bool = typer.Option(False, "--json", help="Output JSON."),
 ) -> None:
     """Alias for `scicomap cvd`."""

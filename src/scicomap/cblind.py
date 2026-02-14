@@ -11,26 +11,52 @@ from colorspacious import cspace_converter
 from matplotlib.colors import Colormap, ListedColormap
 from scicomap.cmath import get_ctab
 
-_deuter50_space = {"name": "sRGB1+CVD", "cvd_type": "deuteranomaly", "severity": 50}
+_deuter50_space = {
+    "name": "sRGB1+CVD",
+    "cvd_type": "deuteranomaly",
+    "severity": 50,
+}
 _deuter50_to_sRGB1 = cspace_converter(_deuter50_space, "sRGB1")
 
-_deuter100_space = {"name": "sRGB1+CVD", "cvd_type": "deuteranomaly", "severity": 100}
+_deuter100_space = {
+    "name": "sRGB1+CVD",
+    "cvd_type": "deuteranomaly",
+    "severity": 100,
+}
 _deuter100_to_sRGB1 = cspace_converter(_deuter100_space, "sRGB1")
 
-_prot50_space = {"name": "sRGB1+CVD", "cvd_type": "protanomaly", "severity": 50}
+_prot50_space = {
+    "name": "sRGB1+CVD",
+    "cvd_type": "protanomaly",
+    "severity": 50,
+}
 _prot50_to_sRGB1 = cspace_converter(_prot50_space, "sRGB1")
 
-_prot100_space = {"name": "sRGB1+CVD", "cvd_type": "protanomaly", "severity": 100}
+_prot100_space = {
+    "name": "sRGB1+CVD",
+    "cvd_type": "protanomaly",
+    "severity": 100,
+}
 _prot100_to_sRGB1 = cspace_converter(_prot100_space, "sRGB1")
 
-_trit50_space = {"name": "sRGB1+CVD", "cvd_type": "tritanomaly", "severity": 50}
+_trit50_space = {
+    "name": "sRGB1+CVD",
+    "cvd_type": "tritanomaly",
+    "severity": 50,
+}
 _trit50_to_sRGB1 = cspace_converter(_trit50_space, "sRGB1")
 
-_trit100_space = {"name": "sRGB1+CVD", "cvd_type": "tritanomaly", "severity": 100}
+_trit100_space = {
+    "name": "sRGB1+CVD",
+    "cvd_type": "tritanomaly",
+    "severity": 100,
+}
 _trit100_to_sRGB1 = cspace_converter(_trit100_space, "sRGB1")
 
 
-def colorblind_transform(RGBA: np.ndarray, colorblind_space: callable) -> np.ndarray:
+def colorblind_transform(
+    RGBA: np.ndarray, colorblind_space: callable
+) -> np.ndarray:
     """
     Apply a colorblind transformation to an RGBA image.
 
@@ -108,7 +134,9 @@ def _get_color_weak_cmap(
     >>> print(sub_title)
     """
     _deuter50_transform = lambda x: colorblind_transform(x, _deuter50_to_sRGB1)
-    _deuter100_transform = lambda x: colorblind_transform(x, _deuter100_to_sRGB1)
+    _deuter100_transform = lambda x: colorblind_transform(
+        x, _deuter100_to_sRGB1
+    )
     _prot50_transform = lambda x: colorblind_transform(x, _prot50_to_sRGB1)
     _trit100_transform = lambda x: colorblind_transform(x, _trit100_to_sRGB1)
 
@@ -169,7 +197,9 @@ def _get_color_weak_ctab(
     >>> print(c_tabs)
     >>> print(sub_title)
     """
-    _deuter100_transform = lambda x: colorblind_transform(x, _deuter100_to_sRGB1)
+    _deuter100_transform = lambda x: colorblind_transform(
+        x, _deuter100_to_sRGB1
+    )
     ctab = get_ctab(color_map)  # get the colormap as a color table in sRGB
     ctab_deuter100 = _deuter100_transform(ctab)
 
@@ -279,7 +309,9 @@ def colorblind_vision(
 
     cmap_dic = {}
     visible_spectrum_cmap = plt.get_cmap("gist_rainbow")
-    spectral_list, _ = _get_color_weak_cmap(color_map=visible_spectrum_cmap, n_images=0)
+    spectral_list, _ = _get_color_weak_cmap(
+        color_map=visible_spectrum_cmap, n_images=0
+    )
     cmap_dic["visible spectrum"] = spectral_list
 
     if isinstance(cmap, list):
@@ -326,7 +358,12 @@ def colorblind_vision(
             x_text = pos[0] - 0.01
             y_text = pos[1] + pos[3] / 2.0
             fig.text(
-                x_text, y_text, sub_titles[i], va="center", ha="right", fontdict=font
+                x_text,
+                y_text,
+                sub_titles[i],
+                va="center",
+                ha="right",
+                fontdict=font,
             )
 
     for ax in axes:

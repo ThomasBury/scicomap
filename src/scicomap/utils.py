@@ -78,7 +78,9 @@ def _plot_complex_arg(ax, cmap, facecolor="black", title=False):
         ax.set_xlabel("Re", color=title_color, fontsize=12)
         ax.set_ylabel("Im", color=title_color, fontsize=12)
         ax.set_title(
-            r"Argument of $(z^2 - 1)(z - 2 - j)^2$", color=title_color, fontsize=14
+            r"Argument of $(z^2 - 1)(z - 2 - j)^2$",
+            color=title_color,
+            fontsize=14,
         )
 
     divider = make_axes_locatable(ax)
@@ -109,7 +111,9 @@ def _angle_E(n_neg_charges):
     charges = []
     for i in range(nq):
         q = i % 2 * 2 - 1
-        charges.append((q, (np.cos(2 * np.pi * i / nq), np.sin(2 * np.pi * i / nq))))
+        charges.append(
+            (q, (np.cos(2 * np.pi * i / nq), np.sin(2 * np.pi * i / nq)))
+        )
 
     # Electric field vector, E=(Ex, Ey), as separate components
     Ex, Ey = np.zeros((ny, nx)), np.zeros((ny, nx))
@@ -151,7 +155,11 @@ def _plot_e_field(ax, cmap, n_neg_charges=2, facecolor="black", title=False):
     for q, pos in charges:
         ax.add_patch(Circle(pos, 0.175, color=charge_colors[q > 0]))
         ax.annotate(
-            charge_label[q > 0], xy=pos, fontsize=30, ha="center", va=label_align[q > 0]
+            charge_label[q > 0],
+            xy=pos,
+            fontsize=30,
+            ha="center",
+            va=label_align[q > 0],
         )
 
     ax.set_xlabel("")
@@ -161,7 +169,9 @@ def _plot_e_field(ax, cmap, n_neg_charges=2, facecolor="black", title=False):
     ax.set_aspect("equal")
     if title:
         ax.set_title(
-            r"Angle of $\vec{E}$ with the x-axis", color=title_color, fontsize=14
+            r"Angle of $\vec{E}$ with the x-axis",
+            color=title_color,
+            fontsize=14,
         )
 
     divider = make_axes_locatable(ax)
@@ -174,7 +184,14 @@ def _plot_e_field(ax, cmap, n_neg_charges=2, facecolor="black", title=False):
 
 
 def _plot_examples(
-    color_map, images, arr_3d, figsize, facecolor, cname, cblind=True, norm=False
+    color_map,
+    images,
+    arr_3d,
+    figsize,
+    facecolor,
+    cname,
+    cblind=True,
+    norm=False,
 ):
     """Create the figure based on the provided images, continuous colormaps"""
     fig = plt.figure(figsize=figsize, facecolor=facecolor)
@@ -193,7 +210,6 @@ def _plot_examples(
     n_cols = len(images)
 
     for c_map, im in itertools.product(c_maps, images):
-
         if isinstance(im, str) and ("3D" in im):
             px, py, pz = arr_3d[idx_3d]
             ax3d = fig.add_subplot(
@@ -205,7 +221,9 @@ def _plot_examples(
                 elev=10,
                 azim=-45,
             )
-            ax3d.plot_surface(px, py, pz, cmap=c_map, linewidth=0, antialiased=False)
+            ax3d.plot_surface(
+                px, py, pz, cmap=c_map, linewidth=0, antialiased=False
+            )
             ax3d = plt.gca()
             ax3d.xaxis.set_ticklabels([])
             ax3d.yaxis.set_ticklabels([])
@@ -214,7 +232,11 @@ def _plot_examples(
         elif isinstance(im, str) and ("electric" in im):
             ax = fig.add_subplot(n_rows, n_cols, axi, facecolor=facecolor)
             ax = _plot_e_field(
-                ax, c_map, n_neg_charges=2, facecolor=facecolor, title=axi <= n_cols
+                ax,
+                c_map,
+                n_neg_charges=2,
+                facecolor=facecolor,
+                title=axi <= n_cols,
             )
         elif isinstance(im, str) and ("complex" in im):
             ax = fig.add_subplot(n_rows, n_cols, axi, facecolor=facecolor)
@@ -225,7 +247,9 @@ def _plot_examples(
             ax.imshow(im, cmap=c_map, aspect="auto", norm=cmap_norm)
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
-            ax.set_title(sub_title[axi - 1], color=title_color, fontsize=16, loc="left")
+            ax.set_title(
+                sub_title[axi - 1], color=title_color, fontsize=16, loc="left"
+            )
 
         axi += 1
     fig.suptitle(cname, color=title_color, fontsize=24, y=0.95)
@@ -245,16 +269,20 @@ def _plot_examples_qual(color_map, dict_arr, figsize, facecolor, cname, year):
     n_cols = len(dict_arr)
 
     for c_map, d in itertools.product(c_tabs, dict_arr):
-
         if axi in range(1, n_rows * n_cols, len(dict_arr)):
             ax = fig.add_subplot(n_rows, n_cols, axi, facecolor=facecolor)
             n_colors = len(d.keys())
             ax.stackplot(
-                year, d.values(), labels=d.keys(), colors=c_map[range(n_colors), ...]
+                year,
+                d.values(),
+                labels=d.keys(),
+                colors=c_map[range(n_colors), ...],
             )
             ax.legend(loc="upper left")
             ax.set_facecolor(facecolor)
-            ax.set_title(sub_title[axi - 1], color=title_color, fontsize=16, loc="left")
+            ax.set_title(
+                sub_title[axi - 1], color=title_color, fontsize=16, loc="left"
+            )
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
         elif axi in range(2, n_rows * n_cols, n_cols):
@@ -275,7 +303,9 @@ def _plot_examples_qual(color_map, dict_arr, figsize, facecolor, cname, year):
             ax.set_facecolor(facecolor)
             # produce a legend with a cross section of sizes from the scatter
             handles, labels = scatter.legend_elements(prop="sizes", alpha=0.6)
-            legend2 = ax.legend(handles, labels, loc="upper right", title="Sizes")
+            legend2 = ax.legend(
+                handles, labels, loc="upper right", title="Sizes"
+            )
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
         else:

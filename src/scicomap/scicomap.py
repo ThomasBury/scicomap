@@ -41,7 +41,12 @@ import cmasher as cmr
 from cmcrameri import cm as scico
 import cmocean
 from palettable.cubehelix import perceptual_rainbow_16, classic_16
-from palettable.cartocolors.qualitative import Bold_10, Pastel_10, Prism_10, Vivid_10
+from palettable.cartocolors.qualitative import (
+    Bold_10,
+    Pastel_10,
+    Prism_10,
+    Vivid_10,
+)
 from palettable.colorbrewer.qualitative import Set1_9
 
 # internal import
@@ -181,7 +186,10 @@ class SciCoMap:
         """
         self.get_mpl_color_map()
         self.cmap, self.uniformized = uniformize_cmap(
-            cmap=self.cmap, name=self.cname, lift=lift, uniformized=self.uniformized
+            cmap=self.cmap,
+            name=self.cname,
+            lift=lift,
+            uniformized=self.uniformized,
         )
 
     def symmetrize_cmap(self, bitonic: bool = True, diffuse: bool = True):
@@ -209,7 +217,10 @@ class SciCoMap:
         )
 
     def unif_sym_cmap(
-        self, lift: Optional[int] = None, bitonic: bool = True, diffuse: bool = True
+        self,
+        lift: Optional[int] = None,
+        bitonic: bool = True,
+        diffuse: bool = True,
     ):
         """
         First, uniformize the colormap, meaning linearizing the brightness (J')
@@ -410,7 +421,10 @@ class ScicoSequential(SciCoMap):
         return s
 
     def draw_example(
-        self, facecolor: str = "black", figsize: tuple = (20, 20), cblind: bool = True
+        self,
+        facecolor: str = "black",
+        figsize: tuple = (20, 20),
+        cblind: bool = True,
     ):
         """
         Draw two charts for illustrative purposes.
@@ -506,7 +520,10 @@ class ScicoMultiSequential(SciCoMap):
         return s
 
     def draw_example(
-        self, facecolor: str = "black", figsize: tuple = (20, 20), cblind: bool = True
+        self,
+        facecolor: str = "black",
+        figsize: tuple = (20, 20),
+        cblind: bool = True,
     ):
         """
         Draw two charts for illustrative purposes.
@@ -601,7 +618,9 @@ class ScicoDiverging(SciCoMap):
         s = f"ScicoDiverging(cmap={self.cname})"
         return s
 
-    def draw_example(self, facecolor: str = "black", figsize: tuple = (20, 20)):
+    def draw_example(
+        self, facecolor: str = "black", figsize: tuple = (20, 20)
+    ):
         """
         Draw two charts for illustrative purposes.
 
@@ -696,7 +715,10 @@ class ScicoCircular(SciCoMap):
         return s
 
     def draw_example(
-        self, facecolor: str = "black", figsize: tuple = (20, 20), cblind: bool = True
+        self,
+        facecolor: str = "black",
+        figsize: tuple = (20, 20),
+        cblind: bool = True,
     ):
         """
         Draw two charts for illustrative purposes.
@@ -790,7 +812,9 @@ class ScicoMiscellaneous(SciCoMap):
         s = f"ScicoMiscellaneous(cmap={self.cname})"
         return s
 
-    def draw_example(self, facecolor: str = "black", figsize: tuple = (20, 20)):
+    def draw_example(
+        self, facecolor: str = "black", figsize: tuple = (20, 20)
+    ):
         """
         Draw two charts for illustrative purposes.
 
@@ -882,7 +906,9 @@ class ScicoQualitative(SciCoMap):
         s = f"ScicoQualitative(cmap={self.cname})"
         return s
 
-    def draw_example(self, facecolor: str = "black", figsize: tuple = (20, 20)):
+    def draw_example(
+        self, facecolor: str = "black", figsize: tuple = (20, 20)
+    ):
         """
         Draw two charts for illustrative purposes.
 
@@ -1229,7 +1255,6 @@ def plot_colormap(
     axes[0].set_title("Colormaps", fontdict=font)
 
     for ax, name in zip(axes, cmap_list):
-
         cmap = SciCoMap(ctype=ctype, cmap=name)
 
         if uniformize:
@@ -1242,7 +1267,9 @@ def plot_colormap(
         if ctype == "qualitative":
             col_map = cmap(range(10)) if cmap.N > 10 else cmap(range(cmap.N))
             x = np.linspace(0, 1, len(col_map))
-            ax.bar(x, np.ones_like(x), color=col_map, width=1 / (len(col_map) - 1))
+            ax.bar(
+                x, np.ones_like(x), color=col_map, width=1 / (len(col_map) - 1)
+            )
         else:
             ax.imshow(gradient, aspect="auto", cmap=cmap)
 
@@ -1372,7 +1399,9 @@ def compare_cmap(
         sym_kwargs = {}
 
     if image is not None and not isinstance(image, str):
-        raise TypeError("image should be a string or a path to an existing file")
+        raise TypeError(
+            "image should be a string or a path to an existing file"
+        )
 
     if (image is not None) and (image.endswith(("jpg", "jpeg", "png"))):
         img = mpimg.imread(image)
@@ -1504,10 +1533,14 @@ def jch_plot(cmap, figsize=(12, 10)):
     ax3d2 = _ax_scatter_Jpapbp(ax3d2, deuter50_cm, title="Deuter-50%, RG-weak")
 
     ax3d3 = f.add_subplot(2, 4, 8, projection="3d", elev=25, azim=-75)
-    ax3d3 = _ax_scatter_Jpapbp(ax3d3, deuter100_cm, title="Deuter-100%, RG-blind")
+    ax3d3 = _ax_scatter_Jpapbp(
+        ax3d3, deuter100_cm, title="Deuter-100%, RG-blind"
+    )
 
     ax3d4 = f.add_subplot(2, 4, 6, projection="3d", elev=25, azim=-75)
-    ax3d4 = _ax_scatter_Jpapbp(ax3d4, trit100_cm, title="Trit-100%, BY deficient")
+    ax3d4 = _ax_scatter_Jpapbp(
+        ax3d4, trit100_cm, title="Trit-100%, BY deficient"
+    )
 
     plt.tight_layout()
 

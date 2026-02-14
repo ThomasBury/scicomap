@@ -7,8 +7,12 @@ from pathlib import Path
 
 
 def _load_module():
-    module_path = Path(__file__).resolve().parents[2] / "scripts" / "build_llm_assets.py"
-    spec = importlib.util.spec_from_file_location("build_llm_assets", module_path)
+    module_path = (
+        Path(__file__).resolve().parents[2] / "scripts" / "build_llm_assets.py"
+    )
+    spec = importlib.util.spec_from_file_location(
+        "build_llm_assets", module_path
+    )
     assert spec is not None
     assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -36,7 +40,9 @@ def test_sidebar_skip_is_balanced_for_div_wrappers() -> None:
 
     assert parser.blocks[0].startswith("# Example")
     assert "Keep this paragraph." in parser.blocks
-    assert all("Ignore this sidebar text." not in block for block in parser.blocks)
+    assert all(
+        "Ignore this sidebar text." not in block for block in parser.blocks
+    )
     assert parser._skip_depth == 0
 
 
@@ -56,7 +62,10 @@ def test_nested_skipped_regions_resume_after_close() -> None:
     )
 
     assert "Keep after nested skip." in parser.blocks
-    assert all("Skip A" not in block and "Skip B" not in block for block in parser.blocks)
+    assert all(
+        "Skip A" not in block and "Skip B" not in block
+        for block in parser.blocks
+    )
     assert parser._skip_depth == 0
 
 
@@ -79,7 +88,9 @@ def test_to_markdown_does_not_duplicate_h1(tmp_path: Path) -> None:
     )
 
     title, markdown = module.to_markdown(html)
-    h1_lines = [line for line in markdown.splitlines() if line.startswith("# ")]
+    h1_lines = [
+        line for line in markdown.splitlines() if line.startswith("# ")
+    ]
 
     assert title == "Getting Started"
     assert h1_lines == ["# Getting Started # (#getting-started)"]

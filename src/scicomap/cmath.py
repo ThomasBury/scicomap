@@ -53,7 +53,9 @@ def get_ctab(cmap: Union[Colormap, list]) -> np.ndarray:
     elif isinstance(cmap, list):
         return np.array(cmap)
     else:
-        TypeError("`cmap` is neither a matplotlib Colormap nor a list of str/uples")
+        TypeError(
+            "`cmap` is neither a matplotlib Colormap nor a list of str/uples"
+        )
 
 
 def max_chroma(
@@ -148,7 +150,10 @@ def max_chroma(
 
 
 def transform(
-    ctab: np.ndarray, src: str = "sRGB1", dst: str = "CAM02-UCS", inverse: bool = False
+    ctab: np.ndarray,
+    src: str = "sRGB1",
+    dst: str = "CAM02-UCS",
+    inverse: bool = False,
 ) -> np.ndarray:
     """
     Transform a color table from one color space to another.
@@ -319,7 +324,9 @@ def classify(Jpapbp: np.ndarray) -> str:
     # in the Jc'h space
     elif len(x) == 1 and x[0] in np.arange((N + 1) // 2 - 5, N // 2 + 5, 1):
         return "divergent"
-    elif len(x) == 1 and x[0] not in np.arange((N + 1) // 2 - 5, N // 2 + 5, 1):
+    elif len(x) == 1 and x[0] not in np.arange(
+        (N + 1) // 2 - 5, N // 2 + 5, 1
+    ):
         return "asym_div"
     elif len(x) == 2 and (x[1] == x[0] + 1):
         return "multiseq"
@@ -878,7 +885,9 @@ def symmetrize_cmap(
     # find if sequential or divergent or unknown
     cmap_type = classify(t_ctab)
     diverging = True if cmap_type == "divergent" else False
-    lin_ctab = symmetrize(t_ctab, bitonic=bitonic, diffuse=diffuse, diverging=diverging)
+    lin_ctab = symmetrize(
+        t_ctab, bitonic=bitonic, diffuse=diffuse, diverging=diverging
+    )
     # get back a matplotlib cmap object
     s_cmap = transform(ctab=lin_ctab, inverse=True)
     return ListedColormap(np.clip(s_cmap, 0, 1), name=name)
@@ -1064,7 +1073,11 @@ def _ax_scatter_Jpapbp(
     RGB_dots = cmap(x_dots)[:, :3]
     Jpapbp_dots = transform(RGB_dots)
     ax.scatter(
-        Jpapbp_dots[:, 1], Jpapbp_dots[:, 2], Jpapbp_dots[:, 0], c=RGB_dots[:, :], s=80
+        Jpapbp_dots[:, 1],
+        Jpapbp_dots[:, 2],
+        Jpapbp_dots[:, 0],
+        c=RGB_dots[:, :],
+        s=80,
     )
     ax.set_xlabel("a' (green -> red)")
     ax.set_ylabel("b' (blue -> yellow)")

@@ -42,3 +42,21 @@ Practical workflow
 2. Assess lightness and colorblind behavior.
 3. Apply uniformization only when needed.
 4. Validate with your real data, not only synthetic examples.
+
+CLI profiles
+------------
+
+Use profile defaults to reduce option tuning in `report` and `wizard`:
+
+- ``quick-look``: fast diagnosis with minimal outputs.
+- ``publication``: quality-first defaults (improve + fix + CVD checks).
+- ``presentation``: publication defaults with a brighter lift bias.
+- ``cvd-safe``: accessibility-first diagnostics, CVD checks enforced.
+- ``agent``: deterministic machine mode (JSON output, non-interactive).
+
+Example:
+
+.. code-block:: shell
+
+   scicomap report --profile publication --cmap hawaii
+   scicomap report --profile cvd-safe --cmap thermal --format json

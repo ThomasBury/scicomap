@@ -60,7 +60,29 @@ scicomap docs llm-assets --html-dir docs/build/html
 # one-command workflow report bundle
 scicomap report --cmap hawaii --type sequential --out reports/hawaii
 scicomap report --cmap thermal --image input.png --goal apply --format json
+
+# profile-driven defaults
+scicomap report --profile publication --cmap hawaii
+scicomap report --profile cvd-safe --cmap thermal --format json
+scicomap wizard --profile quick-look
 ```
+
+### CLI profiles
+
+- `quick-look`: fast diagnosis, minimal artifacts
+- `publication`: quality-first defaults (`improve` + fix + CVD checks)
+- `presentation`: publication defaults with brighter lift bias
+- `cvd-safe`: accessibility-first, CVD checks enforced
+- `agent`: deterministic machine mode (`--format json`, non-interactive)
+
+### Profile precedence
+
+Configuration resolution order:
+
+1. Profile defaults
+2. Context inference (for example, image presence)
+3. Explicit user flags
+4. Strict profile enforcement (`cvd-safe`, `agent`)
 
 ## Documentation map
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 
 
@@ -116,3 +117,28 @@ def test_parser_supports_role_main_without_main_tag() -> None:
 
     assert "# Fallback" in parser.blocks
     assert "Role main content works." in parser.blocks
+
+
+def test_tutorial_notebook_image_references_exist() -> None:
+    root = Path(__file__).resolve().parents[2]
+    notebook = root / "docs" / "source" / "notebooks" / "tutorial.ipynb"
+    doc_source = root / "docs" / "source"
+
+    payload = json.loads(notebook.read_text(encoding="utf-8"))
+    refs: list[str] = []
+
+    for cell in payload.get("cells", []):
+        if cell.get("cell_type") != "markdown":
+            continue
+        for line in cell.get("source", []):
+            marker = '<img src="'
+            if marker not in line:
+                continue
+            path = line.split(marker, 1)[1].split('"', 1)[0]
+            if "pics/" in path:
+                refs.append(path)
+
+    assert refs, "No tutorial image references found."
+    for ref in refs:
+        target = (doc_source / "notebooks" / ref).resolve()
+        assert target.exists(), f"Missing tutorial image reference: {ref}"

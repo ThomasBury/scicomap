@@ -37,7 +37,7 @@ Notes:
 ```bash
 uv run python -m pytest
 uv run ruff check src tests
-uv run python -m black --check src
+uv run ruff format --check src tests
 ```
 
 ### Single-test workflows (important)
@@ -88,7 +88,7 @@ Follow existing style in touched files. For new code, use these defaults.
 - Keep import lists tidy and remove unused names.
 
 ### Formatting
-- Use `black` formatting and keep `ruff check` clean.
+- Use `ruff format` and keep `ruff check` clean.
 - Use 4-space indentation.
 - Prefer readable line breaks over dense one-liners.
 - Keep function bodies focused; extract helpers when logic grows.
@@ -136,7 +136,7 @@ Run the smallest check that proves your change:
    - `uv run python -m pytest`
 3. Formatting/import-only changes:
    - `uv run ruff check src tests`
-   - `uv run python -m black --check src`
+   - `uv run ruff format --check src tests`
 4. Docs build changes:
    - `uv run sphinx-build -n -b html docs/source docs/build/html`
    - `uv run python scripts/build_llm_assets.py`

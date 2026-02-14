@@ -107,7 +107,7 @@ uv sync --extra lint --extra test --extra docs
 # run commands in the project environment
 uv run python -m pytest
 uv run ruff check src tests
-uv run python -m black --check src
+uv run ruff format --check src tests
 
 # build web docs + LLM assets
 uv run sphinx-build -n -b html docs/source docs/build/html

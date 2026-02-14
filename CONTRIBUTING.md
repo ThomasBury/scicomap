@@ -12,7 +12,7 @@ uv sync --extra lint --extra test --extra docs
 
 ```shell
 uv run python -m pytest
-uv run python -m flake8 src
+uv run ruff check src tests
 uv run python -m black --check src
 uv run sphinx-build -n -b html docs/source docs/build/html
 uv run python scripts/build_llm_assets.py

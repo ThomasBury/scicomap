@@ -106,7 +106,7 @@ uv sync --extra lint --extra test --extra docs
 
 # run commands in the project environment
 uv run python -m pytest
-uv run python -m flake8 src
+uv run ruff check src tests
 uv run python -m black --check src
 
 # build web docs + LLM assets

@@ -36,7 +36,7 @@ Notes:
 ### Standard local checks
 ```bash
 uv run python -m pytest
-uv run python -m flake8 src
+uv run ruff check src tests
 uv run python -m black --check src
 ```
 
@@ -88,7 +88,7 @@ Follow existing style in touched files. For new code, use these defaults.
 - Keep import lists tidy and remove unused names.
 
 ### Formatting
-- Use `black` formatting and keep `flake8` clean.
+- Use `black` formatting and keep `ruff check` clean.
 - Use 4-space indentation.
 - Prefer readable line breaks over dense one-liners.
 - Keep function bodies focused; extract helpers when logic grows.
@@ -135,7 +135,7 @@ Run the smallest check that proves your change:
 2. Runtime package changes in `src/scicomap`:
    - `uv run python -m pytest`
 3. Formatting/import-only changes:
-   - `uv run python -m flake8 src`
+   - `uv run ruff check src tests`
    - `uv run python -m black --check src`
 4. Docs build changes:
    - `uv run sphinx-build -n -b html docs/source docs/build/html`

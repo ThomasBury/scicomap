@@ -10,6 +10,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from typer.testing import CliRunner
 
+from scicomap.cblind import colorblind_vision
 from scicomap.cli import app, _resolve_profile_config
 
 
@@ -468,3 +469,11 @@ def test_apply_grayscale_image(tmp_path: Path) -> None:
     payload = json.loads(result.stdout)
     assert payload["ok"] is True
     assert out_path.exists()
+
+
+def test_colorblind_vision_default_figsize_is_readable() -> None:
+    fig = colorblind_vision(cmap=plt.get_cmap("viridis"), figsize=None)
+    try:
+        assert fig.get_size_inches()[1] >= 5.5
+    finally:
+        plt.close(fig)

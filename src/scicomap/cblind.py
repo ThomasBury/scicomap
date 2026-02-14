@@ -334,7 +334,7 @@ def colorblind_vision(
     ncols = len(cmap_dic)
 
     if figsize is None:
-        figsize = (10, 0.25 * nrows)
+        figsize = (10, max(5.5, 1.1 * nrows))
 
     fontcolor = "white" if facecolor == "black" else "black"
     fig, axes = plt.subplots(

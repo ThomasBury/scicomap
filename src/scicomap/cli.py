@@ -32,6 +32,70 @@ BUILTIN_IMAGES = {
 VALID_GOALS = {"diagnose", "improve", "apply"}
 VALID_MODES = {"luminance", "first-channel", "gray-only"}
 VALID_FORMATS = {"text", "json"}
+VALID_PROFILES = {
+    "quick-look",
+    "publication",
+    "presentation",
+    "cvd-safe",
+    "agent",
+}
+PROFILE_DEFAULTS: dict[str, dict[str, Any]] = {
+    "quick-look": {
+        "goal": "diagnose",
+        "fix": False,
+        "cvd": False,
+        "apply": None,
+        "format": "text",
+        "lift": None,
+        "bitonic": True,
+        "diffuse": True,
+        "interactive": True,
+    },
+    "publication": {
+        "goal": "improve",
+        "fix": True,
+        "cvd": True,
+        "apply": None,
+        "format": "text",
+        "lift": None,
+        "bitonic": True,
+        "diffuse": True,
+        "interactive": True,
+    },
+    "presentation": {
+        "goal": "improve",
+        "fix": True,
+        "cvd": True,
+        "apply": None,
+        "format": "text",
+        "lift": 10.0,
+        "bitonic": True,
+        "diffuse": True,
+        "interactive": True,
+    },
+    "cvd-safe": {
+        "goal": "diagnose",
+        "fix": True,
+        "cvd": True,
+        "apply": None,
+        "format": "json",
+        "lift": None,
+        "bitonic": True,
+        "diffuse": True,
+        "interactive": True,
+    },
+    "agent": {
+        "goal": None,
+        "fix": False,
+        "cvd": False,
+        "apply": False,
+        "format": "json",
+        "lift": None,
+        "bitonic": True,
+        "diffuse": True,
+        "interactive": False,
+    },
+}
 
 app = typer.Typer(help="Scientific colormap tools for humans and agents.")
 cmap_app = typer.Typer(help="Explicit colormap command aliases.")
@@ -214,6 +278,88 @@ def _write_summary_txt(report_dir: Path, payload: dict[str, Any]) -> Path:
     summary_path = report_dir / "summary.txt"
     summary_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
     return summary_path
+
+
+def _resolve_profile_config(
+    *,
+    profile: str | None,
+    goal: str | None,
+    has_image: bool,
+    fix: bool | None,
+    cvd: bool | None,
+    apply_output: bool | None,
+    output_format: str | None,
+    lift: float | None,
+    bitonic: bool | None,
+    diffuse: bool | None,
+    interactive: bool | None,
+) -> tuple[dict[str, Any], list[str]]:
+    resolved_profile = profile or "publication"
+    if resolved_profile not in VALID_PROFILES:
+        raise ValueError(f"Invalid profile '{resolved_profile}'.")
+
+    warnings: list[str] = []
+    defaults = PROFILE_DEFAULTS[resolved_profile]
+    cfg = dict(defaults)
+
+    if goal is not None:
+        cfg["goal"] = goal
+
+    if cfg["goal"] is None:
+        cfg["goal"] = "apply" if has_image else "diagnose"
+
+    if apply_output is not None:
+        cfg["apply"] = apply_output
+    elif defaults["apply"] is None:
+        cfg["apply"] = cfg["goal"] == "apply"
+
+    if fix is not None:
+        cfg["fix"] = fix
+    elif defaults["fix"] is None:
+        cfg["fix"] = cfg["goal"] == "improve"
+
+    if cvd is not None:
+        cfg["cvd"] = cvd
+    elif defaults["cvd"] is None:
+        cfg["cvd"] = cfg["goal"] in {"diagnose", "improve"}
+
+    if output_format is not None:
+        cfg["format"] = output_format
+    elif defaults["format"] is None:
+        cfg["format"] = "json" if resolved_profile == "agent" else "text"
+
+    if lift is not None:
+        cfg["lift"] = lift
+    if bitonic is not None:
+        cfg["bitonic"] = bitonic
+    if diffuse is not None:
+        cfg["diffuse"] = diffuse
+    if interactive is not None:
+        cfg["interactive"] = interactive
+
+    if resolved_profile == "cvd-safe" and cfg["cvd"] is False:
+        cfg["cvd"] = True
+        warnings.append("cvd-safe profile forces CVD analysis on.")
+
+    if resolved_profile == "agent":
+        if cfg["format"] != "json":
+            cfg["format"] = "json"
+            warnings.append("agent profile forces --format json.")
+        if cfg["interactive"] is True:
+            warnings.append("agent profile runs in non-interactive mode.")
+        cfg["interactive"] = False
+
+    if cfg["goal"] not in VALID_GOALS:
+        raise ValueError(f"Invalid goal '{cfg['goal']}'.")
+    if cfg["format"] not in VALID_FORMATS:
+        raise ValueError(f"Invalid format '{cfg['format']}'.")
+    if cfg["apply"] and not has_image:
+        raise ValueError("Apply stage requires --image.")
+    if cfg["goal"] == "apply" and not has_image:
+        raise ValueError("goal=apply requires --image.")
+
+    cfg["profile"] = resolved_profile
+    return cfg, warnings
 
 
 @app.command(name="list")
@@ -647,6 +793,14 @@ def doctor(
 
 @app.command()
 def wizard(
+    profile: str | None = typer.Option(
+        None,
+        "--profile",
+        help=(
+            "Workflow profile: quick-look, publication, "
+            "presentation, cvd-safe, agent."
+        ),
+    ),
     goal: str | None = typer.Option(
         None,
         "--goal",
@@ -665,7 +819,44 @@ def wizard(
         "--mode",
         help="Image mode for apply: luminance, first-channel, gray-only.",
     ),
+    output_format: str | None = typer.Option(
+        None,
+        "--format",
+        help="Output format: text or json.",
+    ),
     as_json: bool = typer.Option(False, "--json", help="Output JSON."),
+    fix: bool | None = typer.Option(
+        None,
+        "--fix/--no-fix",
+        help="Apply colormap fix in improve workflows.",
+    ),
+    cvd: bool | None = typer.Option(
+        None,
+        "--cvd/--no-cvd",
+        help="Enable colorblind checks in diagnostics workflows.",
+    ),
+    apply_output: bool | None = typer.Option(
+        None,
+        "--apply/--no-apply",
+        help="Enable image apply stage.",
+    ),
+    lift: float | None = typer.Option(
+        None,
+        "--lift",
+        min=0.0,
+        max=100.0,
+        help="Lift value for improve stage.",
+    ),
+    bitonic: bool | None = typer.Option(
+        None,
+        "--bitonic/--no-bitonic",
+        help="Bitonic symmetrization for improve stage.",
+    ),
+    diffuse: bool | None = typer.Option(
+        None,
+        "--diffuse/--no-diffuse",
+        help="Diffuse symmetrization for improve stage.",
+    ),
     interactive: bool = typer.Option(
         True,
         "--interactive/--no-interactive",
@@ -680,16 +871,35 @@ def wizard(
     scicomap wizard --goal diagnose --cmap thermal --type sequential \
         --no-interactive --json
     """
-    selected_goal = goal
+    explicit_format = output_format
+    if as_json:
+        explicit_format = "json"
+
+    try:
+        effective, profile_warnings = _resolve_profile_config(
+            profile=profile,
+            goal=goal,
+            has_image=image is not None,
+            fix=fix,
+            cvd=cvd,
+            apply_output=apply_output,
+            output_format=explicit_format,
+            lift=lift,
+            bitonic=bitonic,
+            diffuse=diffuse,
+            interactive=interactive,
+        )
+    except ValueError as exc:
+        _fail("scicomap wizard", str(exc), as_json)
+
+    as_json = effective["format"] == "json"
+    selected_goal = effective["goal"]
     selected_type = ctype
     selected_cmap = cmap
     selected_image = image
+    selected_interactive = effective["interactive"]
 
-    if interactive:
-        if selected_goal is None:
-            selected_goal = typer.prompt(
-                "Goal (diagnose/improve/apply)", default="diagnose"
-            )
+    if selected_interactive:
         if selected_type is None:
             selected_type = typer.prompt("Colormap type", default=DEFAULT_TYPE)
         if selected_cmap is None:
@@ -701,14 +911,6 @@ def wizard(
         ):
             out = Path(typer.prompt("Output path"))
 
-    if selected_goal is None:
-        _fail(
-            "scicomap wizard",
-            "Missing --goal in non-interactive mode.",
-            as_json,
-        )
-    if selected_goal not in VALID_GOALS:
-        _fail("scicomap wizard", f"Invalid goal '{selected_goal}'.", as_json)
     if selected_cmap is None:
         _fail("scicomap wizard", "Missing --cmap value.", as_json)
     if mode not in VALID_MODES:
@@ -724,14 +926,19 @@ def wizard(
         "cmap": selected_cmap,
         "type": resolved_type,
     }
-    warnings: list[str] = []
+    warnings = list(profile_warnings)
+    diagnostics = _diagnose_cmap(cmap_obj)
 
     if selected_goal == "diagnose":
-        result["diagnostics"] = _diagnose_cmap(cmap_obj)
+        result["diagnostics"] = diagnostics
         result["next_step"] = "run 'scicomap fix <cmap>' if status is caution"
     elif selected_goal == "improve":
         chart = SciCoMap(ctype=resolved_type, cmap=selected_cmap)
-        chart.unif_sym_cmap(lift=None, bitonic=True, diffuse=True)
+        chart.unif_sym_cmap(
+            lift=effective["lift"],
+            bitonic=effective["bitonic"],
+            diffuse=effective["diffuse"],
+        )
         figure = chart.assess_cmap()
         result["artifact"] = _save_figure(figure, out)
         result["next_step"] = "use the fixed colormap in your plot pipeline"
@@ -794,9 +1001,11 @@ def wizard(
             ),
             "out": None if out is None else str(out.resolve()),
             "mode": mode,
-            "interactive": interactive,
+            "interactive": selected_interactive,
+            "profile": effective["profile"],
+            "format": effective["format"],
         },
-        "data": result,
+        "data": {**result, "effective_config": effective},
         "warnings": warnings,
         "errors": [],
     }
@@ -807,6 +1016,14 @@ def wizard(
 def report(
     cmap: str = typer.Option(DEFAULT_CMAP, "--cmap", help="Colormap name."),
     ctype: str | None = typer.Option(None, "--type", help="Colormap family."),
+    profile: str | None = typer.Option(
+        None,
+        "--profile",
+        help=(
+            "Workflow profile: quick-look, publication, "
+            "presentation, cvd-safe, agent."
+        ),
+    ),
     image: str | None = typer.Option(
         None, "--image", help="Input image path or builtin key."
     ),
@@ -842,13 +1059,13 @@ def report(
         max=100.0,
         help="Lift value for fix stage.",
     ),
-    bitonic: bool = typer.Option(
-        True,
+    bitonic: bool | None = typer.Option(
+        None,
         "--bitonic/--no-bitonic",
         help="Bitonic symmetrization for fix stage.",
     ),
-    diffuse: bool = typer.Option(
-        True,
+    diffuse: bool | None = typer.Option(
+        None,
         "--diffuse/--no-diffuse",
         help="Diffuse symmetrization for fix stage.",
     ),
@@ -868,34 +1085,31 @@ def report(
     scicomap report --cmap hawaii --type sequential --out reports/hawaii
     scicomap report --cmap thermal --image input.png --apply --format json
     """
-    if output_format not in VALID_FORMATS:
-        _fail("scicomap report", f"Invalid format '{output_format}'.", False)
-    as_json = output_format == "json"
+    try:
+        effective, profile_warnings = _resolve_profile_config(
+            profile=profile,
+            goal=goal,
+            has_image=image is not None,
+            fix=fix,
+            cvd=cvd,
+            apply_output=apply_output,
+            output_format=output_format,
+            lift=lift,
+            bitonic=bitonic,
+            diffuse=diffuse,
+            interactive=None,
+        )
+    except ValueError as exc:
+        _fail("scicomap report", str(exc), False)
 
-    resolved_goal = goal
-    if resolved_goal is None:
-        resolved_goal = "apply" if image is not None else "diagnose"
-    if resolved_goal not in VALID_GOALS:
-        _fail("scicomap report", f"Invalid goal '{resolved_goal}'.", as_json)
+    as_json = effective["format"] == "json"
+    resolved_goal = effective["goal"]
     if mode not in VALID_MODES:
         _fail("scicomap report", f"Invalid mode '{mode}'.", as_json)
 
-    run_fix = fix if fix is not None else (resolved_goal == "improve")
-    run_cvd = (
-        cvd if cvd is not None else (resolved_goal in {"diagnose", "improve"})
-    )
-    run_apply = (
-        apply_output
-        if apply_output is not None
-        else (resolved_goal == "apply")
-    )
-
-    if run_apply and image is None:
-        _fail(
-            "scicomap report",
-            "Apply stage requires --image.",
-            as_json,
-        )
+    run_fix = effective["fix"]
+    run_cvd = effective["cvd"]
+    run_apply = effective["apply"]
 
     try:
         resolved_type, cmap_obj = _resolve_cmap(cmap, ctype)
@@ -905,7 +1119,7 @@ def report(
     diagnostics = _diagnose_cmap(cmap_obj)
     report_dir = _report_output_dir(out)
     artifacts: list[dict[str, str]] = []
-    warnings: list[str] = []
+    warnings = list(profile_warnings)
 
     if resolved_goal in {"diagnose", "improve"}:
         chart = SciCoMap(ctype=resolved_type, cmap=cmap)
@@ -917,7 +1131,11 @@ def report(
 
     if run_fix:
         fixed_chart = SciCoMap(ctype=resolved_type, cmap=cmap)
-        fixed_chart.unif_sym_cmap(lift=lift, bitonic=bitonic, diffuse=diffuse)
+        fixed_chart.unif_sym_cmap(
+            lift=effective["lift"],
+            bitonic=effective["bitonic"],
+            diffuse=effective["diffuse"],
+        )
         fixed_path = report_dir / "fixed-assess.png"
         artifact = _save_figure(fixed_chart.assess_cmap(), fixed_path)
         artifacts.append(
@@ -1009,17 +1227,19 @@ def report(
             "cvd": run_cvd,
             "apply": run_apply,
             "mode": mode,
-            "lift": lift,
-            "bitonic": bitonic,
-            "diffuse": diffuse,
+            "lift": effective["lift"],
+            "bitonic": effective["bitonic"],
+            "diffuse": effective["diffuse"],
             "out": str(report_dir),
-            "format": output_format,
+            "format": effective["format"],
+            "profile": effective["profile"],
         },
         "data": {
             "status": diagnostics["status"],
             "goal": resolved_goal,
             "cmap": cmap,
             "type": resolved_type,
+            "profile": effective["profile"],
             "diagnostics": diagnostics,
             "actions": {
                 "fix_applied": run_fix,
@@ -1029,6 +1249,7 @@ def report(
             "artifacts": artifacts,
             "next_step": next_step,
             "report_dir": str(report_dir),
+            "effective_config": effective,
         },
         "warnings": warnings,
         "errors": [],

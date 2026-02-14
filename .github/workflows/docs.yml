@@ -33,8 +33,14 @@ jobs:
       - name: Set up Pandoc
         uses: r-lib/actions/setup-pandoc@v2
 
-      - name: Sync docs and test environment
-        run: uv sync --extra docs --extra test
+      - name: Sync docs, lint, and test environment
+        run: uv sync --extra docs --extra lint --extra test
+
+      - name: Run Ruff lint checks
+        run: uv run ruff check src tests
+
+      - name: Run Ruff format checks
+        run: uv run ruff format --check src tests
 
       - name: Run parser regression tests
         run: uv run python -m pytest tests/docs/test_build_llm_assets.py

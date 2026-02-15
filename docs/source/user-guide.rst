@@ -60,3 +60,10 @@ Example:
 
    scicomap report --profile publication --cmap hawaii
    scicomap report --profile cvd-safe --cmap thermal --format json
+
+Next steps from this guide
+--------------------------
+
+- Interactive tutorial: :doc:`tutorial-marimo`
+- Full walkthrough notebook: :doc:`notebooks/tutorial`
+- Detailed API reference: :doc:`api-reference`

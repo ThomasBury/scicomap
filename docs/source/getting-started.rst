@@ -1,6 +1,9 @@
 Getting Started
 ===============
 
+In five minutes, you should be able to pick a colormap, assess it, and run a
+safe default improvement workflow.
+
 Install
 -------
 
@@ -21,6 +24,42 @@ an artifact-focused example.
    cmap = sc.ScicoSequential(cmap="hawaii")
    cmap.assess_cmap(figsize=(14, 6))
    cmap.draw_example()
+
+First 5 minutes (CLI)
+---------------------
+
+Run this exact sequence to diagnose and improve one colormap:
+
+.. code-block:: shell
+
+   scicomap check hawaii --type sequential
+   scicomap report --profile publication --cmap hawaii --type sequential
+   scicomap cvd hawaii --type sequential --out hawaii-cvd.png
+
+Expected result:
+
+.. code-block:: text
+
+   - A diagnostics status (good/caution/fix-recommended)
+   - A report directory containing summary.txt and report.json
+   - A colorblind preview image at hawaii-cvd.png
+
+Simple usage
+------------
+
+Use these commands and APIs first if you are new to scicomap.
+
+.. code-block:: python
+
+   import scicomap as sc
+
+   cmap = sc.ScicoSequential(cmap="hawaii")
+   cmap.assess_cmap(figsize=(14, 6))
+
+.. code-block:: shell
+
+   scicomap check hawaii --type sequential
+   scicomap preview hawaii --type sequential --out hawaii-assess.png
 
 Choose a colormap family
 ------------------------
@@ -43,10 +82,21 @@ Get a Matplotlib colormap object
 
    plt_cmap_obj = cmap.get_mpl_color_map()
 
+Advanced next steps
+-------------------
+
+Use profiles and guided workflows when you want repeatable quality checks.
+
+.. code-block:: shell
+
+   scicomap wizard --profile quick-look
+   scicomap report --profile cvd-safe --cmap thermal --format json
+
 Where to go next
 ----------------
 
 - Read :doc:`user-guide` for common workflows.
+- Open :doc:`cli-reference` for command-first usage.
 - Open :doc:`notebooks/tutorial` for the complete walkthrough.
 - Try :doc:`tutorial-marimo` for an interactive browser tutorial.
 - Check :doc:`faq` for practical decision rules.

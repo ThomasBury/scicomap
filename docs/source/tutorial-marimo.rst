@@ -35,3 +35,10 @@ WASM local serving note
 When serving exported WASM files locally, serve the full docs root (for example,
 ``docs/build/html``) rather than only the ``marimo/`` subfolder so absolute
 runtime paths resolve consistently.
+
+Next steps from this tutorial
+-----------------------------
+
+- Quick install and first commands: :doc:`getting-started`
+- Practical decision workflow: :doc:`user-guide`
+- Deeper narrative tutorial: :doc:`notebooks/tutorial`

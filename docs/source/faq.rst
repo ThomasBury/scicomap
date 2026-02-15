@@ -28,3 +28,10 @@ Do I always need to uniformize a colormap?
 
 No. Start with assessment, then apply uniformization only if you detect
 lightness non-linearity, asymmetry, or obvious artifacts.
+
+What scicomap does not do
+-------------------------
+
+- It is not a replacement for Matplotlib plotting APIs.
+- It does not auto-select a perfect colormap for every domain-specific task.
+- It does not validate scientific correctness of your underlying data model.

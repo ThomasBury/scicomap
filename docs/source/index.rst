@@ -1,28 +1,80 @@
 scicomap documentation
 ======================
 
-Use this documentation to choose colormaps, assess visual artifacts, and apply
-uniformization workflows in practical plotting pipelines.
+scicomap helps you choose, assess, and improve scientific colormaps so figures
+remain readable, faithful to the data, and safer for color-vision-deficient
+readers.
+
+Who this is for
+---------------
+
+- Researchers preparing publication figures.
+- Data analysts and data scientists building trustworthy dashboards.
+- Engineers who need robust colormap defaults in Matplotlib workflows.
+
+Quick start (Python API)
+------------------------
+
+.. code-block:: python
+
+   import scicomap as sc
+
+   cmap = sc.ScicoSequential(cmap="hawaii")
+   cmap.assess_cmap(figsize=(14, 6))
+   cmap.unif_sym_cmap(lift=None, bitonic=False, diffuse=True)
+   cmap.draw_example()
+
+Quick start (CLI)
+-----------------
+
+.. code-block:: shell
+
+   scicomap check hawaii --type sequential
+   scicomap report --profile publication --cmap hawaii --type sequential
+   scicomap cvd hawaii --type sequential --out hawaii-cvd.png
+
+Choose your path
+----------------
+
+- New user: :doc:`getting-started`
+- Practical guidance: :doc:`user-guide`
+- Full tutorial notebook: :doc:`notebooks/tutorial`
+- Interactive playground: :doc:`tutorial-marimo`
+- Full API details: :doc:`api-reference`
+- CLI command reference: :doc:`cli-reference`
+
+Common tasks
+------------
+
+- Assess a colormap before publication.
+- Fix non-uniform lightness and chroma artifacts.
+- Validate colorblind accessibility.
+- Apply a colormap to your own image data.
+
+Advanced and automation
+-----------------------
+
+- One-command workflow reports with `status`, artifacts, and recommendations:
+  ``scicomap report ...``.
+- Profile-driven defaults for quick decisions:
+  ``quick-look``, ``publication``, ``presentation``, ``cvd-safe``, ``agent``.
+- Machine-friendly docs and JSON outputs for tooling/LLMs:
+  :doc:`llm-access`.
 
 Documentation last change: |today|
 
 .. toctree::
    :maxdepth: 2
-   :caption: Start here
+   :caption: Start Here
 
    Introduction
    getting-started
 
 .. toctree::
    :maxdepth: 2
-   :caption: Guides
+   :caption: How-to Guides
 
    user-guide
-   api-reference
-   faq
-   troubleshooting
-   llm-access
-   contributing
 
 .. toctree::
    :maxdepth: 2
@@ -30,3 +82,14 @@ Documentation last change: |today|
 
    notebooks/tutorial.ipynb
    tutorial-marimo
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Reference and Support
+
+   api-reference
+   cli-reference
+   faq
+   troubleshooting
+   llm-access
+   contributing

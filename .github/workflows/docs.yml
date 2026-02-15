@@ -57,34 +57,8 @@ jobs:
       - name: Export Marimo WASM tutorial
         run: uv run marimo export html-wasm docs/marimo/tutorial_app_lite.py -o docs/build/html/marimo --mode run
 
-      - name: Expose WASM controller at site root
-        run: |
-          uv run python - <<'PY'
-          from pathlib import Path
-
-          source = Path("docs/build/html/marimo/wasm/controller.js")
-          target = Path("docs/build/html/wasm/controller.js")
-          assert source.exists(), f"Missing exported controller: {source}"
-          target.parent.mkdir(parents=True, exist_ok=True)
-          target.write_bytes(source.read_bytes())
-          PY
-
       - name: Validate Marimo tutorial artifact
         run: uv run python -c "from pathlib import Path; p=Path('docs/build/html/marimo/index.html'); assert p.exists(), f'Missing Marimo tutorial artifact: {p}'"
-
-      - name: Validate WASM controller artifacts
-        run: |
-          uv run python - <<'PY'
-          from pathlib import Path
-
-          for path in (
-              Path("docs/build/html/wasm/controller.js"),
-              Path("docs/build/html/marimo/wasm/controller.js"),
-          ):
-              assert path.exists(), f"Missing WASM controller: {path}"
-              text = path.read_text(encoding="utf-8")
-              assert text.strip(), f"Empty WASM controller at: {path}"
-          PY
 
       - name: Validate generated LLM assets
         run: uv run python -c "from pathlib import Path; root=Path('docs/build/html'); llms=root/'llms.txt'; md=list((root/'llm').rglob('*.md')); assert llms.exists(), 'llms.txt missing'; assert md, 'No markdown mirrors generated'"

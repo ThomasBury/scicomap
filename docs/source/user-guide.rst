@@ -16,14 +16,24 @@ Assess a colormap before using it
 Use ``assess_cmap`` to inspect lightness progression, chroma behavior, and
 colorblind rendering.
 
-.. code-block:: python
+.. tabs::
 
-   import matplotlib.pyplot as plt
-   import scicomap as sc
+   .. tab:: Python API
 
-   jet = plt.get_cmap("jet")
-   cmap = sc.ScicoMiscellaneous(cmap=jet)
-   cmap.assess_cmap(figsize=(14, 6))
+      .. code-block:: python
+
+         import matplotlib.pyplot as plt
+         import scicomap as sc
+
+         jet = plt.get_cmap("jet")
+         cmap = sc.ScicoMiscellaneous(cmap=jet)
+         cmap.assess_cmap(figsize=(14, 6))
+
+   .. tab:: CLI
+
+      .. code-block:: shell
+
+         scicomap preview rainbow-kov --type miscellaneous --out jet-assess.png
 
 .. figure:: pics/jet.png
    :width: 75%
@@ -36,10 +46,23 @@ Uniformize a colormap
 
 When a colormap contains visible artifacts, apply uniformization and reassess.
 
-.. code-block:: python
+.. tabs::
 
-   cmap.unif_sym_cmap(lift=None, bitonic=False, diffuse=True)
-   cmap.assess_cmap(figsize=(14, 6))
+   .. tab:: Python API
+
+      .. code-block:: python
+
+         import scicomap as sc
+
+         cmap = sc.ScicoSequential(cmap="hawaii")
+         cmap.unif_sym_cmap(lift=None, bitonic=False, diffuse=True)
+         cmap.assess_cmap(figsize=(14, 6))
+
+   .. tab:: CLI
+
+      .. code-block:: shell
+
+         scicomap fix hawaii --type sequential --out hawaii-fixed.png
 
 .. figure:: pics/hawaii.png
    :width: 75%

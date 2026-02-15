@@ -28,26 +28,31 @@ Who this is for
 - Data analysts and data scientists building trustworthy dashboards.
 - Engineers who need robust colormap defaults in Matplotlib workflows.
 
-Quick start (Python API)
-------------------------
+Quick start
+-----------
 
-.. code-block:: python
+Same workflow in both interfaces:
 
-   import scicomap as sc
+.. tabs::
 
-   cmap = sc.ScicoSequential(cmap="hawaii")
-   cmap.assess_cmap(figsize=(14, 6))
-   cmap.unif_sym_cmap(lift=None, bitonic=False, diffuse=True)
-   cmap.draw_example()
+   .. tab:: Python API
 
-Quick start (CLI)
------------------
+      .. code-block:: python
 
-.. code-block:: shell
+         import scicomap as sc
 
-   scicomap check hawaii --type sequential
-   scicomap report --profile publication --cmap hawaii --type sequential
-   scicomap cvd hawaii --type sequential --out hawaii-cvd.png
+         cmap = sc.ScicoSequential(cmap="hawaii")
+         cmap.assess_cmap(figsize=(14, 6))
+         cmap.unif_sym_cmap(lift=None, bitonic=False, diffuse=True)
+         cmap.draw_example()
+
+   .. tab:: CLI
+
+      .. code-block:: shell
+
+         scicomap check hawaii --type sequential
+         scicomap report --profile publication --cmap hawaii --type sequential
+         scicomap cvd hawaii --type sequential --out hawaii-cvd.png
 
 Choose your path
 ----------------

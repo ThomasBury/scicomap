@@ -21,27 +21,28 @@ or
 Quickstart
 ----------
 
-The example below creates a colormap helper, inspects one colormap, and draws
-an artifact-focused example.
+The same starter workflow is available in Python and CLI forms.
 
-.. code-block:: python
+.. tabs::
 
-   import scicomap as sc
+   .. tab:: Python API
 
-   cmap = sc.ScicoSequential(cmap="hawaii")
-   cmap.assess_cmap(figsize=(14, 6))
-   cmap.draw_example()
+      .. code-block:: python
 
-First 5 minutes (CLI)
----------------------
+         import scicomap as sc
 
-Run this exact sequence to diagnose and improve one colormap:
+         cmap = sc.ScicoSequential(cmap="hawaii")
+         cmap.assess_cmap(figsize=(14, 6))
+         cmap.unif_sym_cmap(lift=None, bitonic=False, diffuse=True)
+         cmap.draw_example()
 
-.. code-block:: shell
+   .. tab:: CLI
 
-   scicomap check hawaii --type sequential
-   scicomap report --profile publication --cmap hawaii --type sequential
-   scicomap cvd hawaii --type sequential --out hawaii-cvd.png
+      .. code-block:: shell
+
+         scicomap check hawaii --type sequential
+         scicomap report --profile publication --cmap hawaii --type sequential
+         scicomap cvd hawaii --type sequential --out hawaii-cvd.png
 
 Expected result:
 
@@ -62,25 +63,41 @@ Simple usage
 
 Use these commands and APIs first if you are new to scicomap.
 
-.. code-block:: python
+.. tabs::
 
-   import scicomap as sc
+   .. tab:: Python API
 
-   cmap = sc.ScicoSequential(cmap="hawaii")
-   cmap.assess_cmap(figsize=(14, 6))
+      .. code-block:: python
 
-.. code-block:: shell
+         import scicomap as sc
 
-   scicomap check hawaii --type sequential
-   scicomap preview hawaii --type sequential --out hawaii-assess.png
+         cmap = sc.ScicoSequential(cmap="hawaii")
+         cmap.assess_cmap(figsize=(14, 6))
+
+   .. tab:: CLI
+
+      .. code-block:: shell
+
+         scicomap check hawaii --type sequential
+         scicomap preview hawaii --type sequential --out hawaii-assess.png
 
 Choose a colormap family
 ------------------------
 
-.. code-block:: python
+.. tabs::
 
-   sc_map = sc.SciCoMap()
-   sc_map.get_ctype()
+   .. tab:: Python API
+
+      .. code-block:: python
+
+         sc_map = sc.SciCoMap()
+         sc_map.get_ctype()
+
+   .. tab:: CLI
+
+      .. code-block:: shell
+
+         scicomap list
 
 Typical output:
 

@@ -65,6 +65,29 @@ Learn by example
 - Full notebook walkthrough: :doc:`notebooks/tutorial`
 - Interactive command-to-figure exploration: :doc:`tutorial-marimo`
 
+Equivalent workflow in Python API
+---------------------------------
+
+.. tabs::
+
+   .. tab:: Python API
+
+      .. code-block:: python
+
+         import scicomap as sc
+
+         cmap = sc.ScicoSequential(cmap="hawaii")
+         cmap.assess_cmap(figsize=(14, 6))
+         cmap.unif_sym_cmap(lift=None, bitonic=False, diffuse=True)
+         cmap.assess_cmap(figsize=(14, 6))
+
+   .. tab:: CLI
+
+      .. code-block:: shell
+
+         scicomap check hawaii --type sequential
+         scicomap fix hawaii --type sequential --out hawaii-fixed.png
+
 What command outputs look like
 ------------------------------
 

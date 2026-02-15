@@ -29,3 +29,4 @@ Documentation last change: |today|
    :caption: Tutorials
 
    notebooks/tutorial.ipynb
+   tutorial-marimo

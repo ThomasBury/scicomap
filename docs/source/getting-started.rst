@@ -48,4 +48,5 @@ Where to go next
 
 - Read :doc:`user-guide` for common workflows.
 - Open :doc:`notebooks/tutorial` for the complete walkthrough.
+- Try :doc:`tutorial-marimo` for an interactive browser tutorial.
 - Check :doc:`faq` for practical decision rules.

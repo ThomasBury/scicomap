@@ -50,6 +50,7 @@ Tracker = "https://github.com/ThomasBury/scicomap/issues"
 docs = [
     "ipykernel",
     "ipython_genutils",
+    "marimo",
     "pandoc",
     "sphinx",
     "sphinxawesome-theme==5.0.0b5",

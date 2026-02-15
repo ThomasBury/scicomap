@@ -54,5 +54,14 @@ jobs:
       - name: Build LLM assets
         run: uv run python scripts/build_llm_assets.py
 
+      - name: Export Marimo WASM tutorial
+        run: uv run marimo export html-wasm docs/marimo/tutorial_app_lite.py -o docs/build/html/marimo --mode run
+
+      - name: Add WASM fallback controller path
+        run: uv run python -c "from pathlib import Path; content=\"throw new Error('Fallback')\\n\"; paths=[Path('docs/build/html/wasm/controller.js'), Path('docs/build/html/marimo/wasm/controller.js')]; [p.parent.mkdir(parents=True, exist_ok=True) for p in paths]; [p.write_text(content, encoding='utf-8') for p in paths]"
+
+      - name: Validate Marimo tutorial artifact
+        run: uv run python -c "from pathlib import Path; p=Path('docs/build/html/marimo/index.html'); assert p.exists(), f'Missing Marimo tutorial artifact: {p}'"
+
       - name: Validate generated LLM assets
         run: uv run python -c "from pathlib import Path; root=Path('docs/build/html'); llms=root/'llms.txt'; md=list((root/'llm').rglob('*.md')); assert llms.exists(), 'llms.txt missing'; assert md, 'No markdown mirrors generated'"

@@ -58,7 +58,23 @@ jobs:
         run: uv run marimo export html-wasm docs/marimo/tutorial_app_lite.py -o docs/build/html/marimo --mode run
 
       - name: Validate Marimo tutorial artifact
-        run: uv run python -c "from pathlib import Path; p=Path('docs/build/html/marimo/index.html'); assert p.exists(), f'Missing Marimo tutorial artifact: {p}'"
+        run: |
+          uv run python - <<'PY'
+          from pathlib import Path
+
+          path = Path("docs/build/html/marimo/index.html")
+          assert path.exists(), f"Missing Marimo tutorial artifact: {path}"
+          PY
 
       - name: Validate generated LLM assets
-        run: uv run python -c "from pathlib import Path; root=Path('docs/build/html'); llms=root/'llms.txt'; md=list((root/'llm').rglob('*.md')); assert llms.exists(), 'llms.txt missing'; assert md, 'No markdown mirrors generated'"
+        run: |
+          uv run python - <<'PY'
+          from pathlib import Path
+
+          root = Path("docs/build/html")
+          llms = root / "llms.txt"
+          markdown_files = list((root / "llm").rglob("*.md"))
+
+          assert llms.exists(), "llms.txt missing"
+          assert markdown_files, "No markdown mirrors generated"
+          PY

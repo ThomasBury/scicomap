@@ -4,6 +4,8 @@ Interactive Marimo Tutorial
 Use the Marimo tutorial when you want a guided, reactive experience for
 colormap selection, diagnostics, and accessibility checks.
 
+Prefer a linear, narrative walkthrough? See :doc:`notebooks/tutorial`.
+
 Open the browser tutorial
 -------------------------
 

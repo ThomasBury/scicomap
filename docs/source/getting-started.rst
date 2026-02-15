@@ -9,6 +9,13 @@ Install
 
 .. code-block:: shell
 
+   uv add scicomap
+
+
+or
+
+.. code-block:: shell
+
    pip install -U scicomap
 
 Quickstart
@@ -43,6 +50,12 @@ Expected result:
    - A diagnostics status (good/caution/fix-recommended)
    - A report directory containing summary.txt and report.json
    - A colorblind preview image at hawaii-cvd.png
+
+.. figure:: pics/hawaii-examples.png
+   :width: 78%
+   :alt: Example output panels for hawaii before correction.
+
+   Typical visual output from assessment-style workflows.
 
 Simple usage
 ------------
@@ -89,8 +102,15 @@ Use profiles and guided workflows when you want repeatable quality checks.
 
 .. code-block:: shell
 
-   scicomap wizard --profile quick-look
+   scicomap wizard --profile quick-look --type sequential --cmap thermal --no-interactive
    scicomap report --profile cvd-safe --cmap thermal --format json
+
+.. figure:: pics/hawaii-fixed-examples.png
+   :width: 78%
+   :alt: Example output panels for hawaii after correction.
+
+   After correction, transitions and gradients are typically more stable across
+   test images.
 
 Where to go next
 ----------------

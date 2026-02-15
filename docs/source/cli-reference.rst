@@ -24,7 +24,7 @@ Quick command map
      - ``scicomap preview hawaii --type sequential --out hawaii.png``
    * - ``scicomap compare``
      - Compare multiple colormaps on one image.
-     - ``scicomap compare hawaii viridis --type sequential --image scan``
+     - ``scicomap compare hawaii viridis --type sequential --image scan --out compare.png``
    * - ``scicomap fix``
      - Uniformize/symmetrize and preview a colormap.
      - ``scicomap fix hawaii --type sequential --out hawaii-fixed.png``
@@ -36,7 +36,7 @@ Quick command map
      - ``scicomap apply thermal --type sequential --image input.png --out output.png``
    * - ``scicomap wizard``
      - Guided diagnose/improve/apply workflow.
-     - ``scicomap wizard --profile quick-look``
+     - ``scicomap wizard --profile quick-look --type sequential --cmap thermal --no-interactive``
    * - ``scicomap report``
      - One-command report bundle (JSON + images + summary).
      - ``scicomap report --profile publication --cmap hawaii --type sequential``
@@ -58,3 +58,33 @@ Output modes
 
 - Use ``--json`` (or ``--format json`` where available) for machine-readable
   output in automation and LLM workflows.
+
+Learn by example
+----------------
+
+- Full notebook walkthrough: :doc:`notebooks/tutorial`
+- Interactive command-to-figure exploration: :doc:`tutorial-marimo`
+
+What command outputs look like
+------------------------------
+
+.. figure:: pics/hawaii-examples.png
+   :width: 78%
+   :alt: Assessment-style output examples from scicomap workflows.
+
+   ``check``/``preview``/``compare`` style workflows produce artifact-oriented
+   visual diagnostics.
+
+.. figure:: pics/hawaii-fixed-examples.png
+   :width: 78%
+   :alt: Fixed-output examples after uniformization.
+
+   ``fix`` and ``report`` workflows help produce smoother gradients and clearer
+   transitions in real plots.
+
+.. figure:: pics/color-def.png
+   :width: 58%
+   :alt: Color-vision deficiency concept image.
+
+   ``cvd`` validates how your map is perceived under common color-vision
+   deficiency conditions.

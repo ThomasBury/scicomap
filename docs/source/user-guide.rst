@@ -25,6 +25,12 @@ colorblind rendering.
    cmap = sc.ScicoMiscellaneous(cmap=jet)
    cmap.assess_cmap(figsize=(14, 6))
 
+.. figure:: pics/jet.png
+   :width: 75%
+   :alt: Jet assessment view with non-uniformity and artifacts.
+
+   Jet/rainbow often introduces false contrast and non-linear lightness changes.
+
 Uniformize a colormap
 ---------------------
 
@@ -34,6 +40,19 @@ When a colormap contains visible artifacts, apply uniformization and reassess.
 
    cmap.unif_sym_cmap(lift=None, bitonic=False, diffuse=True)
    cmap.assess_cmap(figsize=(14, 6))
+
+.. figure:: pics/hawaii.png
+   :width: 75%
+   :alt: Baseline assessment for hawaii before uniformization.
+
+   Before correction.
+
+.. figure:: pics/hawaii-fixed.png
+   :width: 75%
+   :alt: Assessment for hawaii after uniformization.
+
+   After correction. Uniformization reduces visible artifacts in practical
+   rendering tests.
 
 Practical workflow
 ------------------

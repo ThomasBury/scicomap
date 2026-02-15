@@ -5,6 +5,22 @@ scicomap helps you choose, assess, and improve scientific colormaps so figures
 remain readable, faithful to the data, and safer for color-vision-deficient
 readers.
 
+Why this matters
+----------------
+
+.. figure:: pics/choosing-cmap.png
+   :width: 65%
+   :alt: Colormap type decision guide.
+
+   Pick a colormap family that matches your data semantics before styling.
+
+.. figure:: pics/jet2.png
+   :width: 70%
+   :alt: Jet introduces staircase-like artifacts in smooth data.
+
+   Non-uniform maps such as jet/rainbow can create false boundaries and visual
+   artifacts in otherwise smooth fields.
+
 Who this is for
 ---------------
 
@@ -40,6 +56,7 @@ Choose your path
 - Practical guidance: :doc:`user-guide`
 - Full tutorial notebook: :doc:`notebooks/tutorial`
 - Interactive playground: :doc:`tutorial-marimo`
+- Visual family browser: :doc:`gallery`
 - Full API details: :doc:`api-reference`
 - CLI command reference: :doc:`cli-reference`
 
@@ -82,6 +99,7 @@ Documentation last change: |today|
 
    notebooks/tutorial.ipynb
    tutorial-marimo
+   gallery
 
 .. toctree::
    :maxdepth: 2

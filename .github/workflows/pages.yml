@@ -57,13 +57,44 @@ jobs:
         run: uv run marimo export html-wasm docs/marimo/tutorial_app_lite.py -o docs/build/html/marimo --mode run
 
       - name: Add WASM fallback controller path
-        run: uv run python -c "from pathlib import Path; content=\"throw new Error('Fallback')\\n\"; paths=[Path('docs/build/html/wasm/controller.js'), Path('docs/build/html/marimo/wasm/controller.js')]; [p.parent.mkdir(parents=True, exist_ok=True) for p in paths]; [p.write_text(content, encoding='utf-8') for p in paths]"
+        run: |
+          uv run python - <<'PY'
+          from pathlib import Path
+
+          content = "throw new Error('Fallback')\n"
+          paths = [
+              Path("docs/build/html/wasm/controller.js"),
+              Path("docs/build/html/marimo/wasm/controller.js"),
+          ]
+          for path in paths:
+              path.parent.mkdir(parents=True, exist_ok=True)
+              path.write_text(content, encoding="utf-8")
+          PY
 
       - name: Validate Marimo tutorial artifact
-        run: uv run python -c "from pathlib import Path; p=Path('docs/build/html/marimo/index.html'); assert p.exists(), f'Missing Marimo tutorial artifact: {p}'"
+        run: |
+          uv run python - <<'PY'
+          from pathlib import Path
+
+          path = Path("docs/build/html/marimo/index.html")
+          assert path.exists(), f"Missing Marimo tutorial artifact: {path}"
+          PY
 
       - name: Validate generated LLM assets
-        run: uv run python -c "from pathlib import Path; root=Path('docs/build/html'); llms=root/'llms.txt'; md=list((root/'llm').rglob('*.md')); assert llms.exists(), 'llms.txt missing'; text=llms.read_text(encoding='utf-8'); assert 'getting-started' in text, 'llms.txt missing getting-started'; assert 'user-guide' in text, 'llms.txt missing user-guide'; assert md, 'No markdown mirrors generated'"
+        run: |
+          uv run python - <<'PY'
+          from pathlib import Path
+
+          root = Path("docs/build/html")
+          llms = root / "llms.txt"
+          markdown_files = list((root / "llm").rglob("*.md"))
+
+          assert llms.exists(), "llms.txt missing"
+          text = llms.read_text(encoding="utf-8")
+          assert "getting-started" in text, "llms.txt missing getting-started"
+          assert "user-guide" in text, "llms.txt missing user-guide"
+          assert markdown_files, "No markdown mirrors generated"
+          PY
 
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3

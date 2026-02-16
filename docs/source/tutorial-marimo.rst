@@ -12,7 +12,7 @@ Open the browser tutorial
 After docs build, open:
 
 - ``marimo/index.html``
-- ``https://thomasbury.github.io/scicomap/marimo/index.html``
+- `https://thomasbury.github.io/scicomap/marimo/index.html <https://thomasbury.github.io/scicomap/marimo/index.html>`_
 
 This WASM-powered page runs directly in the browser with no Python backend.
 

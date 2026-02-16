@@ -7,7 +7,7 @@ app = marimo.App()
 async def _():
     import micropip
 
-    await micropip.install("scicomap")
+    await micropip.install("scicomap>=1.1.0")
     return
 
 

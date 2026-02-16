@@ -2,9 +2,10 @@
 
 [![Docs](https://img.shields.io/website?url=https%3A%2F%2Fthomasbury.github.io%2Fscicomap%2F&label=docs)](https://thomasbury.github.io/scicomap/)
 [![Docs Quality](https://github.com/ThomasBury/scicomap/actions/workflows/docs.yml/badge.svg)](https://github.com/ThomasBury/scicomap/actions/workflows/docs.yml)
+[![Marimo](https://img.shields.io/badge/marimo-live-1f7a8c.svg)](https://thomasbury.github.io/scicomap/marimo/index.html)
 [![PyPI version](https://img.shields.io/pypi/v/scicomap.svg)](https://pypi.org/project/scicomap/)
 [![Python](https://img.shields.io/pypi/pyversions/scicomap.svg)](https://pypi.org/project/scicomap/)
-[![GitHub stars](https://img.shields.io/github/stars/ThomasBury/scicomap.svg)](https://github.com/ThomasBury/scicomap/stargazers)
+[![GitHub stars](https://img.shields.io/github/stars/ThomasBury/scicomap)](https://github.com/ThomasBury/scicomap/stargazers)
 
 [buy me caffeine](https://ko-fi.com/V7V72SOHX)
 

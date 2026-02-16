@@ -33,59 +33,17 @@ jobs:
       - name: Set up Pandoc
         uses: r-lib/actions/setup-pandoc@v2
 
-      - name: Sync docs, lint, and test environment
-        run: uv sync --extra docs --extra lint --extra test
+      - name: Install just
+        uses: taiki-e/install-action@just
 
-      - name: Run Ruff lint checks
-        run: uv run ruff check src tests
+      - name: Run quality checks
+        run: just check
 
-      - name: Run Ruff format checks
-        run: uv run ruff format --check src tests
-
-      - name: Run parser regression tests
-        run: uv run python -m pytest tests/docs/test_build_llm_assets.py
-
-      - name: Clean previous docs build
-        run: rm -rf docs/build/html
-
-      - name: Build Sphinx docs
-        run: uv run sphinx-build -n -b html docs/source docs/build/html
-
-      - name: Build LLM assets
-        run: uv run python scripts/build_llm_assets.py
+      - name: Build docs and llm assets
+        run: just docs
 
       - name: Export Marimo WASM tutorial
-        run: uv run marimo export html-wasm docs/marimo/tutorial_app_lite.py -o docs/build/html/marimo --mode run
+        run: just marimo
 
-      - name: Ensure nojekyll marker is present
-        run: touch docs/build/html/.nojekyll
-
-      - name: Validate Marimo tutorial artifact
-        run: |
-          uv run python - <<'PY'
-          from pathlib import Path
-
-          index_path = Path("docs/build/html/marimo/index.html")
-          assert index_path.exists(), f"Missing Marimo tutorial artifact: {index_path}"
-
-          root_nojekyll = Path("docs/build/html/.nojekyll")
-          assert root_nojekyll.exists(), f"Missing .nojekyll marker: {root_nojekyll}"
-
-          marimo_nojekyll = Path("docs/build/html/marimo/.nojekyll")
-          assert marimo_nojekyll.exists(), (
-              f"Missing Marimo .nojekyll marker: {marimo_nojekyll}"
-          )
-          PY
-
-      - name: Validate generated LLM assets
-        run: |
-          uv run python - <<'PY'
-          from pathlib import Path
-
-          root = Path("docs/build/html")
-          llms = root / "llms.txt"
-          markdown_files = list((root / "llm").rglob("*.md"))
-
-          assert llms.exists(), "llms.txt missing"
-          assert markdown_files, "No markdown mirrors generated"
-          PY
+      - name: Validate docs artifacts
+        run: just validate-doc-artifacts

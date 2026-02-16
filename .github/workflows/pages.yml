@@ -41,56 +41,17 @@ jobs:
       - name: Set up Pandoc
         uses: r-lib/actions/setup-pandoc@v2
 
-      - name: Sync docs environment
-        run: uv sync --extra docs
+      - name: Install just
+        uses: taiki-e/install-action@just
 
-      - name: Clean previous docs build
-        run: rm -rf docs/build/html
-
-      - name: Build Sphinx docs
-        run: uv run sphinx-build -n -b html docs/source docs/build/html
-
-      - name: Build LLM assets
-        run: uv run python scripts/build_llm_assets.py
+      - name: Build docs and llm assets
+        run: just docs
 
       - name: Export Marimo WASM tutorial
-        run: uv run marimo export html-wasm docs/marimo/tutorial_app_lite.py -o docs/build/html/marimo --mode run
+        run: just marimo
 
-      - name: Ensure nojekyll marker is present
-        run: touch docs/build/html/.nojekyll
-
-      - name: Validate Marimo tutorial artifact
-        run: |
-          uv run python - <<'PY'
-          from pathlib import Path
-
-          index_path = Path("docs/build/html/marimo/index.html")
-          assert index_path.exists(), f"Missing Marimo tutorial artifact: {index_path}"
-
-          root_nojekyll = Path("docs/build/html/.nojekyll")
-          assert root_nojekyll.exists(), f"Missing .nojekyll marker: {root_nojekyll}"
-
-          marimo_nojekyll = Path("docs/build/html/marimo/.nojekyll")
-          assert marimo_nojekyll.exists(), (
-              f"Missing Marimo .nojekyll marker: {marimo_nojekyll}"
-          )
-          PY
-
-      - name: Validate generated LLM assets
-        run: |
-          uv run python - <<'PY'
-          from pathlib import Path
-
-          root = Path("docs/build/html")
-          llms = root / "llms.txt"
-          markdown_files = list((root / "llm").rglob("*.md"))
-
-          assert llms.exists(), "llms.txt missing"
-          text = llms.read_text(encoding="utf-8")
-          assert "getting-started" in text, "llms.txt missing getting-started"
-          assert "user-guide" in text, "llms.txt missing user-guide"
-          assert markdown_files, "No markdown mirrors generated"
-          PY
+      - name: Validate pages artifacts
+        run: just validate-pages-artifacts
 
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3

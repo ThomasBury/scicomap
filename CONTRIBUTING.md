@@ -48,17 +48,17 @@ Use SemVer: patch for fixes, minor for additive features, major for breaking
 changes.
 
 1. Bump `src/scicomap/__init__.py` version.
-2. Run checks locally:
-   - `uv run python -m pytest`
-   - `uv run ruff check src tests`
-   - `uv run ruff format --check src tests`
-   - `uv run sphinx-build -n -b html docs/source docs/build/html`
-   - `uv run python scripts/build_llm_assets.py`
-3. Tag and push (`git tag <version> && git push origin <version>`).
-4. The `Publish to PyPI` workflow builds and publishes on tag pushes using
+2. Run release validation with `just release-check`.
+3. Optionally smoke-test a pre-release on TestPyPI with
+   `just smoke-testpypi <version>`.
+4. Tag and push (`just tag <version>` then `just push-tag <version>`).
+5. The `Publish to PyPI` workflow builds and publishes on tag pushes using
    Trusted Publishing.
 
 ### Trusted Publishing setup
 
 Before first automated release, register this repository as a trusted publisher
 for project `scicomap` on PyPI and configure GitHub environment `pypi`.
+
+Install `just` locally to use these commands, and keep using `uv` as the
+isolated runtime backend.

@@ -4,6 +4,7 @@
 [![Docs Quality](https://github.com/ThomasBury/scicomap/actions/workflows/docs.yml/badge.svg)](https://github.com/ThomasBury/scicomap/actions/workflows/docs.yml)
 [![PyPI version](https://img.shields.io/pypi/v/scicomap.svg)](https://pypi.org/project/scicomap/)
 [![Python](https://img.shields.io/pypi/pyversions/scicomap.svg)](https://pypi.org/project/scicomap/)
+[![GitHub stars](https://img.shields.io/github/stars/ThomasBury/scicomap.svg)](https://github.com/ThomasBury/scicomap/stargazers)
 
 [buy me caffeine](https://ko-fi.com/V7V72SOHX)
 

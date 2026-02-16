@@ -57,13 +57,24 @@ jobs:
       - name: Export Marimo WASM tutorial
         run: uv run marimo export html-wasm docs/marimo/tutorial_app_lite.py -o docs/build/html/marimo --mode run
 
+      - name: Ensure nojekyll marker is present
+        run: touch docs/build/html/.nojekyll
+
       - name: Validate Marimo tutorial artifact
         run: |
           uv run python - <<'PY'
           from pathlib import Path
 
-          path = Path("docs/build/html/marimo/index.html")
-          assert path.exists(), f"Missing Marimo tutorial artifact: {path}"
+          index_path = Path("docs/build/html/marimo/index.html")
+          assert index_path.exists(), f"Missing Marimo tutorial artifact: {index_path}"
+
+          root_nojekyll = Path("docs/build/html/.nojekyll")
+          assert root_nojekyll.exists(), f"Missing .nojekyll marker: {root_nojekyll}"
+
+          marimo_nojekyll = Path("docs/build/html/marimo/.nojekyll")
+          assert marimo_nojekyll.exists(), (
+              f"Missing Marimo .nojekyll marker: {marimo_nojekyll}"
+          )
           PY
 
       - name: Validate generated LLM assets

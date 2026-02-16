@@ -4,6 +4,14 @@ app = marimo.App()
 
 
 @app.cell
+async def _():
+    import micropip
+
+    await micropip.install("scicomap")
+    return
+
+
+@app.cell
 def _():
     import marimo as mo
 
@@ -32,6 +40,8 @@ def _(SciCoMap, mo):
         # scicomap interactive tutorial (WASM lite)
 
         This browser-friendly version focuses on diagnostics and accessibility.
+        It installs `scicomap` in-browser with `micropip`, so first load may take
+        a few extra seconds.
         For full workflows, run the local app with `marimo run docs/marimo/tutorial_app.py`.
         """
     )

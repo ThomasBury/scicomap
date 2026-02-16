@@ -1,5 +1,10 @@
 <img src="pics/logo.png" alt="drawing" width="200"/>
 
+[![Docs](https://img.shields.io/website?url=https%3A%2F%2Fthomasbury.github.io%2Fscicomap%2F&label=docs)](https://thomasbury.github.io/scicomap/)
+[![Docs Quality](https://github.com/ThomasBury/scicomap/actions/workflows/docs.yml/badge.svg)](https://github.com/ThomasBury/scicomap/actions/workflows/docs.yml)
+[![PyPI version](https://img.shields.io/pypi/v/scicomap.svg)](https://pypi.org/project/scicomap/)
+[![Python](https://img.shields.io/pypi/pyversions/scicomap.svg)](https://pypi.org/project/scicomap/)
+
 [buy me caffeine](https://ko-fi.com/V7V72SOHX)
 
 # Scientific color maps

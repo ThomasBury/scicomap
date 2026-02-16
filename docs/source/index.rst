@@ -60,7 +60,7 @@ Choose your path
 - New user: :doc:`getting-started`
 - Practical guidance: :doc:`user-guide`
 - Full tutorial notebook: :doc:`notebooks/tutorial`
-- Interactive playground: :doc:`tutorial-marimo`
+- Interactive playground: :doc:`tutorial-marimo` (`open directly <https://thomasbury.github.io/scicomap/marimo/index.html>`_)
 - Visual family browser: :doc:`gallery`
 - Full API details: :doc:`api-reference`
 - CLI command reference: :doc:`cli-reference`

@@ -93,6 +93,7 @@ Configuration resolution order:
 
 - [Getting Started](https://thomasbury.github.io/scicomap/getting-started.html): install and first workflow
 - [User Guide](https://thomasbury.github.io/scicomap/user-guide.html): choosing, assessing, and correcting colormaps
+- [Interactive Marimo Tutorial](https://thomasbury.github.io/scicomap/marimo/index.html): browser-based reactive tutorial
 - [API Reference](https://thomasbury.github.io/scicomap/api-reference.html): module and class reference
 - [FAQ](https://thomasbury.github.io/scicomap/faq.html) and [Troubleshooting](https://thomasbury.github.io/scicomap/troubleshooting.html): practical answers for common issues
 - [LLM Access](https://thomasbury.github.io/scicomap/llm-access.html): `llms.txt` and markdown mirror policy

@@ -54,3 +54,9 @@ tag version:
 
 push-tag version:
   git push origin {{version}}
+
+tag-rc version:
+  git tag {{version}}rc1
+
+push-tag-rc version:
+  git push origin {{version}}rc1

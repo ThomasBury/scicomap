@@ -49,8 +49,8 @@ changes.
 
 1. Bump `src/scicomap/__init__.py` version.
 2. Run release validation with `just release-check`.
-3. Optionally smoke-test a pre-release on TestPyPI with
-   `just smoke-testpypi <version>`.
+3. Publish a release candidate to TestPyPI by tagging `*rc*` (for example,
+   `1.1.0rc1`) and run `just smoke-testpypi <version>`.
 4. Tag and push (`just tag <version>` then `just push-tag <version>`).
 5. The `Publish to PyPI` workflow builds and publishes on tag pushes using
    Trusted Publishing.
@@ -58,7 +58,8 @@ changes.
 ### Trusted Publishing setup
 
 Before first automated release, register this repository as a trusted publisher
-for project `scicomap` on PyPI and configure GitHub environment `pypi`.
+for project `scicomap` on PyPI/TestPyPI and configure GitHub environments
+`pypi` and `testpypi`.
 
 Install `just` locally to use these commands, and keep using `uv` as the
 isolated runtime backend.

@@ -6,6 +6,11 @@ colormap selection, diagnostics, and accessibility checks.
 
 Prefer a linear, narrative walkthrough? See :doc:`notebooks/tutorial`.
 
+Two app variants are maintained:
+
+- ``docs/marimo/tutorial_app.py``: full local workflow with richer controls.
+- ``docs/marimo/tutorial_app_lite.py``: browser WASM workflow for docs hosting.
+
 Open the browser tutorial
 -------------------------
 

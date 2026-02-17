@@ -1,13 +1,16 @@
 import marimo
 
-app = marimo.App()
+app = marimo.App(width="full")
 
 
 @app.cell
 def _():
+    from helpers import COLORMAP_FAMILIES
+    from helpers import build_cmap_options
+    from helpers import compute_diagnostics
+
     import marimo as mo
     import matplotlib.pyplot as plt
-    import numpy as np
 
     from scicomap.cmath import classify
     from scicomap.cmath import extrema
@@ -18,13 +21,15 @@ def _():
     from scicomap.scicomap import plot_colorblind_vision
 
     return (
+        COLORMAP_FAMILIES,
         SciCoMap,
+        build_cmap_options,
         classify,
         compare_cmap,
+        compute_diagnostics,
         extrema,
         get_ctab,
         mo,
-        np,
         plot_colorblind_vision,
         plt,
         transform,
@@ -45,16 +50,9 @@ def _(mo):
 
 
 @app.cell
-def _(mo):
+def _(COLORMAP_FAMILIES, mo):
     ctype = mo.ui.dropdown(
-        options=[
-            "sequential",
-            "diverging",
-            "multi-sequential",
-            "circular",
-            "miscellaneous",
-            "qualitative",
-        ],
+        options=list(COLORMAP_FAMILIES),
         value="sequential",
         label="Colormap family",
     )
@@ -62,11 +60,8 @@ def _(mo):
 
 
 @app.cell
-def _(SciCoMap, ctype, mo):
-    cmap_names = sorted(SciCoMap(ctype=ctype.value).get_color_map_names())
-    default_cmap = cmap_names[0]
-    if ctype.value == "sequential" and "thermal" in cmap_names:
-        default_cmap = "thermal"
+def _(build_cmap_options, ctype, mo, SciCoMap):
+    cmap_names, default_cmap = build_cmap_options(SciCoMap, ctype.value)
 
     cmap = mo.ui.dropdown(
         options=cmap_names,
@@ -130,37 +125,22 @@ def _(bitonic, ctype, diffuse, fix, lift, mo, n_colors, profile, sample_image):
 
 
 @app.cell
-def _(SciCoMap, classify, cmap, ctype, extrema, get_ctab, np, transform):
+def _(
+    SciCoMap,
+    classify,
+    cmap,
+    compute_diagnostics,
+    ctype,
+    extrema,
+    get_ctab,
+    transform,
+):
     cmap_obj = SciCoMap.get_color_map_dic()[ctype.value][cmap.value]
     ctab = get_ctab(cmap_obj)
     jpapbp = transform(ctab)
-    j_values = jpapbp[:, 0]
-    j_diff = np.diff(j_values)
-    is_monotonic = bool(np.all(j_diff >= 0) or np.all(j_diff <= 0))
-    cmap_class = classify(jpapbp)
-    n_extrema = int(len(extrema(j_values)))
-
-    status = "good"
-    reasons = []
-    if not is_monotonic:
-        status = "fix-recommended"
-        reasons.append("Lightness is not monotonic.")
-    elif cmap_class in {"asym_div", "unknown"}:
-        status = "caution"
-        reasons.append(f"Classification is '{cmap_class}'.")
-
-    if n_extrema > 2:
-        if status == "good":
-            status = "caution"
-        reasons.append("Lightness has multiple extrema.")
-
-    diagnostics = {
-        "status": status,
-        "classification": cmap_class,
-        "monotonic_lightness": is_monotonic,
-        "extrema_count": n_extrema,
-        "reasons": reasons,
-    }
+    diagnostics = compute_diagnostics(
+        jpapbp, classify, extrema, include_reasons=True
+    )
     return (diagnostics,)
 
 

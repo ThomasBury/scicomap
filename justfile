@@ -22,6 +22,7 @@ docs: sync-docs
   UV_PROJECT_ENVIRONMENT={{venv}} uv run python scripts/build_llm_assets.py
 
 marimo: sync-docs
+  UV_PROJECT_ENVIRONMENT={{venv}} uv run marimo check docs/marimo/tutorial_app.py docs/marimo/tutorial_app_lite.py
   UV_PROJECT_ENVIRONMENT={{venv}} uv run marimo export html-wasm docs/marimo/tutorial_app_lite.py -o docs/build/html/marimo --mode run
   touch docs/build/html/.nojekyll
 

@@ -1,6 +1,6 @@
 import marimo
 
-app = marimo.App()
+app = marimo.App(width="full")
 
 
 @app.cell
@@ -13,6 +13,10 @@ async def _():
 
 @app.cell
 def _():
+    from helpers import COLORMAP_FAMILIES
+    from helpers import build_cmap_options
+    from helpers import compute_diagnostics
+
     import marimo as mo
 
     from scicomap.cmath import classify
@@ -23,8 +27,11 @@ def _():
     from scicomap.scicomap import plot_colorblind_vision
 
     return (
+        COLORMAP_FAMILIES,
         SciCoMap,
+        build_cmap_options,
         classify,
+        compute_diagnostics,
         extrema,
         get_ctab,
         mo,
@@ -49,16 +56,9 @@ def _(mo):
 
 
 @app.cell
-def _(mo):
+def _(COLORMAP_FAMILIES, mo):
     ctype = mo.ui.dropdown(
-        options=[
-            "sequential",
-            "diverging",
-            "multi-sequential",
-            "circular",
-            "miscellaneous",
-            "qualitative",
-        ],
+        options=list(COLORMAP_FAMILIES),
         value="sequential",
         label="Colormap family",
     )
@@ -66,11 +66,8 @@ def _(mo):
 
 
 @app.cell
-def _(SciCoMap, ctype, mo):
-    cmap_names = sorted(SciCoMap(ctype=ctype.value).get_color_map_names())
-    default_cmap = cmap_names[0]
-    if ctype.value == "sequential" and "thermal" in cmap_names:
-        default_cmap = "thermal"
+def _(SciCoMap, build_cmap_options, ctype, mo):
+    cmap_names, default_cmap = build_cmap_options(SciCoMap, ctype.value)
     cmap = mo.ui.dropdown(
         options=cmap_names, value=default_cmap, label="Colormap"
     )
@@ -93,26 +90,20 @@ def _(cmap, ctype, mo, n_colors):
 
 
 @app.cell
-def _(SciCoMap, classify, cmap, ctype, extrema, get_ctab, transform):
+def _(
+    SciCoMap,
+    classify,
+    cmap,
+    compute_diagnostics,
+    ctype,
+    extrema,
+    get_ctab,
+    transform,
+):
     cmap_obj = SciCoMap.get_color_map_dic()[ctype.value][cmap.value]
     ctab = get_ctab(cmap_obj)
     jpapbp = transform(ctab)
-    j_values = jpapbp[:, 0]
-    is_monotonic = bool(
-        (j_values[1:] >= j_values[:-1]).all()
-        or (j_values[1:] <= j_values[:-1]).all()
-    )
-    cmap_class = classify(jpapbp)
-    n_extrema = int(len(extrema(j_values)))
-    status = "good"
-    if (not is_monotonic) or cmap_class in {"asym_div", "unknown"}:
-        status = "caution"
-    diagnostics = {
-        "status": status,
-        "classification": cmap_class,
-        "monotonic_lightness": is_monotonic,
-        "extrema_count": n_extrema,
-    }
+    diagnostics = compute_diagnostics(jpapbp, classify, extrema)
     return (diagnostics,)
 
 

@@ -34,7 +34,7 @@ def _():
 
 
 @app.cell
-def _(SciCoMap, mo):
+def _(mo):
     mo.md(
         """
         # scicomap interactive tutorial (WASM lite)
@@ -45,6 +45,11 @@ def _(SciCoMap, mo):
         For full workflows, run the local app with `marimo run docs/marimo/tutorial_app.py`.
         """
     )
+    return
+
+
+@app.cell
+def _(mo):
     ctype = mo.ui.dropdown(
         options=[
             "sequential",
@@ -57,6 +62,11 @@ def _(SciCoMap, mo):
         value="sequential",
         label="Colormap family",
     )
+    return (ctype,)
+
+
+@app.cell
+def _(SciCoMap, ctype, mo):
     cmap_names = sorted(SciCoMap(ctype=ctype.value).get_color_map_names())
     default_cmap = cmap_names[0]
     if ctype.value == "sequential" and "thermal" in cmap_names:
@@ -64,12 +74,22 @@ def _(SciCoMap, mo):
     cmap = mo.ui.dropdown(
         options=cmap_names, value=default_cmap, label="Colormap"
     )
+    return (cmap,)
+
+
+@app.cell
+def _(mo):
     n_colors = mo.ui.slider(
         16, 256, value=128, step=16, label="CVD color bins"
     )
+    return (n_colors,)
+
+
+@app.cell
+def _(cmap, ctype, mo, n_colors):
     controls = mo.hstack([ctype, cmap, n_colors], gap=1.0, align="center")
     controls
-    return cmap, ctype, n_colors
+    return
 
 
 @app.cell

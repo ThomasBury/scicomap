@@ -21,7 +21,9 @@ def _():
             default_cmap = "thermal"
         return cmap_names, default_cmap
 
-    def compute_diagnostics(jpapbp, classify_fn, extrema_fn, include_reasons=False):
+    def compute_diagnostics(
+        jpapbp, classify_fn, extrema_fn, include_reasons=False
+    ):
         j_values = jpapbp[:, 0]
         is_monotonic = bool(
             (j_values[1:] >= j_values[:-1]).all()
@@ -85,10 +87,10 @@ def _():
 def _(mo):
     mo.md(
         """
-        # scicomap interactive tutorial
+# scicomap interactive tutorial
 
-        Explore colormaps, diagnose artifacts, test accessibility, and map the
-        same decisions to CLI commands.
+Explore colormaps, diagnose artifacts, test accessibility, and map the
+same decisions to CLI commands.
         """
     )
     return
@@ -98,23 +100,10 @@ def _(mo):
 def _(mo):
     mo.md(
         """
-        ## Reading the color-space diagnostics (quick intuition)
+## Reading the color-space diagnostics (quick intuition)
 
-        > These notes are intentionally simplified.
-        > They are **not** a full color-science treatment; they are here to help you interpret the charts.
-
-        ### Core coordinates (CAM02-UCS)
-
-        | Symbol | Intuition | Why it matters |
-        |---|---|---|
-        | `J'` | Lightness (dark -> bright) | For scalar data, smooth and mostly monotonic `J'` usually gives more faithful gradients. |
-        | `a'` | Green <-> Red opponent axis | Together with `b'`, it defines the chromatic direction of colors. |
-        | `b'` | Blue <-> Yellow opponent axis | Together with `a'`, it defines hue/chroma behavior. |
-
-        ### Derived cylindrical view
-
-        - `C'` (chroma): colorfulness/saturation, approximately the radius in the `(a', b')` plane.
-        - `h'` (hue angle): the color direction around that plane.
+> These notes are intentionally simplified.
+> They are **not** a full color-science treatment; they are here to help you interpret the charts.
 
 ### How to Encode Information Correctly
 
@@ -133,7 +122,6 @@ To "fix" a problematic color map, we follow a rigorous scientific recipe:
 2. **Lift the Floor:** we increase the minimum lightness to prevent data from disappearing into "pure black" shadows.
 3. **Smooth the Chroma:** We symmetrize the `C'` curve to remove "kinks" or sharp edges.
 4. **Remove Artifacts:** We avoid abrupt changes in the chroma trajectory to prevent the eye from seeing "steps" that don't exist in the data.
-5. **Bitonic Symmetry:** We symmetrize the hue angle to ensure the color map is balanced and visually appealing.
         """
     )
     return
@@ -242,15 +230,15 @@ def _(diagnostics, mo):
 
     diag_md = mo.md(
         f"""
-        ## Diagnostics
+## Diagnostics
 
-        - **Status:** `{diagnostics["status"]}`
-        - **Class:** `{diagnostics["classification"]}`
-        - **Monotonic lightness:** `{diagnostics["monotonic_lightness"]}`
-        - **Extrema count:** `{diagnostics["extrema_count"]}`
+- **Status:** `{diagnostics["status"]}`
+- **Class:** `{diagnostics["classification"]}`
+- **Monotonic lightness:** `{diagnostics["monotonic_lightness"]}`
+- **Extrema count:** `{diagnostics["extrema_count"]}`
 
-        **Reasons**
-        {reason_lines}
+**Reasons**
+{reason_lines}
         """
     )
     return (diag_md,)
@@ -320,14 +308,14 @@ def _(bitonic, cmap, ctype, diffuse, fix, lift, mo, sample_image):
 
     cli_md = mo.md(
         f"""
-        ## Equivalent CLI
+## Equivalent CLI
 
-        ```bash
-        {cmd_check}
-        {cmd_fix}
-        {cmd_cvd}
-        {cmd_apply}
-        ```
+```bash
+{cmd_check}
+{cmd_fix}
+{cmd_cvd}
+{cmd_apply}
+```
         """
     )
     return (cli_md,)

@@ -32,7 +32,9 @@ def _(wasm_deps_ready):
             default_cmap = "thermal"
         return cmap_names, default_cmap
 
-    def compute_diagnostics(jpapbp, classify_fn, extrema_fn, include_reasons=False):
+    def compute_diagnostics(
+        jpapbp, classify_fn, extrema_fn, include_reasons=False
+    ):
         j_values = jpapbp[:, 0]
         is_monotonic = bool(
             (j_values[1:] >= j_values[:-1]).all()
@@ -91,44 +93,32 @@ def _(wasm_deps_ready):
 @app.cell
 def _(mo):
     mo.md(
-    """
-    # scicomap interactive tutorial
-    
-    Perceptual uniformity is the idea that Euclidean distance between colors in color space should match human color perception distance judgements. 
-    
-    **Data should speak for itself, not for the color map.**
-    Using the wrong gradient can lead to "optical illusions" where your data looks broken or banded when it is actually smooth.
+        """
+# scicomap interactive tutorial
 
-    | Problem | Consequence | Example |
-    | --- | --- | --- |
-    | **Uneven Gradients** | Creates "false boundaries" (artifacts). | The infamous **`jet`** map. |
-    | **Non-Linearity** | Distorts the perceived magnitude of data. | A 10% change looks like 50% in certain zones. |
-    | **Color-Vision Deficiency (CVD)** | Excludes **8% of the male population**. | Red-Green maps that look identical to a color-blind user. |
-    """
+Perceptual uniformity is the idea that Euclidean distance between colors in color space should match human color perception distance judgements.
+
+**Data should speak for itself, not for the color map.**
+Using the wrong gradient can lead to "optical illusions" where your data looks broken or banded when it is actually smooth.
+
+| Problem | Consequence | Example |
+| --- | --- | --- |
+| **Uneven Gradients** | Creates "false boundaries" (artifacts). | The infamous **`jet`** map. |
+| **Non-Linearity** | Distorts the perceived magnitude of data. | A 10% change looks like 50% in certain zones. |
+| **Color-Vision Deficiency (CVD)** | Excludes **8% of the male population**. | Red-Green maps that look identical to a color-blind user. |
+        """
     )
     return
+
 
 @app.cell
 def _(mo):
     mo.md(
         """
-        ## Reading the color-space diagnostics (quick intuition)
+## Reading the color-space diagnostics (quick intuition)
 
-        > These notes are intentionally simplified.
-        > They are **not** a full color-science treatment; they are here to help you interpret the charts.
-
-        ### Core coordinates (CAM02-UCS)
-
-        | Symbol | Intuition | Why it matters |
-        |---|---|---|
-        | `J'` | Lightness (dark -> bright) | For scalar data, smooth and mostly monotonic `J'` usually gives more faithful gradients. |
-        | `a'` | Green <-> Red opponent axis | Together with `b'`, it defines the chromatic direction of colors. |
-        | `b'` | Blue <-> Yellow opponent axis | Together with `a'`, it defines hue/chroma behavior. |
-
-        ### Derived cylindrical view
-
-        - `C'` (chroma): colorfulness/saturation, approximately the radius in the `(a', b')` plane.
-        - `h'` (hue angle): the color direction around that plane.
+> These notes are intentionally simplified.
+> They are **not** a full color-science treatment; they are here to help you interpret the charts.
 
 ### How to Encode Information Correctly
 
@@ -147,7 +137,6 @@ To "fix" a problematic color map, we follow a rigorous scientific recipe:
 2. **Lift the Floor:** we increase the minimum lightness to prevent data from disappearing into "pure black" shadows.
 3. **Smooth the Chroma:** We symmetrize the `C'` curve to remove "kinks" or sharp edges.
 4. **Remove Artifacts:** We avoid abrupt changes in the chroma trajectory to prevent the eye from seeing "steps" that don't exist in the data.
-
         """
     )
     return
@@ -209,16 +198,16 @@ def _(
 def _(cmap, ctype, diagnostics, mo):
     diag_md = mo.md(
         f"""
-        ## Diagnostics
+## Diagnostics
 
-        - **Status:** `{diagnostics["status"]}`
-        - **Class:** `{diagnostics["classification"]}`
-        - **Monotonic lightness:** `{diagnostics["monotonic_lightness"]}`
-        - **Extrema count:** `{diagnostics["extrema_count"]}`
+- **Status:** `{diagnostics["status"]}`
+- **Class:** `{diagnostics["classification"]}`
+- **Monotonic lightness:** `{diagnostics["monotonic_lightness"]}`
+- **Extrema count:** `{diagnostics["extrema_count"]}`
 
-        ```bash
-        scicomap check {cmap.value} --type {ctype.value}
-        ```
+```bash
+scicomap check {cmap.value} --type {ctype.value}
+```
         """
     )
     return (diag_md,)
@@ -249,12 +238,12 @@ def _(cmap, ctype, n_colors, plot_colorblind_vision):
 def _(cmap, ctype, mo):
     cli_md = mo.md(
         f"""
-        ## Equivalent CLI
+## Equivalent CLI
 
-        ```bash
-        scicomap check {cmap.value} --type {ctype.value}
-        scicomap cvd {cmap.value} --type {ctype.value} --n-colors 128
-        ```
+```bash
+scicomap check {cmap.value} --type {ctype.value}
+scicomap cvd {cmap.value} --type {ctype.value} --n-colors 128
+```
         """
     )
     return (cli_md,)

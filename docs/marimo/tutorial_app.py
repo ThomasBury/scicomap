@@ -95,6 +95,39 @@ def _(mo):
 
 
 @app.cell
+def _(mo):
+    mo.md(
+        """
+        ## Reading the color-space diagnostics (quick intuition)
+
+        > These notes are intentionally simplified.
+        > They are **not** a full color-science treatment; they are here to help you interpret the charts.
+
+        ### Core coordinates (CAM02-UCS)
+
+        | Symbol | Intuition | Why it matters |
+        |---|---|---|
+        | `J'` | Lightness (dark -> bright) | For scalar data, smooth and mostly monotonic `J'` usually gives more faithful gradients. |
+        | `a'` | Green <-> Red opponent axis | Together with `b'`, it defines the chromatic direction of colors. |
+        | `b'` | Blue <-> Yellow opponent axis | Together with `a'`, it defines hue/chroma behavior. |
+
+        ### Derived cylindrical view
+
+        - `C'` (chroma): colorfulness/saturation, approximately the radius in the `(a', b')` plane.
+        - `h'` (hue angle): the color direction around that plane.
+
+        ### How to read the assessment outputs
+
+        - If **`J'` is monotonic** (or close), the map usually encodes value changes more reliably.
+        - Many **`J'` extrema or kinks** can create visual artifacts (false boundaries or bands).
+        - Strong asymmetry or abrupt trajectory changes in `a'`, `b'`, `C'`, or `h'` can reduce interpretability.
+        - CVD previews help check whether structure remains visible under color-vision deficiencies.
+        """
+    )
+    return
+
+
+@app.cell
 def _(COLORMAP_FAMILIES, mo):
     ctype = mo.ui.dropdown(
         options=list(COLORMAP_FAMILIES),

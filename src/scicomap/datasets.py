@@ -105,7 +105,7 @@ def load_pic(name: str = "grmhd") -> np.ndarray:
     """
 
     if not isinstance(name, str):
-        TypeError("name should be a string")
+        raise TypeError("name should be a string")
 
     resource_name = "data/grmhd.png"
     if name == "grmhd":

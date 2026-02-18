@@ -5,7 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on Keep a Changelog and this project follows Semantic
 Versioning.
 
-## [1.1.0] - Unreleased
+## [1.1.1] - Unreleased
+
+### Fixed
+
+- Raise explicit `TypeError` for invalid inputs in `cmath.get_ctab` and
+  `datasets.load_pic`.
+- Harden `cmath.max_chroma` scalar/array behavior with consistent broadcasting
+  and scalar return handling.
+
+## [1.1.0] - 2026-02-18
 
 ### Added
 
@@ -35,5 +44,6 @@ Versioning.
 
 - Initial stable package release on PyPI.
 
-[1.1.0]: https://github.com/ThomasBury/scicomap/compare/1.0.1...HEAD
+[1.1.1]: https://github.com/ThomasBury/scicomap/compare/1.1.0...HEAD
+[1.1.0]: https://github.com/ThomasBury/scicomap/releases/tag/1.1.0
 [1.0.1]: https://github.com/ThomasBury/scicomap/releases/tag/1.0.1

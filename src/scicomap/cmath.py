@@ -53,7 +53,7 @@ def get_ctab(cmap: Union[Colormap, list]) -> np.ndarray:
     elif isinstance(cmap, list):
         return np.array(cmap)
     else:
-        TypeError(
+        raise TypeError(
             "`cmap` is neither a matplotlib Colormap nor a list of str/uples"
         )
 
@@ -74,7 +74,8 @@ def max_chroma(
     Jp : float or np.ndarray
         Lightness parameter (range: [0, 100]).
     hp : float or np.ndarray
-        Hue angle in degrees (range: [0, 360]).
+        Hue angle in degrees (range: [0, 360]). Scalar and array inputs are
+        supported and broadcast against ``Jp``.
     Cpmin : float, optional (default=0.0)
         Minimum allowable chroma value (range: [0, Cpmax]).
     Cpmax : float or str, optional (default="auto")
@@ -89,6 +90,7 @@ def max_chroma(
     -------
     float or np.ndarray
         Maximum chroma (Cp) value(s) corresponding to the input Jp and hp.
+        Returns a scalar for scalar inputs, otherwise an array.
 
     Raises
     ------
@@ -104,6 +106,11 @@ def max_chroma(
     >>> Cp = max_chroma(Jp, hp)
     >>> print(Cp)
     """
+    scalar_input = np.ndim(Jp) == 0 and np.ndim(hp) == 0
+    Jp = np.asarray(Jp, dtype=float)
+    hp = np.asarray(hp, dtype=float)
+    Jp, hp = np.broadcast_arrays(np.atleast_1d(Jp), np.atleast_1d(hp))
+
     Jpmin = 5.54015251457561e-22
     Jpmaxv = 98.98016
     Jpmax = 99.99871678107648
@@ -122,9 +129,12 @@ def max_chroma(
 
     if Cpmax == "auto":
         Cpmax = np.clip(np.sqrt(100 * Jp), 0, 64)
+    else:
+        Cpmax = np.asarray(Cpmax, dtype=float)
+        Cpmax = np.broadcast_to(Cpmax, Jp.shape)
 
-    CpU = np.full(len(Jp), Cpmax)  # np.full() works for both scalar and array
-    CpL = np.full(len(Jp), Cpmin)  # np.full() works for both scalar and array
+    CpU = np.array(Cpmax, copy=True)
+    CpL = np.full(Jp.shape, Cpmin, dtype=float)
 
     for i in range(64):
         Cp = 0.5 * (CpU + CpL)
@@ -146,6 +156,8 @@ def max_chroma(
     else:
         raise ArithmeticError("WARNING: max_chroma() has not fully converged")
 
+    if scalar_input:
+        return float(Cp[0])
     return Cp
 
 

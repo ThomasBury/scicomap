@@ -5,9 +5,54 @@ app = marimo.App(width="full")
 
 @app.cell
 def _():
-    from helpers import COLORMAP_FAMILIES
-    from helpers import build_cmap_options
-    from helpers import compute_diagnostics
+    COLORMAP_FAMILIES = (
+        "sequential",
+        "diverging",
+        "multi-sequential",
+        "circular",
+        "miscellaneous",
+        "qualitative",
+    )
+
+    def build_cmap_options(sci_co_map_cls, ctype):
+        cmap_names = sorted(sci_co_map_cls(ctype=ctype).get_color_map_names())
+        default_cmap = cmap_names[0]
+        if ctype == "sequential" and "thermal" in cmap_names:
+            default_cmap = "thermal"
+        return cmap_names, default_cmap
+
+    def compute_diagnostics(jpapbp, classify_fn, extrema_fn, include_reasons=False):
+        j_values = jpapbp[:, 0]
+        is_monotonic = bool(
+            (j_values[1:] >= j_values[:-1]).all()
+            or (j_values[1:] <= j_values[:-1]).all()
+        )
+        cmap_class = classify_fn(jpapbp)
+        n_extrema = int(len(extrema_fn(j_values)))
+
+        status = "good"
+        reasons = []
+        if not is_monotonic:
+            status = "fix-recommended" if include_reasons else "caution"
+            reasons.append("Lightness is not monotonic.")
+        elif cmap_class in {"asym_div", "unknown"}:
+            status = "caution"
+            reasons.append(f"Classification is '{cmap_class}'.")
+
+        if n_extrema > 2:
+            if status == "good":
+                status = "caution"
+            reasons.append("Lightness has multiple extrema.")
+
+        diagnostics = {
+            "status": status,
+            "classification": cmap_class,
+            "monotonic_lightness": is_monotonic,
+            "extrema_count": n_extrema,
+        }
+        if include_reasons:
+            diagnostics["reasons"] = reasons
+        return diagnostics
 
     import marimo as mo
     import matplotlib.pyplot as plt

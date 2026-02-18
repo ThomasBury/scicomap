@@ -32,6 +32,22 @@ Notes:
 - Notebook docs via `nbsphinx` require `pandoc` installed.
 - Use `uv run ...` for all project commands.
 
+## Preferred Command Surface
+Prefer `just` recipes when available (single source of truth):
+```bash
+just check
+just docs
+just marimo
+just release-check
+```
+
+## Tooling Guardrails
+- Use `uv`/`just` for project commands. Avoid ad-hoc environments.
+- Use `gh` for GitHub operations (runs, releases, workflow status).
+- Use `git` safely: no destructive operations unless user explicitly asks.
+- Before pushing a stable release tag, verify publish workflow status with `gh run`.
+- For framework-specific work (Marimo, Sphinx, Typer, Ruff, GitHub Actions, etc.), consult Context7 first for current guidance.
+
 ## Build, Lint, and Test Commands
 ### Standard local checks
 ```bash
@@ -77,6 +93,13 @@ make -C docs html
 - `src/scicomap/datasets.py`: packaged data loaders
 - `scripts/build_llm_assets.py`: docs HTML to markdown mirror + `llms.txt`
 - `tests/docs/test_build_llm_assets.py`: parser regression tests
+
+## Marimo/WASM Guardrails
+- Never access `ui_element.value` in the same cell where that UI element is created.
+- Browser WASM runtime is isolated from the `uv` environment.
+- In `docs/marimo/tutorial_app_lite.py`, install runtime deps inside notebook cells (for example, via `micropip`).
+- Enforce install-before-import with explicit cell dependency edges (sentinel variable).
+- Do not rely on local helper-module imports for exported WASM unless runtime packaging/path is explicitly verified.
 
 ## Code Style Guidelines
 Follow existing style in touched files. For new code, use these defaults.
@@ -151,6 +174,7 @@ Run the smallest check that proves your change:
 - Update docs when user-facing behavior changes.
 - Report exact validation commands run.
 - Follow conventional commit style for every commit.
+- Conventional Comments are required for review feedback.
 
 ### Conventional Commits (required)
 - Format: `<type>(<optional-scope>): <imperative summary>`

@@ -116,12 +116,24 @@ def _(mo):
         - `C'` (chroma): colorfulness/saturation, approximately the radius in the `(a', b')` plane.
         - `h'` (hue angle): the color direction around that plane.
 
-        ### How to read the assessment outputs
+### How to Encode Information Correctly
 
-        - If **`J'` is monotonic** (or close), the map usually encodes value changes more reliably.
-        - Many **`J'` extrema or kinks** can create visual artifacts (false boundaries or bands).
-        - Strong asymmetry or abrupt trajectory changes in `a'`, `b'`, `C'`, or `h'` can reduce interpretability.
-        - CVD previews help check whether structure remains visible under color-vision deficiencies.
+| Attribute | Role in Encoding | Rule of Thumb |
+| --- | --- | --- |
+| **Lightness (`J'`)** | **The Scalar Value** | Must vary **linearly** with the data. If the data goes up, the brightness must follow smoothly. |
+| **Hue (`h'`)** | **Appeal & Clarity** | Ideal for making a map attractive. It can encode an extra variable if it changes at a constant rate. |
+| **Chroma (`C'`)** | **Aesthetics Only** | **Do not use for data.** Humans struggle to distinguish subtle saturation changes accurately. |
+
+
+### The "Scicomap" Uniformization Process
+
+To "fix" a problematic color map, we follow a rigorous scientific recipe:
+
+1. **Linearize Lightness:** We force `J'` into a straight line so that the visual weight matches the data points.
+2. **Lift the Floor:** we increase the minimum lightness to prevent data from disappearing into "pure black" shadows.
+3. **Smooth the Chroma:** We symmetrize the `C'` curve to remove "kinks" or sharp edges.
+4. **Remove Artifacts:** We avoid abrupt changes in the chroma trajectory to prevent the eye from seeing "steps" that don't exist in the data.
+5. **Bitonic Symmetry:** We symmetrize the hue angle to ensure the color map is balanced and visually appealing.
         """
     )
     return

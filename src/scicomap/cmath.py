@@ -15,11 +15,13 @@ https://github.com/liamedeiros/ehtplot/blob/7a0567496ba9ab72f4a541d5994352bbe4ea
 import numpy as np
 import warnings
 from numbers import Real
-import matplotlib
+from matplotlib.axes import Axes
+from mpl_toolkits.mplot3d import Axes3D
 from colorspacious import cspace_convert
 from matplotlib.colors import Colormap, ListedColormap, to_rgba_array
 from scipy.interpolate import CubicSpline
-from typing import List, Tuple, Union, Callable, Optional
+from typing import Union
+from numpy.typing import ArrayLike
 
 
 __all__ = [
@@ -54,7 +56,7 @@ def _validate_lightness_rounding(step: float | None) -> None:
         )
 
 
-def _as_color_table(ctab: np.ndarray) -> np.ndarray:
+def _as_color_table(ctab: ArrayLike) -> np.ndarray:
     """Copy a finite RGB(A) or perceptual table into floating point."""
     out = np.array(ctab, dtype=float, copy=True)
     if out.ndim != 2 or out.shape[0] == 0 or out.shape[1] not in (3, 4):
@@ -188,12 +190,12 @@ def max_chroma(
         )
 
     if Cpmax == "auto":
-        Cpmax = np.clip(np.sqrt(100 * Jp), 0, 64)
+        CpU = np.clip(np.sqrt(100 * Jp), 0, 64)
     else:
-        Cpmax = np.asarray(Cpmax, dtype=float)
-        Cpmax = np.broadcast_to(Cpmax, Jp.shape)
-
-    CpU = np.array(Cpmax, copy=True)
+        CpU = np.array(
+            np.broadcast_to(np.asarray(Cpmax, dtype=float), Jp.shape),
+            copy=True,
+        )
     CpL = np.full(Jp.shape, Cpmin, dtype=float)
 
     for i in range(64):
@@ -274,13 +276,15 @@ def transform(
     return out
 
 
-def interp(x: float, xp: np.ndarray, yp: np.ndarray) -> float:
+def interp(
+    x: float | np.ndarray, xp: np.ndarray, yp: np.ndarray
+) -> float | np.ndarray:
     """
     One-dimensional linear interpolation.
 
     Parameters
     ----------
-    x : float
+    x : float or numpy.ndarray
         The x-coordinate at which to interpolate.
     xp : np.ndarray
         1-D array of x-coordinates of data points.
@@ -289,7 +293,7 @@ def interp(x: float, xp: np.ndarray, yp: np.ndarray) -> float:
 
     Returns
     -------
-    float
+    float or numpy.ndarray
         The interpolated value at x.
 
     Notes
@@ -423,10 +427,10 @@ def classify(Jpapbp: np.ndarray) -> str:
 
 def uniformize(
     Jpapbp: np.ndarray,
-    JpL: float = None,
-    JpR: float = None,
-    Jplower: float = None,
-    Jpupper: float = None,
+    JpL: float | None = None,
+    JpR: float | None = None,
+    Jplower: float | None = None,
+    Jpupper: float | None = None,
 ) -> np.ndarray:
     """
     Uniformize a colormap in the Jpapbp color space, linear in lightness J'
@@ -491,8 +495,8 @@ def factor(
     softening: float = 1.0,
     bitonic: bool = True,
     diffuse: bool = True,
-    CpL: float = None,
-    CpR: float = None,
+    CpL: float | None = None,
+    CpR: float | None = None,
     verbose: bool = False,
     diverging: bool = False,
 ) -> np.ndarray:
@@ -609,7 +613,6 @@ def symmetrize(Jpapbp: np.ndarray, **kwargs) -> np.ndarray:
            [60.  , 20.06, 10.03]])
     """
     out = _as_color_table(Jpapbp)
-    Jp = out[:, 0]
     Cp = np.sqrt(out[:, 1] * out[:, 1] + out[:, 2] * out[:, 2])
 
     f = factor(Cp, **kwargs)
@@ -1045,9 +1048,7 @@ def unif_sym_cmap(
     return symmetrize_cmap(cmap, name=name, bitonic=bitonic, diffuse=diffuse)
 
 
-def _ax_cylinder_JCh(
-    ax: matplotlib.axes.Axes, cmap: Colormap, title: str
-) -> matplotlib.axes.Axes:
+def _ax_cylinder_JCh(ax: Axes, cmap: Colormap, title: str) -> Axes:
     """
     Plot Jp, Cp, and hp coordinates in a cylindrical representation for a colormap.
 
@@ -1113,9 +1114,7 @@ def _ax_cylinder_JCh(
     return ax
 
 
-def _ax_scatter_Jpapbp(
-    ax: matplotlib.axes.Axes, cmap: Colormap, title: str
-) -> matplotlib.axes.Axes:
+def _ax_scatter_Jpapbp(ax: Axes3D, cmap: Colormap, title: str) -> Axes3D:
     """
     Create a scatter plot in 3D to visualize Jpapbp coordinates of a colormap.
 

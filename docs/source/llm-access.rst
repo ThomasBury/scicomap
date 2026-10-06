@@ -29,7 +29,7 @@ Build or supply the HTML first, then run the documentation maintenance script:
 
 .. code-block:: shell
 
-   uv run python scripts/build_llm_assets.py --html-dir path/to/html
+   uv run --locked python scripts/build_llm_assets.py --html-dir path/to/html
 
 The script calls the packaged generator. Code fences preserve whitespace and
 their language, and ordinary documentation tables retain their rows and columns.
@@ -47,6 +47,5 @@ Theme upgrade checklist
 
 Run these checks after changing Sphinx themes or major theme versions:
 
-- ``uv run python -m pytest tests/docs/test_build_llm_assets.py``
-- ``uv run sphinx-build -n -b html docs/source docs/build/html``
-- ``uv run python scripts/build_llm_assets.py``
+- ``uv run --locked python -m pytest tests/docs/test_build_llm_assets.py``
+- ``just docs check-docs`` (installs documentation extras and runs the strict examples)

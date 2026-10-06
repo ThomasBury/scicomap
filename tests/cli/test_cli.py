@@ -302,7 +302,7 @@ def test_human_and_json_run_same_operations(
     command, tmp_path, monkeypatch
 ) -> None:
     import scicomap.cli as cli
-    from scicomap import SciCoMap, get_cmap_dict
+    from scicomap import SciCoMap
 
     monkeypatch.setattr(plt, "show", lambda: pytest.fail("Opened a window"))
     monkeypatch.setattr(SciCoMap, "assess_cmap", lambda self: plt.figure())

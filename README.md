@@ -92,25 +92,19 @@ JSON responses contain `ok`, `command`, `inputs`, `data`, `warnings`, and
 
 ## Development
 
-Use `uv` for local development and dependency synchronization.
-Notebook docs rendered with `nbsphinx` require a `pandoc` binary.
+Use `just` recipes with `uv`'s project `.venv`. Routine commands use the
+committed lockfile without updating it. Run `uv lock` when changing dependencies.
 
 ```shell
-# create/update the lockfile
-uv lock
-
-# create the virtual environment and install project + extras
-uv sync --extra lint --extra test --extra docs
-
-# run commands in the project environment
-uv run python -m pytest
-uv run ruff check src tests
-uv run ruff format --check src tests
-
-# build web docs + LLM assets
-uv run sphinx-build -n -b html docs/source docs/build/html
-uv run python scripts/build_llm_assets.py
+just sync          # lint and test extras only
+just check         # ordinary tests, Ruff on src/tests/scripts, and ty on src/scicomap
+just sync-docs     # add documentation tools; Pandoc binary required separately
+just docs          # build web docs and LLM assets
+just check-docs    # strict generated examples and browser bootstrap tests
 ```
+
+Run a focused test with `uv run --locked python -m pytest tests/core/test_cmath.py`.
+Tests marked `docs` need the docs extra and run separately through `just check-docs`.
 
 `Read the Docs` is kept as a temporary fallback during the Pages rollout.
 

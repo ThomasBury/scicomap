@@ -9,21 +9,16 @@ from matplotlib.colors import Colormap, ListedColormap
 from matplotlib.figure import Figure
 import numpy as np
 from scicomap.datasets import load_hill_topography, load_scan_image, load_pic
-from typing import List, Tuple, Union, Callable, Optional, Dict, Any
+from typing import List, Tuple, Union, Optional, Dict, Any
 
 # Scientific Colours
 import colorcet as cc
 import cmasher as cmr
 from cmcrameri import cm as scico
 import cmocean
-from palettable.cubehelix import perceptual_rainbow_16, classic_16
-from palettable.cartocolors.qualitative import (
-    Bold_10,
-    Pastel_10,
-    Prism_10,
-    Vivid_10,
-)
-from palettable.colorbrewer.qualitative import Set1_9
+from palettable import cubehelix
+from palettable.cartocolors import qualitative as carto
+from palettable.colorbrewer import qualitative as brewer
 
 # internal import
 from scicomap.cmath import (
@@ -575,24 +570,25 @@ def get_cmap_dict() -> dict[str, dict[str, Colormap]]:
         'multi-sequential', 'circular', 'miscellaneous', and 'qualitative'. Each category
         contains a dictionary of color maps with their associated names.
     """
+    # Providers generate named palettes during import; look them up locally.
     cmap_dict = {
         "diverging": {
-            "berlin": scico.berlin,
+            "berlin": getattr(scico, "berlin"),
             "bjy": cc.cm.bjy,
             "bky": cc.cm.bky,
             "BrBG": plt.get_cmap("BrBG"),
-            "broc": scico.broc,
+            "broc": getattr(scico, "broc"),
             "bwr": plt.get_cmap("bwr"),
             "coolwarm": plt.get_cmap("coolwarm"),
-            "curl": cmocean.cm.curl,
-            "delta": cmocean.cm.delta,
+            "curl": getattr(cmocean.cm, "curl"),
+            "delta": getattr(cmocean.cm, "delta"),
             "fusion": cmr.fusion,
             "fusion_r": cmr.fusion_r,
             "guppy": cmr.guppy,
             "guppy_r": cmr.guppy_r,
             "iceburn": cmr.iceburn,
             "iceburn_r": cmr.iceburn_r,
-            "lisbon": scico.lisbon,
+            "lisbon": getattr(scico, "lisbon"),
             "PRGn": plt.get_cmap("PRGn"),
             "PiYG": plt.get_cmap("PiYG"),
             "pride": cmr.pride,
@@ -604,13 +600,13 @@ def get_cmap_dict() -> dict[str, dict[str, Colormap]]:
             "RdYlGn": plt.get_cmap("RdYlGn"),
             "redshift": cmr.redshift,
             "redshift_r": cmr.redshift_r,
-            "roma": scico.roma,
+            "roma": getattr(scico, "roma"),
             "seasons_r": cmr.seasons_r,
             "seismic": plt.get_cmap("seismic"),
             "spectral": plt.get_cmap("Spectral"),
             "turbo": plt.get_cmap("turbo"),
-            "vanimo": scico.vanimo,
-            "vik": scico.vik,
+            "vanimo": getattr(scico, "vanimo"),
+            "vik": getattr(scico, "vik"),
             "viola": cmr.viola,
             "viola_r": cmr.viola_r,
             "waterlily": cmr.waterlily,
@@ -624,13 +620,13 @@ def get_cmap_dict() -> dict[str, dict[str, Colormap]]:
             "afmhot": plt.get_cmap("afmhot"),
             "amber": cmr.amber,
             "amber_r": cmr.amber_r,
-            "amp": cmocean.cm.amp,
+            "amp": getattr(cmocean.cm, "amp"),
             "apple": cmr.apple,
             "apple_r": cmr.apple_r,
             "autumn": plt.get_cmap("autumn"),
-            "batlow": scico.batlow,
-            "bilbao": scico.bilbao,
-            "bilbao_r": scico.bilbao_r,
+            "batlow": getattr(scico, "batlow"),
+            "bilbao": getattr(scico, "bilbao"),
+            "bilbao_r": getattr(scico, "bilbao_r"),
             "binary": plt.get_cmap("binary"),
             "Blues": plt.get_cmap("Blues"),
             "bone": plt.get_cmap("bone"),
@@ -643,8 +639,8 @@ def get_cmap_dict() -> dict[str, dict[str, Colormap]]:
             "copper": plt.get_cmap("copper"),
             "cosmic": cmr.cosmic,
             "cosmic_r": cmr.cosmic_r,
-            "deep": cmocean.cm.deep,
-            "dense": cmocean.cm.dense,
+            "deep": getattr(cmocean.cm, "deep"),
+            "dense": getattr(cmocean.cm, "dense"),
             "dusk": cmr.dusk,
             "dusk_r": cmr.dusk_r,
             "eclipse": cmr.eclipse,
@@ -662,26 +658,26 @@ def get_cmap_dict() -> dict[str, dict[str, Colormap]]:
             "Greens": plt.get_cmap("Greens"),
             "gray": plt.get_cmap("gray"),
             "Greys": plt.get_cmap("Greys"),
-            "haline": cmocean.cm.haline,
-            "hawaii": scico.hawaii,
-            "hawaii_r": scico.hawaii_r,
+            "haline": getattr(cmocean.cm, "haline"),
+            "hawaii": getattr(scico, "hawaii"),
+            "hawaii_r": getattr(scico, "hawaii_r"),
             "heat": cmr.torch,
             "heat_r": cmr.torch_r,
             "hot": plt.get_cmap("hot"),
-            "ice": cmocean.cm.ice,
+            "ice": getattr(cmocean.cm, "ice"),
             "inferno": plt.get_cmap("inferno"),
-            "imola": scico.imola,
-            "imola_r": scico.imola_r,
-            "lapaz": scico.lapaz,
-            "lapaz_r": scico.lapaz_r,
+            "imola": getattr(scico, "imola"),
+            "imola_r": getattr(scico, "imola_r"),
+            "lapaz": getattr(scico, "lapaz"),
+            "lapaz_r": getattr(scico, "lapaz_r"),
             "magma": plt.get_cmap("magma"),
-            "matter": cmocean.cm.matter,
+            "matter": getattr(cmocean.cm, "matter"),
             "neon": cmr.neon,
             "neon_r": cmr.neon_r,
             "neutral": cmr.neutral,
             "neutral_r": cmr.neutral_r,
-            "nuuk": scico.nuuk,
-            "nuuk_r": scico.nuuk_r,
+            "nuuk": getattr(scico, "nuuk"),
+            "nuuk_r": getattr(scico, "nuuk_r"),
             "ocean": cmr.ocean,
             "ocean_r": cmr.ocean_r,
             "OrRd": plt.get_cmap("OrRd"),
@@ -692,10 +688,12 @@ def get_cmap_dict() -> dict[str, dict[str, Colormap]]:
             "PuBuGn": plt.get_cmap("PuBuGn"),
             "PuRd": plt.get_cmap("PuRd"),
             "Purples": plt.get_cmap("Purples"),
-            "rain": cmocean.cm.rain,
-            "rainbow": perceptual_rainbow_16.mpl_colormap,
-            "rainbow-sc": scico.batlow,
-            "rainbow-sc_r": scico.batlow_r,
+            "rain": getattr(cmocean.cm, "rain"),
+            "rainbow": getattr(
+                cubehelix, "perceptual_rainbow_16"
+            ).mpl_colormap,
+            "rainbow-sc": getattr(scico, "batlow"),
+            "rainbow-sc_r": getattr(scico, "batlow_r"),
             "rainforest": cmr.rainforest,
             "rainforest_r": cmr.rainforest_r,
             "RdPu": plt.get_cmap("RdPu"),
@@ -704,21 +702,21 @@ def get_cmap_dict() -> dict[str, dict[str, Colormap]]:
             "savanna_r": cmr.savanna_r,
             "sepia": cmr.sepia,
             "sepia_r": cmr.sepia_r,
-            "speed": cmocean.cm.speed,
-            "solar": cmocean.cm.solar,
+            "speed": getattr(cmocean.cm, "speed"),
+            "solar": getattr(cmocean.cm, "solar"),
             "spring": plt.get_cmap("spring"),
             "summer": plt.get_cmap("summer"),
-            "tempo": cmocean.cm.tempo,
-            "thermal": cmocean.cm.thermal,
-            "thermal_r": cmocean.cm.thermal_r,
+            "tempo": getattr(cmocean.cm, "tempo"),
+            "thermal": getattr(cmocean.cm, "thermal"),
+            "thermal_r": getattr(cmocean.cm, "thermal_r"),
             "thermal-2": cc.cm.bmy,
-            "tokyo": scico.tokyo,
-            "tokyo_r": scico.tokyo_r,
+            "tokyo": getattr(scico, "tokyo"),
+            "tokyo_r": getattr(scico, "tokyo_r"),
             "tropical": cmr.tropical,
             "tropical_r": cmr.tropical_r,
-            "turbid": cmocean.cm.turbid,
-            "turku": scico.turku,
-            "turku_r": scico.turku_r,
+            "turbid": getattr(cmocean.cm, "turbid"),
+            "turku": getattr(scico, "turku"),
+            "turku_r": getattr(scico, "turku_r"),
             "viridis": plt.get_cmap("viridis"),
             "winter": plt.get_cmap("winter"),
             "Wistia": plt.get_cmap("Wistia"),
@@ -728,29 +726,29 @@ def get_cmap_dict() -> dict[str, dict[str, Colormap]]:
             "YlOrRd": plt.get_cmap("YlOrRd"),
         },
         "multi-sequential": {
-            "bukavu": scico.bukavu,
-            "fes": scico.fes,
+            "bukavu": getattr(scico, "bukavu"),
+            "fes": getattr(scico, "fes"),
             "infinity": cmr.infinity,
-            "infinity_s": cmr.infinity_s,
-            "oleron": scico.oleron,
-            "topo": cmocean.cm.topo,
+            "infinity_s": getattr(cmr, "infinity_s"),
+            "oleron": getattr(scico, "oleron"),
+            "topo": getattr(cmocean.cm, "topo"),
         },
         "circular": {
-            "bamo": scico.bamO,
-            "broco": scico.brocO,
+            "bamo": getattr(scico, "bamO"),
+            "broco": getattr(scico, "brocO"),
             "cet_c1": cc.cm.CET_C1,
             "colorwheel": cc.cm.colorwheel,
-            "corko": scico.corkO,
-            "phase": cmocean.cm.phase,
+            "corko": getattr(scico, "corkO"),
+            "phase": getattr(cmocean.cm, "phase"),
             "rainbow-iso": cc.cm.CET_I1,
-            "romao": scico.romaO,
+            "romao": getattr(scico, "romaO"),
             "seasons": cmr.seasons,
-            "seasons_s": cmr.seasons_s,
+            "seasons_s": getattr(cmr, "seasons_s"),
             "twilight": plt.get_cmap("twilight"),
             "twilight_s": plt.get_cmap("twilight_shifted"),
         },
         "miscellaneous": {
-            "oxy": cmocean.cm.oxy,
+            "oxy": getattr(cmocean.cm, "oxy"),
             "rainbow-kov": cc.cm.rainbow,
             "turbo": plt.get_cmap("turbo"),
         },
@@ -766,8 +764,12 @@ def get_cmap_dict() -> dict[str, dict[str, Colormap]]:
                 ],
                 name="538",
             ),
-            "bold": ListedColormap(Bold_10.mpl_colors, name="bold"),
-            "brewer": ListedColormap(Set1_9.mpl_colors, name="brewer"),
+            "bold": ListedColormap(
+                getattr(carto, "Bold_10").mpl_colors, name="bold"
+            ),
+            "brewer": ListedColormap(
+                getattr(brewer, "Set1_9").mpl_colors, name="brewer"
+            ),
             "colorblind": ListedColormap(
                 [
                     [0.1, 0.1, 0.1],
@@ -785,9 +787,15 @@ def get_cmap_dict() -> dict[str, dict[str, Colormap]]:
             "glasbey_dark": cc.cm.glasbey_dark,
             "glasbey_hv": cc.cm.glasbey_hv,
             "glasbey_light": cc.cm.glasbey_light,
-            "pastel": ListedColormap(Pastel_10.mpl_colors, name="pastel"),
-            "prism": ListedColormap(Prism_10.mpl_colors, name="prism"),
-            "vivid": ListedColormap(Vivid_10.mpl_colors, name="vivid"),
+            "pastel": ListedColormap(
+                getattr(carto, "Pastel_10").mpl_colors, name="pastel"
+            ),
+            "prism": ListedColormap(
+                getattr(carto, "Prism_10").mpl_colors, name="prism"
+            ),
+            "vivid": ListedColormap(
+                getattr(carto, "Vivid_10").mpl_colors, name="vivid"
+            ),
         },
     }
     return cmap_dict
@@ -883,7 +891,14 @@ def plot_colormap(
         y_text = pos[1] + pos[3] / 2.0
 
         font = {"color": fontcolor, "size": 12}
-        fig.text(x_text, y_text, name, va="center", ha="right", fontdict=font)
+        fig.text(
+            x_text,
+            y_text,
+            cmap.name if isinstance(name, Colormap) else name,
+            va="center",
+            ha="right",
+            fontdict=font,
+        )
 
     # Turn off *all* ticks & spines, not just the ones with colormaps.
     for ax in axes:

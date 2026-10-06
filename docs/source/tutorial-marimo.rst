@@ -33,7 +33,8 @@ Use the local app when you want richer workflows and larger computations.
 
 .. code-block:: shell
 
-   uv run marimo run docs/marimo/tutorial_app.py
+   just sync-docs
+   uv run --locked marimo run docs/marimo/tutorial_app.py
 
 Known WASM constraints
 ----------------------

@@ -1,7 +1,6 @@
 """M3 regressions for family diagnostics, stages, map selection, and failures."""
 
 import json
-from pathlib import Path
 
 import numpy as np
 import pytest

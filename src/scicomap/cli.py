@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from importlib.util import find_spec
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Any
+from typing import Any, NoReturn
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -118,7 +118,9 @@ def _emit(payload: dict[str, Any], as_json: bool) -> None:
         console.print(f"[yellow]warning:[/yellow] {warning}")
 
 
-def _fail(command: str, message: str, as_json: bool, code: int = 2) -> None:
+def _fail(
+    command: str, message: str, as_json: bool, code: int = 2
+) -> NoReturn:
     payload = {
         "ok": False,
         "command": command,
@@ -299,7 +301,7 @@ def _report_output_dir(out: Path | None) -> Path:
     if out is not None:
         report_dir = out.resolve()
     else:
-        stamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
         report_dir = (Path.cwd() / f"scicomap-report-{stamp}").resolve()
     _validate_output(report_dir, directory=True)
     return report_dir
@@ -842,16 +844,16 @@ def _run_workflow(
     original, selected = _prepare_maps(resolved_type, cmap_obj, config)
     selected_map = selected.cmap
     mapped = None
-    if apply_output and image not in BUILTIN_IMAGES:
+    if apply_output and image is not None and image not in BUILTIN_IMAGES:
         mapped = _remap_image(Path(image), selected_map, mode)
     report_dir = _report_output_dir(out) if bundle else None
-    if bundle and fix:
+    if report_dir is not None and fix:
         export = report_dir / "corrected-cmap.json"
     _validate_output(export)
     # Validate every destination before writing the first artifact.
     outputs: list[tuple[str, Path | None, str]] = []
     map_used = "transformed" if fix else "original"
-    if bundle:
+    if report_dir is not None:
         outputs.append(("assessment", report_dir / "assess.png", "original"))
         if fix:
             outputs.append(
@@ -865,7 +867,7 @@ def _run_workflow(
     if cvd:
         cvd_out = (
             report_dir / "cvd.png"
-            if bundle
+            if report_dir is not None
             else (
                 out.with_name(out.stem + "-cvd.png")
                 if out is not None
@@ -877,7 +879,7 @@ def _run_workflow(
         outputs.append(
             (
                 "applied",
-                report_dir / "applied.png" if bundle else out,
+                report_dir / "applied.png" if report_dir is not None else out,
                 map_used,
             )
         )
@@ -889,7 +891,7 @@ def _run_workflow(
             and export.resolve() == path.resolve()
         ):
             raise ValueError("--export must differ from image artifact paths.")
-    if bundle:
+    if report_dir is not None:
         for filename in ("report.json", "summary.txt"):
             _validate_output(report_dir / filename)
         report_dir.mkdir(parents=True, exist_ok=True)
@@ -932,6 +934,7 @@ def _run_workflow(
                 "Builtin image apply uses rendered figure output rather than raw remap."
             )
         else:
+            assert path is not None and mapped is not None
             path = path.resolve()
             path.parent.mkdir(parents=True, exist_ok=True)
             plt.imsave(path, mapped)
@@ -950,7 +953,7 @@ def _run_workflow(
                 else str(Path(image).resolve())
             ),
             "out": str(report_dir)
-            if bundle
+            if report_dir is not None
             else (str(out.resolve()) if out else None),
             "mode": mode,
             "export": str(export.resolve()) if export is not None else None,
@@ -982,7 +985,7 @@ def _run_workflow(
         "warnings": warnings,
         "errors": [],
     }
-    if bundle:
+    if report_dir is not None:
         report_json = report_dir / "report.json"
         summary_path = report_dir / "summary.txt"
         payload["data"].update(

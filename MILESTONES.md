@@ -346,7 +346,7 @@ git diff --check
 M8 and M9 remain unstarted; release version changes and publication remain
 outside this milestone.
 
-### [ ] M8 — Modern tooling and short AGENTS.md
+### [x] M8 — Modern tooling and short AGENTS.md
 
 **Outcome:** development checks are reproducible and contributor guidance matches
 reality.
@@ -368,6 +368,44 @@ reality.
 **Acceptance:** `just check` runs pytest, Ruff, and ty successfully in a freshly
 synchronized environment. Documented commands match the justfile and routine
 checks do not update the lockfile.
+
+**Completed:** routine recipes use the single project ``.venv`` with locked
+synchronization and execution. ``just check`` installs only lint/test extras;
+the two tests needing Sphinx or Marimo are marked ``docs`` and run through
+``just check-docs``. The release recipe includes both sets. Maintained scripts
+join Ruff lint and formatting, and ty is in the lint extra with a required
+production-source check that also fails on warnings.
+
+The ty baseline is resolved without diagnostic suppressions: annotations match
+array, optional, callable, and figure inputs; CLI branches narrow validated
+paths; generated provider attributes use local ``getattr`` lookups. Unused
+imports, bindings, and two unreferenced CVD converters are removed. Reference
+checks identified five unused dependency declarations: pandas, ipython_genutils,
+pandoc (the Python wrapper), sphinx-autoapi, and sphinx-autodoc-typehints.
+Required numerical, plotting, palette, and CLI dependencies remain; no Pydantic
+dependency was added. Contributor commands match the recipes, and ``AGENTS.md``
+is 41 lines covering scope, scientific invariants, checks, and release limits.
+
+All 278 tests passed: 276 ordinary tests in the freshly synchronized lint/test
+environment and two separate documentation tests, including strict Sphinx and
+executable generated examples. Ruff and ty passed; docs/LLM assets, Marimo export,
+artifact validation, sdist/wheel builds, and Twine checks passed. The isolated
+wheel smoke check verified five data resources and eleven canonical commands.
+The lockfile hash stayed unchanged across routine checks. Existing Marimo
+formatting, setuptools license-metadata, and Colorspacious warnings remain.
+Validation used:
+
+```bash
+just check
+uv run --locked python -m pytest tests/core/test_cmath.py tests/core/test_catalog_plotting.py -q
+just docs check-docs
+just marimo validate-doc-artifacts build check
+uv run --isolated --no-project --with ./dist/scicomap-1.1.1-py3-none-any.whl python scripts/smoke_wheel.py
+uv lock --check
+git diff --check
+```
+
+M9 remains unstarted; the release version is unchanged.
 
 ### [ ] M9 — Documentation, browser tutorial, and 2.0 release readiness
 

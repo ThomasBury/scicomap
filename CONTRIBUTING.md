@@ -5,19 +5,24 @@ Thank you for contributing.
 ## Development setup
 
 ```shell
-uv sync --extra lint --extra test --extra docs
+just sync  # uv sync --locked --extra lint --extra test
 ```
 
 ## Common checks
 
 ```shell
-uv run python -m pytest
-uv run ruff check src tests
-uv run ruff format --check src tests
-uv run sphinx-build -n -b html docs/source docs/build/html
-uv run python scripts/build_llm_assets.py
-uv run python -m pytest tests/docs/test_build_llm_assets.py
+just check       # ordinary pytest, Ruff on src/tests/scripts, ty on src/scicomap
+just docs        # install docs extras, build HTML and LLM assets
+just check-docs  # strict generated examples and WASM bootstrap tests
+uv run --locked python -m pytest tests/docs/test_build_llm_assets.py
 ```
+
+All recipes use the same project `.venv`. Routine synchronization is locked;
+run `uv lock` only when changing dependencies and review the lockfile diff.
+`just check` needs only the lint/test extras. Tests marked `docs` run through
+`just check-docs`, which installs the docs extra. Install the Pandoc binary
+separately for notebook documentation. Use `just sync-docs` before running
+documentation commands directly with `uv run --locked`.
 
 ## Docstring style
 

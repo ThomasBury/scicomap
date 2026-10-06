@@ -2,11 +2,9 @@ import itertools
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
 from matplotlib.colors import ListedColormap
 from matplotlib.patches import Circle
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from os.path import dirname, join
 
 # internal import
 from scicomap.cmath import get_ctab
@@ -225,7 +223,6 @@ def _plot_examples(
             ax3d.plot_surface(
                 px, py, pz, cmap=c_map, linewidth=0, antialiased=False
             )
-            ax3d = plt.gca()
             ax3d.xaxis.set_ticklabels([])
             ax3d.yaxis.set_ticklabels([])
             ax3d.zaxis.set_ticklabels([])
@@ -311,9 +308,7 @@ def _plot_examples_qual(
             ax.set_facecolor(facecolor)
             # produce a legend with a cross section of sizes from the scatter
             handles, labels = scatter.legend_elements(prop="sizes", alpha=0.6)
-            legend2 = ax.legend(
-                handles, labels, loc="upper right", title="Sizes"
-            )
+            ax.legend(handles, labels, loc="upper right", title="Sizes")
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
         else:

@@ -7,10 +7,13 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from scicomap._diagnostics import diagnose_cmap
 from scicomap.scicomap import SciCoMap
 
 
+@pytest.mark.docs
 def test_wasm_diagnostics_install_before_import(tmp_path, monkeypatch) -> None:
     root = Path(__file__).resolve().parents[2]
     source = (root / "src/scicomap/_diagnostics.py").read_text()

@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from matplotlib import pyplot as plt
 
-from scicomap.cblind import colorblind_vision
+from scicomap.cblind import _get_color_weak_cmap, colorblind_vision
 from scicomap.cmath import get_ctab, unif_sym_cmap
 from scicomap.scicomap import (
     SciCoMap,
@@ -144,3 +144,14 @@ def test_jch_plot_accepts_documented_matplotlib_name() -> None:
         fig.canvas.draw()
     finally:
         plt.close(fig)
+
+
+def test_cvd_palette_name_resolves_all_maps() -> None:
+    from matplotlib.colors import Colormap
+
+    maps, _ = _get_color_weak_cmap("viridis", n_images=1)
+    assert len(maps) == 5
+    assert all(isinstance(cmap, Colormap) for cmap in maps)
+    np.testing.assert_array_equal(
+        get_ctab(maps[0]), get_ctab(plt.get_cmap("viridis"))
+    )

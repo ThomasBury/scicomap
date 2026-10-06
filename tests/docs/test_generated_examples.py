@@ -24,6 +24,7 @@ def test_numerical_and_dataset_docstrings(module) -> None:
         plt.close("all")
 
 
+@pytest.mark.docs
 def test_generated_documentation_examples(tmp_path: Path) -> None:
     root = Path(__file__).resolve().parents[2]
     html_dir = tmp_path / "html"

@@ -23,7 +23,6 @@ classifiers = [
 
 dependencies = [
     "numpy",
-    "pandas",
     "scipy",
     "colorspacious",
     "colorcet",
@@ -49,19 +48,16 @@ Tracker = "https://github.com/ThomasBury/scicomap/issues"
 [project.optional-dependencies]
 docs = [
     "ipykernel",
-    "ipython_genutils",
     "marimo",
-    "pandoc",
     "sphinx",
     "sphinxawesome-theme==5.0.0b5",
     "nbsphinx",
-    "sphinx-autodoc-typehints",
     "sphinx-copybutton",
     "sphinx-tabs",
-    "sphinx-autoapi",
 ]
 lint = [
-    "ruff"
+    "ruff",
+    "ty",
 ]
 test = [
     "pytest",
@@ -77,10 +73,6 @@ select = ["E4", "E7", "E9", "F", "D200", "D205", "D400", "D403"]
 ignore = [
     "E731",
     "E741",
-    "F401",
-    "F403",
-    "F405",
-    "F841",
 ]
 
 [tool.ruff.lint.pydocstyle]
@@ -92,3 +84,9 @@ convention = "numpy"
 "src/scicomap/datasets.py" = ["D200", "D205", "D400", "D403"]
 "src/scicomap/scicomap.py" = ["D200", "D205", "D400", "D403"]
 "src/scicomap/utils.py" = ["D200", "D205", "D400", "D403"]
+
+[tool.ty.src]
+include = ["src/scicomap"]
+
+[tool.pytest.ini_options]
+markers = ["docs: requires the docs extra and Pandoc"]

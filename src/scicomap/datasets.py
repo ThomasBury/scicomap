@@ -23,11 +23,12 @@ def load_hill_topography() -> np.ndarray:
     different points in the geographical region. It can be used for various geographic
     and geological analyses.
 
-    Example
-    -------
-    >>> from my_module import load_hill_topography
+    Examples
+    --------
+    >>> from scicomap.datasets import load_hill_topography
     >>> elevation_data = load_hill_topography()
-    >>> print(elevation_data.shape)  # Print the shape of the loaded elevation data.
+    >>> elevation_data.shape
+    (344, 403)
 
     """
     resource = files("scicomap").joinpath("data/jacksboro_fault_dem.npz")
@@ -55,11 +56,12 @@ def load_scan_image() -> np.ndarray:
     that it's stored in a specific binary format. The image is typically a 2D array
     of pixel values representing the scanned content.
 
-    Example
-    -------
-    >>> from my_module import load_scan_image
+    Examples
+    --------
+    >>> from scicomap.datasets import load_scan_image
     >>> scan_image = load_scan_image()
-    >>> print(scan_image.shape)  # Print the shape of the loaded scanned image.
+    >>> scan_image.shape
+    (256, 256)
 
     """
     resource = files("scicomap").joinpath("data/s1045.ima.gz")
@@ -96,11 +98,12 @@ def load_pic(name: str = "grmhd") -> np.ndarray:
     This function loads an image file based on the provided `name`. It assumes
     that the image files are stored in a specific directory structure.
 
-    Example
-    -------
-    >>> from my_module import load_pic
+    Examples
+    --------
+    >>> from scicomap.datasets import load_pic
     >>> grmhd_image = load_pic("grmhd")
-    >>> print(grmhd_image.shape)  # Print the shape of the loaded image.
+    >>> grmhd_image.shape
+    (320, 319)
 
     """
 

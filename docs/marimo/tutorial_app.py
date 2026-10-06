@@ -77,7 +77,7 @@ def _(mo):
 To "fix" a problematic color map, we follow a rigorous scientific recipe:
 
 1. **Linearize Lightness:** We force `J'` into a straight line so that the visual weight matches the data points.
-2. **Lift the Floor:** we increase the minimum lightness to prevent data from disappearing into "pure black" shadows.
+2. **Round the Floor:** `lift` rounds the lower lightness bound up to a multiple of that step. `None` and `0` leave it unchanged.
 3. **Smooth the Chroma:** We symmetrize the `C'` curve to remove "kinks" or sharp edges.
 4. **Remove Artifacts:** We avoid abrupt changes in the chroma trajectory to prevent the eye from seeing "steps" that don't exist in the data.
         """

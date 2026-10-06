@@ -3,11 +3,11 @@ Module for performing color math. Heavily based on colorspacious, viscm and ethp
 The main model of perceptual distance is the "CAM02-UCS" color-space
 (Uniform Colour Space version of the CIECAM02).
 
-This module uses Cartesian Lab and CIECAM02 color spaces and cylindrical
-CIELCh (hereafter LCh) and CIEJCh (hereafter JCh) color spaces which have coordinates L*, J*, C*, and h.
-The lightness coordinates L* and J* are identical to Lab and Jab. The chroma (relative saturation)
-C* and hue h (in radians) are simply C* = sqrt(a*^2 + b*^2) and h = atan2(b*, a*) according
-to Redness-Greenness a and Yellowness-Blueness b in their own coordinates.
+Color tables are transformed to Cartesian CAM02-UCS coordinates J', a', b'.
+Their cylindrical coordinates are lightness J', chroma C' = sqrt(a'^2 + b'^2),
+and hue h' = atan2(b', a'). Chroma measures distance from the neutral axis;
+it is not saturation. Hue is in radians for numerical calculations and is
+converted to degrees for assessment plots.
 
 https://github.com/liamedeiros/ehtplot/blob/7a0567496ba9ab72f4a541d5994352bbe4eac764/ehtplot/color/cmath.py
 """
@@ -59,12 +59,13 @@ def get_ctab(cmap: Union[Colormap, list]) -> np.ndarray:
     ValueError
         If the table is empty, malformed, nonfinite, or outside [0, 1].
 
-    Example
-    -------
+    Examples
+    --------
     >>> import matplotlib.pyplot as plt
     >>> cmap = plt.get_cmap("viridis")
     >>> ctab = get_ctab(cmap)
-    >>> print(ctab)
+    >>> ctab.shape
+    (256, 4)
     """
     if isinstance(cmap, Colormap):
         ctab = cmap(np.linspace(0, 1, cmap.N))
@@ -124,12 +125,13 @@ def max_chroma(
     ArithmeticError
         If the function does not fully converge.
 
-    Example
-    -------
+    Examples
+    --------
     >>> Jp = 70
     >>> hp = np.pi / 6
     >>> Cp = max_chroma(Jp, hp)
-    >>> print(Cp)
+    >>> round(Cp, 2)
+    32.23
     """
     scalar_input = np.ndim(Jp) == 0 and np.ndim(hp) == 0
     Jp = np.asarray(Jp, dtype=float)
@@ -220,12 +222,13 @@ def transform(
     ValueError
         If the input shape or values are invalid.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> ctab = np.array([[0.5, 0.2, 0.1], [0.3, 0.6, 0.9]])
     >>> transformed_ctab = transform(ctab, src="sRGB1", dst="CAM02-UCS")
-    >>> print(transformed_ctab)
+    >>> np.allclose(transform(transformed_ctab, inverse=True), ctab)
+    True
     """
     out = _as_color_table(ctab)
     input_space = dst if inverse else src
@@ -261,15 +264,15 @@ def interp(x: float, xp: np.ndarray, yp: np.ndarray) -> float:
     This function performs linear interpolation between data points defined by
     (xp, yp). It supports both increasing and decreasing xp arrays.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> x = 3.5
     >>> xp = np.array([1.0, 2.0, 4.0, 5.0])
     >>> yp = np.array([0.0, 1.0, 2.0, 3.0])
     >>> interpolated_value = interp(x, xp, yp)
     >>> print(interpolated_value)
-    1.5
+    1.75
     """
     if xp[0] < xp[-1]:
         return np.interp(x, xp, yp)
@@ -301,13 +304,13 @@ def extrema(a: np.ndarray) -> np.ndarray:
     the point, the previous point, and the next point in `a` is less than or
     equal to zero.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> a = np.array([1, 3, 7, 1, 2, 6, 2, 9])
     >>> extrema_indices = extrema(a)
     >>> print(extrema_indices)
-    [2 3 5 6 7]
+    [2 3 5 6]
     """
     da = a[1:] - a[:-1]
     xa = da[1:] * da[:-1]
@@ -339,15 +342,15 @@ def classify(Jpapbp: np.ndarray) -> str:
     -----
     This function classifies a colormap based on its appearance in the Jpapbp
     color space. The classification is determined by the number and positions
-    of extrema in the luminance channel (J) of the colormap.
+    of extrema in the lightness channel (J') of the colormap.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> Jpapbp = np.array([[50, 10, 20], [40, 15, 25], [60, 5, 10]])
     >>> colormap_class = classify(Jpapbp)
     >>> print(colormap_class)
-    'sequential'
+    divergent
     """
 
     Jpapbp = _as_color_table(Jpapbp)
@@ -400,13 +403,13 @@ def uniformize(
     Jpapbp : np.ndarray
         Array of colors in the Jpapbp color space.
     JpL : float, optional
-        Left luminance boundary for uniformization.
+        Left lightness boundary for uniformization.
     JpR : float, optional
-        Right luminance boundary for uniformization.
+        Right lightness boundary for uniformization.
     Jplower : float, optional
-        Lower luminance limit for uniformization.
+        Lower lightness limit for uniformization.
     Jpupper : float, optional
-        Upper luminance limit for uniformization.
+        Upper lightness limit for uniformization.
 
     Returns
     -------
@@ -416,21 +419,21 @@ def uniformize(
     Notes
     -----
     This function uniformizes a colormap by linearly interpolating between
-    specified luminance values (JpL and JpR) in the Jpapbp color space. You
-    can optionally provide lower (Jplower) and upper (Jpupper) luminance
+    specified lightness values (JpL and JpR) in the Jpapbp color space. You
+    can optionally provide lower (Jplower) and upper (Jpupper) lightness
     limits to restrict the uniformization range.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
-    >>> Jpapbp = np.array([[50, 10, 20], [40, 15, 25], [60, 5, 10]])
+    >>> Jpapbp = np.array([[40, 10, 20], [45, 15, 25], [60, 5, 10]])
     >>> JpL = 40
     >>> JpR = 60
     >>> uniformized_cmap = uniformize(Jpapbp, JpL, JpR)
-    >>> print(uniformized_cmap)
-    array([[40. , 10. , 20. ],
-           [50. , 12.5, 22.5],
-           [60. , 15. , 25. ]])
+    >>> np.round(uniformized_cmap, 2)
+    array([[40.  , 10.  , 20.  ],
+           [50.  , 11.67, 20.  ],
+           [60.  ,  5.  , 10.  ]])
     """
     Jpapbp = _as_color_table(Jpapbp)
     if JpL is None:
@@ -494,13 +497,13 @@ def factor(
     apply diffusion. You can specify left (CpL) and right (CpR) chroma
     boundaries. The softening factor (softening) smoothens the chroma values.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> Cp = np.array([2.0, 5.0, 8.0, 5.0, 2.0])
     >>> factor_values = factor(Cp, softening=0.5, bitonic=True, diffuse=False)
-    >>> print(factor_values)
-    array([0.72727273, 0.5       , 0.27272727, 0.5       , 0.72727273])
+    >>> factor_values
+    array([1., 1., 1., 1., 1.])
     """
     Cp = np.asarray(Cp, dtype=float)
     if len(Cp) == 1:
@@ -563,14 +566,14 @@ def symmetrize(Jpapbp: np.ndarray, **kwargs) -> np.ndarray:
     This function makes a sequential colormap symmetric in chroma C'.
     It uses the `factor` function to adjust the chroma values.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> Jpapbp = np.array([[40.0, 20.0, 10.0], [60.0, 30.0, 15.0]])
     >>> symmetric_colormap = symmetrize(Jpapbp, softening=0.2, bitonic=True, diffuse=True)
-    >>> print(symmetric_colormap)
-    array([[40.        , 20.        , 10.        ],
-           [60.        , 30.        , 15.        ]])
+    >>> np.round(symmetric_colormap, 2)
+    array([[40.  , 20.  , 10.  ],
+           [60.  , 20.06, 10.03]])
     """
     out = _as_color_table(Jpapbp)
     Jp = out[:, 0]
@@ -586,7 +589,7 @@ def adjust_sequential(
     Jpapbp: np.ndarray, roundup: float = None, bi_seq: bool = False
 ) -> np.ndarray:
     """
-    Adjust a sequential colormap in chroma C' and optionally create a bidirectional sequential colormap.
+    Linearize lightness J' in one or two sequential branches.
 
     Parameters
     ----------
@@ -598,28 +601,26 @@ def adjust_sequential(
         step. None or 0 leaves the lower bound unchanged.
 
     bi_seq : bool, optional
-        If True, create a bidirectional sequential colormap by adjusting two segments of the input colormap. Default is False.
+        If True, linearize the two existing sequential branches separately. Default is False.
 
     Returns
     -------
     np.ndarray
-        The adjusted sequential colormap in chroma C'.
+        The adjusted color table with its sample count preserved.
 
     Notes
     -----
     The lower lightness bound is rounded using ceil(Jplower / roundup)
     * roundup. This is rounding to a step, rather than an additive lift.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> Jpapbp = np.array([[40.0, 20.0, 10.0], [60.0, 30.0, 15.0]])
-    >>> adjusted_colormap = adjust_sequential(Jpapbp, roundup=0.1, bi_seq=True)
-    >>> print(adjusted_colormap)
-    array([[40. , 20. , 10. ],
-           [60. , 30. , 15. ],
-           [40.1, 20. , 10. ],
-           [59.9, 30. , 15. ]])
+    >>> adjusted_colormap = adjust_sequential(Jpapbp, roundup=15)
+    >>> adjusted_colormap
+    array([[45.  , 22.5 , 11.25],
+           [60.  , 30.  , 15.  ]])
     """
 
     Jpapbp = _as_color_table(Jpapbp)
@@ -665,12 +666,12 @@ def adjust_circular_flat(Jpapbp: np.ndarray) -> np.ndarray:
     -----
     This function adjusts a flat circular colormap by making the lightness constant.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> Jpapbp = np.array([[50.0, 20.0, 10.0], [60.0, 30.0, 15.0]])
     >>> adjusted_colormap = adjust_circular_flat(Jpapbp)
-    >>> print(adjusted_colormap)
+    >>> adjusted_colormap
     array([[55., 20., 10.],
            [55., 30., 15.]])
     """
@@ -703,14 +704,15 @@ def adjust_circular(Jpapbp: np.ndarray, roundup: float = None) -> np.ndarray:
     -----
     This function adjusts a circular colormap based on the parameters provided.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
-    >>> Jpapbp = np.array([[50.0, 20.0, 10.0], [60.0, 30.0, 15.0]])
-    >>> adjusted_colormap = adjust_circular(Jpapbp, roundup=5.0)
-    >>> print(adjusted_colormap)
-    array([[55., 20., 10.],
-           [60., 30., 15.]])
+    >>> Jpapbp = np.array([[40., 20., 10.], [60., 30., 15.], [40., 20., 10.]])
+    >>> adjusted_colormap = adjust_circular(Jpapbp, roundup=15)
+    >>> adjusted_colormap
+    array([[45.  , 22.5 , 11.25],
+           [60.  , 30.  , 15.  ],
+           [45.  , 22.5 , 11.25]])
     """
     Jpapbp = _as_color_table(Jpapbp)
     Jp = Jpapbp[:, 0]
@@ -770,14 +772,15 @@ def adjust_divergent(
     -----
     This function adjusts a divergent colormap based on the parameters provided.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
-    >>> Jpapbp = np.array([[50.0, 20.0, 10.0], [60.0, 30.0, 15.0]])
-    >>> adjusted_colormap = adjust_divergent(Jpapbp, roundup=5.0, circular=True, symmetric=True)
-    >>> print(adjusted_colormap)
-    array([[55., 20., 10.],
-           [60., 30., 15.]])
+    >>> Jpapbp = np.array([[40., 20., 10.], [60., 30., 15.], [40., 20., 10.]])
+    >>> adjusted_colormap = adjust_divergent(Jpapbp, roundup=15)
+    >>> adjusted_colormap
+    array([[45.  , 22.5 , 11.25],
+           [60.  , 30.  , 15.  ],
+           [45.  , 22.5 , 11.25]])
     """
     Jpapbp = _as_color_table(Jpapbp)
     Jp = Jpapbp[:, 0]
@@ -852,18 +855,16 @@ def uniformize_cmap(
     This function uniformizes a colormap by analyzing its color table and transforming
     it into a uniformized version based on its color characteristics.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import matplotlib.pyplot as plt
     >>> from matplotlib.colors import ListedColormap
-    >>> from my_module import uniformize_cmap
+    >>> from scicomap.cmath import uniformize_cmap
     >>> # Create a sample colormap
     >>> original_cmap = plt.get_cmap("viridis")
     >>> uniformized_cmap, was_uniformized = uniformize_cmap(original_cmap, name="uniform_viridis", lift=5.0)
-    >>> if was_uniformized:
-    ...     print("Colormap was uniformized.")
-    ... else:
-    ...     print("Colormap was already uniformized.")
+    >>> was_uniformized
+    True
     >>> # Now you can use the uniformized_cmap for plotting.
 
     """
@@ -935,11 +936,11 @@ def symmetrize_cmap(
     it into a symmetrical version based on its color characteristics, and returning
     it as a matplotlib ListedColormap.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import matplotlib.pyplot as plt
     >>> from matplotlib.colors import ListedColormap
-    >>> from my_module import symmetrize_cmap
+    >>> from scicomap.cmath import symmetrize_cmap
     >>> # Create a sample colormap
     >>> original_cmap = plt.get_cmap("coolwarm")
     >>> symmetrized_cmap = symmetrize_cmap(original_cmap, name="symmetric_coolwarm", bitonic=True, diffuse=True)
@@ -1006,11 +1007,11 @@ def unif_sym_cmap(
     applied to the uniformized colormap. The final colormap is returned along with
     a boolean indicating whether uniformization was performed.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import matplotlib.pyplot as plt
     >>> from matplotlib.colors import ListedColormap
-    >>> from my_module import unif_sym_cmap
+    >>> from scicomap.cmath import unif_sym_cmap
     >>> # Create a sample colormap
     >>> original_cmap = plt.get_cmap("coolwarm")
     >>> uniformized_symmetric_cmap, uniformized = unif_sym_cmap(original_cmap, name="uni_sym_coolwarm", lift=0.1)
@@ -1055,15 +1056,15 @@ def _ax_cylinder_JCh(
     the CAM02-UCS color space. It then plots these coordinates in a cylindrical
     representation, where J' and C' are shown on one axis, and h' on another axis.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import matplotlib.pyplot as plt
     >>> from matplotlib.colors import ListedColormap
-    >>> from my_module import _ax_cylinder_JCh
+    >>> from scicomap.cmath import _ax_cylinder_JCh
     >>> # Create a sample colormap
     >>> cmap = plt.get_cmap("coolwarm")
     >>> fig, ax = plt.subplots()
-    >>> _ax_cylinder_JCh(ax, cmap, title="Cylindrical JCh Coordinates")
+    >>> _ = _ax_cylinder_JCh(ax, cmap, title="Cylindrical JCh Coordinates")
 
     """
     ctab = get_ctab(cmap)  # get the colormap as a color table in sRGB
@@ -1122,16 +1123,16 @@ def _ax_scatter_Jpapbp(
     This function takes a colormap, extracts its J', a', and b' coordinates in the
     CAM02-UCS color space, and creates a 3D scatter plot to visualize these coordinates.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import matplotlib.pyplot as plt
     >>> from matplotlib.colors import ListedColormap
-    >>> from my_module import _ax_scatter_Jpapbp
+    >>> from scicomap.cmath import _ax_scatter_Jpapbp
     >>> # Create a sample colormap
     >>> cmap = plt.get_cmap("coolwarm")
     >>> fig = plt.figure()
     >>> ax = fig.add_subplot(111, projection='3d')
-    >>> _ax_scatter_Jpapbp(ax, cmap, title="Jpapbp Scatter Plot")
+    >>> _ = _ax_scatter_Jpapbp(ax, cmap, title="Jpapbp Scatter Plot")
 
     """
     ctab = get_ctab(cmap)  # get the colormap as a color table in sRGB

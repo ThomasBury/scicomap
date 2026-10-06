@@ -14,8 +14,8 @@ def _():
         "qualitative",
     )
 
-    def build_cmap_options(sci_co_map_cls, ctype):
-        cmap_names = sorted(sci_co_map_cls(ctype=ctype).get_color_map_names())
+    def build_cmap_options(ctype):
+        cmap_names = sorted(get_cmap_dict()[ctype])
         default_cmap = cmap_names[0]
         if ctype == "sequential" and "thermal" in cmap_names:
             default_cmap = "thermal"
@@ -24,8 +24,8 @@ def _():
     import marimo as mo
     import matplotlib.pyplot as plt
 
-    from scicomap._diagnostics import _diagnose_cmap as diagnose_cmap
-    from scicomap.scicomap import SciCoMap
+    from scicomap._diagnostics import diagnose_cmap
+    from scicomap.scicomap import SciCoMap, get_cmap_dict
     from scicomap.scicomap import compare_cmap
     from scicomap.scicomap import plot_colorblind_vision
 
@@ -77,7 +77,7 @@ def _(mo):
 To "fix" a problematic color map, we follow a rigorous scientific recipe:
 
 1. **Linearize Lightness:** We force `J'` into a straight line so that the visual weight matches the data points.
-2. **Round the Floor:** `lift` rounds the lower lightness bound up to a multiple of that step. `None` and `0` leave it unchanged.
+2. **Round the Floor:** `lightness_rounding` rounds the lower lightness bound up to a multiple of that step. `None` and `0` leave it unchanged.
 3. **Smooth the Chroma:** We symmetrize the `C'` curve to remove "kinks" or sharp edges.
 4. **Remove Artifacts:** We avoid abrupt changes in the chroma trajectory to prevent the eye from seeing "steps" that don't exist in the data.
         """
@@ -96,8 +96,8 @@ def _(COLORMAP_FAMILIES, mo):
 
 
 @app.cell
-def _(build_cmap_options, ctype, mo, SciCoMap):
-    cmap_names, default_cmap = build_cmap_options(SciCoMap, ctype.value)
+def _(build_cmap_options, ctype, mo):
+    cmap_names, default_cmap = build_cmap_options(ctype.value)
 
     cmap = mo.ui.dropdown(
         options=cmap_names,
@@ -117,7 +117,9 @@ def _(mo):
     fix = mo.ui.checkbox(value=True, label="Apply fix")
     bitonic = mo.ui.checkbox(value=True, label="Bitonic")
     diffuse = mo.ui.checkbox(value=True, label="Diffuse")
-    lift = mo.ui.slider(start=0, stop=40, value=10, step=1, label="Lift")
+    lift = mo.ui.slider(
+        start=0, stop=40, value=10, step=1, label="Lightness rounding step"
+    )
     n_colors = mo.ui.slider(
         start=16,
         stop=256,
@@ -167,7 +169,7 @@ def _(SciCoMap, bitonic, cmap, ctype, diffuse, fix, lift):
     if fix.value:
         chart = SciCoMap(ctype=ctype.value, cmap=cmap.value)
         chart.unif_sym_cmap(
-            lift=float(lift.value),
+            lightness_rounding=float(lift.value),
             bitonic=bitonic.value,
             diffuse=diffuse.value,
         )

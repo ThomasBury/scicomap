@@ -54,6 +54,9 @@ _trit100_space = {
 _trit100_to_sRGB1 = cspace_converter(_trit100_space, "sRGB1")
 
 
+__all__ = ["colorblind_transform", "colorblind_vision"]
+
+
 def colorblind_transform(
     RGBA: np.ndarray, colorblind_space: callable
 ) -> np.ndarray:

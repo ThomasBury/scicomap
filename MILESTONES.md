@@ -162,9 +162,17 @@ uv lock --check
 **Branch transition:** merge the completed fixes into `main`, then create
 `feat/v2`. Breaking changes begin only after this checkpoint.
 
+**V1 preparation verified before branching:** `main` remained clean at
+`11d9da5`. `just release-check` passed 217 tests and Ruff before the runner
+terminated it as the docs recipe started. The remaining recipes passed with
+`just docs marimo validate-doc-artifacts build`. The 1.1.1 patch notes were
+reviewed against M1–M4 with no blocking omissions. The isolated 1.1.1 wheel
+smoke check passed all five data resources and 13 commands; `uv lock --check`
+passed. No release was published or tagged.
+
 ## Stage 2 — Build v2 without backward compatibility
 
-### [ ] M5 — Consistent Python API
+### [x] M5 — Consistent Python API
 
 **Outcome:** users can discover, inspect, transform, and plot maps through a
 coherent interface.
@@ -184,6 +192,41 @@ coherent interface.
 **Acceptance:** public API tests cover discovery, supported inputs, return types,
 transformations, and absence of hidden plotting side effects. Removed interfaces
 receive no forwarding aliases.
+
+**Completed:** `feat/v2` was created from the verified current `main`.
+The family conveniences share construction, representation, transformation,
+and example plotting through `SciCoMap`; all defaults resolve immediately,
+including `ScicoMultiSequential`'s supported `bukavu` default. Constructors
+validate family names, catalog names, Matplotlib objects, and color lists.
+The catalog is the single discovery API, and package/submodule exports are
+explicit. `diagnose_cmap` exposes the existing structured family heuristics to
+Python, CLI callers, and tutorials. Plotting returns Figures without display
+or changing the current map; transformations return colormaps and replace
+object state consistently. `lightness_rounding` replaces ambiguous Python
+keywords, and caller-managed uniformization controls and discovery aliases
+are removed without forwarding shims. Short qualitative palettes render;
+example categories reuse colors when the supplied palette is too short.
+
+All 264 tests passed across the runtime and documentation commands below,
+including 47 public API checks and every catalog map's numerical invariants.
+Ruff, strict Sphinx, LLM asset generation, Marimo structure checks, and local
+tutorial execution passed. Marimo retains its existing formatting warnings.
+The browser tutorial still installs a floating v1 package; verification
+against the v2 candidate remains in M9. CLI commands, aliases, profiles, and
+options retain their existing surface; only M5 Python callers were adapted.
+M6 and later milestones remain unstarted, and the release version remains
+unchanged until M9.
+
+```bash
+UV_PROJECT_ENVIRONMENT=.venv.just uv run python -m pytest --ignore=tests/docs/test_generated_examples.py
+UV_PROJECT_ENVIRONMENT=.venv.just uv run python -m pytest tests/core/test_public_api.py tests/docs/test_generated_examples.py
+UV_PROJECT_ENVIRONMENT=.venv.just uv run ruff check src tests
+UV_PROJECT_ENVIRONMENT=.venv.just uv run ruff format --check src tests
+UV_PROJECT_ENVIRONMENT=.venv.just uv run sphinx-build -n -W -b html docs/source docs/build/html
+UV_PROJECT_ENVIRONMENT=.venv.just uv run python scripts/build_llm_assets.py
+UV_PROJECT_ENVIRONMENT=.venv.just uv run marimo check docs/marimo/tutorial_app.py docs/marimo/tutorial_app_lite.py
+UV_PROJECT_ENVIRONMENT=.venv.just uv run marimo export html docs/marimo/tutorial_app.py -o /tmp/scicomap-m5-tutorial.html
+```
 
 ### [ ] M6 — Smaller CLI for people and agents
 

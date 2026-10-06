@@ -12,7 +12,7 @@ from PIL import Image
 from typer.testing import CliRunner
 
 import scicomap.cli as cli
-from scicomap._diagnostics import _diagnose_cmap
+from scicomap._diagnostics import diagnose_cmap
 from scicomap.cmath import transform
 from scicomap.scicomap import SciCoMap
 
@@ -38,7 +38,7 @@ from scicomap.scicomap import SciCoMap
 def test_family_lightness_rules(family, lightness, status) -> None:
     perceptual = np.column_stack((lightness, np.zeros((len(lightness), 2))))
     cmap = ListedColormap(transform(perceptual, inverse=True))
-    diagnostics = _diagnose_cmap(cmap, family)
+    diagnostics = diagnose_cmap(cmap, family)
     assert diagnostics["status"] == status
     assert diagnostics["heuristic"] is True
     if family == "diverging" and status == "good":
@@ -57,7 +57,7 @@ def test_circular_diagnostics(oscillations, closed) -> None:
             10 * np.sin(angle),
         )
     )
-    diagnostics = _diagnose_cmap(
+    diagnostics = diagnose_cmap(
         ListedColormap(transform(colors, inverse=True)), "circular"
     )
     assert diagnostics["seam_closed"] is closed
@@ -84,7 +84,7 @@ def test_workflow_uses_one_selected_map(
     )
     expected = SciCoMap(cmap="thermal")
     if fix:
-        expected.unif_sym_cmap(lift=20)
+        expected.unif_sym_cmap(lightness_rounding=20)
     expected_map = expected.get_mpl_color_map()
     original_map = SciCoMap(cmap="thermal").get_mpl_color_map()
     assessed = []
@@ -143,8 +143,8 @@ def test_workflow_uses_one_selected_map(
     assert result.exit_code == 0, result.output
     data = json.loads(result.stdout)["data"]
     assert len(fixes) == int(fix)
-    assert data["diagnostics"] == _diagnose_cmap(expected_map, "sequential")
-    assert data["original_diagnostics"] == _diagnose_cmap(
+    assert data["diagnostics"] == diagnose_cmap(expected_map, "sequential")
+    assert data["original_diagnostics"] == diagnose_cmap(
         original_map, "sequential"
     )
     assert data["map_used"] == ("transformed" if fix else "original")

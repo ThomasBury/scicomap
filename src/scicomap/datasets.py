@@ -5,6 +5,9 @@ import numpy as np
 import matplotlib.image as mpimg
 
 
+__all__ = ["load_hill_topography", "load_scan_image", "load_pic"]
+
+
 def load_hill_topography() -> np.ndarray:
     """
     Load hill topography elevation data.

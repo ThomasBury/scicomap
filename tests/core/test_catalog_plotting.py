@@ -16,7 +16,6 @@ from scicomap.scicomap import (
     ScicoMultiSequential,
     ScicoSequential,
     compare_cmap,
-    get_available_ctype,
     get_cmap_dict,
     jch_plot,
     plot_colormap,
@@ -41,7 +40,7 @@ def test_every_catalog_map_preserves_samples_and_reversal_pairs() -> None:
                 warnings.filterwarnings(
                     "ignore", message="The colormap .* type is unknown"
                 )
-                corrected, _ = unif_sym_cmap(cmap)
+                corrected = unif_sym_cmap(cmap)
             result = get_ctab(corrected)
             assert result.shape == table.shape, name
             assert np.isfinite(result).all(), name
@@ -51,7 +50,9 @@ def test_every_catalog_map_preserves_samples_and_reversal_pairs() -> None:
 
 
 def test_family_discovery_agrees_with_catalog() -> None:
-    assert list(get_available_ctype()) == SciCoMap.get_ctype()
+    for family, maps in get_cmap_dict().items():
+        assert SciCoMap(ctype=family).ctype == family
+        assert maps
 
 
 @pytest.mark.parametrize(

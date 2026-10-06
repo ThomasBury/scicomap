@@ -18,9 +18,14 @@ from rich.console import Console
 from rich.table import Table
 from typer.core import TyperGroup
 
-from scicomap._diagnostics import _diagnose_cmap
+from scicomap._diagnostics import diagnose_cmap
 from scicomap._llm_assets import build_markdown_mirror, write_llms_txt
-from scicomap.scicomap import SciCoMap, compare_cmap, plot_colorblind_vision
+from scicomap.scicomap import (
+    SciCoMap,
+    compare_cmap,
+    get_cmap_dict,
+    plot_colorblind_vision,
+)
 
 DEFAULT_TYPE = "sequential"
 DEFAULT_CMAP = "thermal"
@@ -213,7 +218,7 @@ def _fail(command: str, message: str, as_json: bool, code: int = 2) -> None:
 
 
 def _resolve_cmap(cmap: str, ctype: str | None) -> tuple[str, Any]:
-    cmap_dict = SciCoMap.get_color_map_dic()
+    cmap_dict = get_cmap_dict()
     if ctype is not None:
         if ctype not in cmap_dict:
             raise ValueError(f"Unknown ctype '{ctype}'.")
@@ -271,7 +276,7 @@ def _prepare_maps(
     if config["fix"]:
         selected = SciCoMap(ctype=ctype, cmap=cmap_obj)
         selected.unif_sym_cmap(
-            lift=config["lift"],
+            lightness_rounding=config["lift"],
             bitonic=config["bitonic"],
             diffuse=config["diffuse"],
         )
@@ -485,7 +490,7 @@ def list_command(
     as_json: bool = typer.Option(False, "--json", help="Output JSON."),
 ) -> None:
     """List colormap families or names."""
-    cmap_dict = SciCoMap.get_color_map_dic()
+    cmap_dict = get_cmap_dict()
 
     if family is None:
         counts = {key: len(value) for key, value in cmap_dict.items()}
@@ -536,7 +541,7 @@ def check(
     except ValueError as exc:
         _fail("scicomap check", str(exc), as_json)
 
-    diagnostics = _diagnose_cmap(cmap_obj, resolved_type)
+    diagnostics = diagnose_cmap(cmap_obj, resolved_type)
 
     payload = {
         "ok": True,
@@ -655,7 +660,9 @@ def fix(
         _fail("scicomap fix", str(exc), as_json)
 
     chart = SciCoMap(ctype=resolved_type, cmap=cmap)
-    chart.unif_sym_cmap(lift=lift, bitonic=bitonic, diffuse=diffuse)
+    chart.unif_sym_cmap(
+        lightness_rounding=lift, bitonic=bitonic, diffuse=diffuse
+    )
     fig = chart.assess_cmap()
     artifact = _save_figure(fig, out)
     payload = {
@@ -1039,8 +1046,8 @@ def wizard(
     warnings = list(profile_warnings)
     _, chart = _prepare_maps(resolved_type, cmap_obj, effective)
     selected_map = chart.get_mpl_color_map()
-    result["diagnostics"] = _diagnose_cmap(selected_map, resolved_type)
-    result["original_diagnostics"] = _diagnose_cmap(cmap_obj, resolved_type)
+    result["diagnostics"] = diagnose_cmap(selected_map, resolved_type)
+    result["original_diagnostics"] = diagnose_cmap(cmap_obj, resolved_type)
     result["map_used"] = "transformed" if effective["fix"] else "original"
     artifacts = []
     mapped = None
@@ -1230,8 +1237,8 @@ def report(
         resolved_type, cmap_obj, effective
     )
     selected_map = selected_chart.get_mpl_color_map()
-    diagnostics = _diagnose_cmap(selected_map, resolved_type)
-    original_diagnostics = _diagnose_cmap(cmap_obj, resolved_type)
+    diagnostics = diagnose_cmap(selected_map, resolved_type)
+    original_diagnostics = diagnose_cmap(cmap_obj, resolved_type)
     mapped = None
     if run_apply and image not in BUILTIN_IMAGES:
         mapped = _remap_image(Path(image), selected_map, mode)

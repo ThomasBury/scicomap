@@ -55,7 +55,7 @@ When a colormap contains visible artifacts, apply uniformization and reassess.
          import scicomap as sc
 
          cmap = sc.ScicoSequential(cmap="hawaii")
-         cmap.unif_sym_cmap(lift=None, bitonic=False, diffuse=True)
+         cmap.unif_sym_cmap(lightness_rounding=None, bitonic=False, diffuse=True)
          cmap.assess_cmap(figsize=(14, 6))
 
    .. tab:: CLI
@@ -80,12 +80,12 @@ When a colormap contains visible artifacts, apply uniformization and reassess.
 Practical workflow
 ------------------
 
-``lift`` rounds the lower CAM02-UCS lightness bound up to a multiple of the
-given step: ``ceil(Jplower / lift) * lift``. It is not an additive increase.
+``lightness_rounding`` rounds the lower CAM02-UCS lightness bound up to a multiple of the
+given step: ``ceil(Jplower / lightness_rounding) * lightness_rounding``. It is not an additive increase.
 ``None`` and ``0`` leave that bound unchanged. Uniformization preserves the
 sample count and alpha values, including the center of an odd-length
 diverging map. If the lightness pattern is unrecognized, the map is returned
-unchanged and its ``uniformized`` flag remains false.
+unchanged with a warning; inspect the result with ``diagnose_cmap``.
 
 The ``hp`` argument to ``max_chroma`` is a hue angle in radians; one turn is
 ``2*pi``. The hue axis in assessment plots is displayed in degrees.

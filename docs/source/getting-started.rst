@@ -33,7 +33,7 @@ The same starter workflow is available in Python and CLI forms.
 
          cmap = sc.ScicoSequential(cmap="hawaii")
          cmap.assess_cmap(figsize=(14, 6))
-         cmap.unif_sym_cmap(lift=None, bitonic=False, diffuse=True)
+         cmap.unif_sym_cmap(lightness_rounding=None, bitonic=False, diffuse=True)
          cmap.draw_example()
 
    .. tab:: CLI
@@ -91,7 +91,7 @@ Choose a colormap family
       .. code-block:: python
 
          sc_map = sc.SciCoMap()
-         sc_map.get_ctype()
+         list(sc.get_cmap_dict())
 
    .. tab:: CLI
 

@@ -172,11 +172,11 @@ Scicomap provides a bunch of color maps for different applications. The differen
 ```python
 import scicomap as sc
 sc_map = sc.SciCoMap()
-sc_map.get_ctype()
+list(sc.get_cmap_dict())
 ```
 
 ```
-dict_keys(['diverging', 'sequential', 'multi-sequential', 'circular', 'miscellaneous', 'qualitative'])
+['diverging', 'sequential', 'multi-sequential', 'circular', 'miscellaneous', 'qualitative']
 ```
 
 I'll refer to the [The misuse of colour in science communication](https://www.nature.com/articles/s41467-020-19160-7.pdf) for choosing the right scientific color map
@@ -195,7 +195,7 @@ Get the color maps for a given type
 
 ```python
 sc_map = sc.ScicoSequential()
-sc_map.get_color_map_names()
+list(sc.get_cmap_dict()[sc_map.ctype])
 ```
 
 ```
@@ -248,10 +248,10 @@ f=sc_map.draw_example()
 We can clearly see the artefacts, especially for the pyramid for which our eyes should only pick out the corners in the pyramid (ideal situation). Those artefacts are even more striking for color-deficient users (this might not always be the case). Hopefully, `scicomap` provides an easy way to correct those defects:
 
 ```python
-# fixing the color map, using the same minimal lightness (lift=None), 
+# fixing the color map, using the same minimal lightness (lightness_rounding=None),
 # not normalizing to bitone and 
 # smoothing the chroma
-sc_map.unif_sym_cmap(lift=None, 
+sc_map.unif_sym_cmap(lightness_rounding=None,
                      bitonic=False, 
                      diffuse=True)
 

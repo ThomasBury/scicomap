@@ -65,7 +65,7 @@ def test_max_chroma_raises_value_error_for_out_of_range_without_clip() -> None:
 def test_color_name_lists_use_matplotlib_conversion() -> None:
     colors = ["red", "#00ff0080", (0, 0, 1), "none"]
     np.testing.assert_array_equal(get_ctab(colors), to_rgba_array(colors))
-    corrected, _ = unif_sym_cmap(["red", "green", "blue"])
+    corrected = unif_sym_cmap(["red", "green", "blue"])
     assert corrected.N == 3
     assert np.isfinite(get_ctab(corrected)).all()
 
@@ -202,11 +202,13 @@ def test_zero_rounding_matches_no_rounding(adjust) -> None:
         [13, 35, 57] if adjust is adjust_sequential else [13, 35, 57, 35, 13]
     )
     jab = np.column_stack((lightness, np.zeros((len(lightness), 2))))
-    np.testing.assert_array_equal(adjust(jab, roundup=0), adjust(jab))
-    assert adjust(jab, roundup=10)[0, 0] == 20
+    np.testing.assert_array_equal(
+        adjust(jab, lightness_rounding=0), adjust(jab)
+    )
+    assert adjust(jab, lightness_rounding=10)[0, 0] == 20
 
 
-def test_zero_lift_and_alpha_are_preserved_through_combined_transform() -> (
+def test_zero_rounding_and_alpha_are_preserved_through_combined_transform() -> (
     None
 ):
     table = to_rgba_array(["navy", "gray", "white", "gray", "maroon"])
@@ -214,29 +216,27 @@ def test_zero_lift_and_alpha_are_preserved_through_combined_transform() -> (
     cmap = ListedColormap(table)
     assert classify(transform(table)) == "divergent"
     for operation in (uniformize_cmap, unif_sym_cmap):
-        corrected, flag = operation(cmap, lift=0)
-        default, default_flag = operation(cmap)
-        assert flag and default_flag
+        corrected = operation(cmap, lightness_rounding=0)
+        default = operation(cmap)
         assert corrected.N == cmap.N
         np.testing.assert_array_equal(get_ctab(corrected)[:, 3], table[:, 3])
         np.testing.assert_array_equal(get_ctab(corrected), get_ctab(default))
 
 
-def test_unknown_map_does_not_claim_uniformization() -> None:
+def test_unknown_map_warns_and_returns_a_colormap() -> None:
     colors = ["black", "white", "black", "white", "gray", "white", "red"]
     cmap = ListedColormap(colors)
     assert classify(transform(get_ctab(cmap))) == "unknown"
     with pytest.warns(UserWarning, match="Not uniformized"):
-        result, flag = uniformize_cmap(cmap)
-    assert flag is False
+        result = uniformize_cmap(cmap)
     np.testing.assert_array_equal(get_ctab(result), get_ctab(cmap))
     with pytest.warns(UserWarning, match="Not uniformized"):
-        _, flag = unif_sym_cmap(cmap)
-    assert flag is False
+        result = unif_sym_cmap(cmap)
+    assert isinstance(result, ListedColormap)
 
 
 def test_single_color_transform_is_finite() -> None:
-    result, _ = unif_sym_cmap(ListedColormap(["red"]))
+    result = unif_sym_cmap(ListedColormap(["red"]))
     assert result.N == 1
     assert np.isfinite(get_ctab(result)).all()
 
@@ -245,6 +245,5 @@ def test_short_monotonic_map_with_close_endpoints_is_sequential() -> None:
     jab = np.array([[20, 0, 0], [21, 0, 0], [22, 0, 0]])
     assert classify(jab) == "sequential"
     cmap = ListedColormap(transform(jab, inverse=True))
-    corrected, flag = uniformize_cmap(cmap)
-    assert flag
+    corrected = uniformize_cmap(cmap)
     assert corrected.N == 3

@@ -121,7 +121,7 @@ Equivalent workflow in Python API
 
          cmap = sc.ScicoSequential(cmap="hawaii")
          cmap.assess_cmap(figsize=(14, 6))
-         cmap.unif_sym_cmap(lift=None, bitonic=False, diffuse=True)
+         cmap.unif_sym_cmap(lightness_rounding=None, bitonic=False, diffuse=True)
          cmap.assess_cmap(figsize=(14, 6))
 
    .. tab:: CLI

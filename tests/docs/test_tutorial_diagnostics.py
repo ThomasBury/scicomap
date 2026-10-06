@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 
-from scicomap._diagnostics import _diagnose_cmap
+from scicomap._diagnostics import diagnose_cmap
 from scicomap.scicomap import SciCoMap
 
 
@@ -71,6 +71,6 @@ def test_wasm_diagnostics_install_before_import(tmp_path, monkeypatch) -> None:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     cmap = SciCoMap(ctype="diverging", cmap="wildfire").get_mpl_color_map()
-    assert module._diagnose_cmap(cmap, "diverging") == _diagnose_cmap(
+    assert module.diagnose_cmap(cmap, "diverging") == diagnose_cmap(
         cmap, "diverging"
     )

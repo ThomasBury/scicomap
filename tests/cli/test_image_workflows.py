@@ -23,7 +23,14 @@ def _image_command(
         return ["cmap", "apply", "--cmap", "thermal", *options, "--json"]
     options += ["--goal", "apply", "--cmap", "thermal", "--type", "sequential"]
     if workflow == "wizard":
-        return ["wizard", *options, "--no-interactive", "--json"]
+        return [
+            "wizard",
+            *options,
+            "--no-fix",
+            "--no-cvd",
+            "--no-interactive",
+            "--json",
+        ]
     return ["report", *options, "--no-fix", "--no-cvd", "--format", "json"]
 
 

@@ -60,6 +60,8 @@ def test_long_form_alias_list_json() -> None:
 
 def test_doctor_json(tmp_path: Path) -> None:
     runner = CliRunner()
+    existing_file = tmp_path / ".scicomap_write_test"
+    existing_file.write_bytes(b"user data")
     result = runner.invoke(
         app,
         ["doctor", "--out-dir", str(tmp_path), "--json"],
@@ -68,6 +70,8 @@ def test_doctor_json(tmp_path: Path) -> None:
     payload = json.loads(result.stdout)
     assert payload["ok"] is True
     assert payload["data"]["status"] == "healthy"
+    assert existing_file.read_bytes() == b"user data"
+    assert list(tmp_path.iterdir()) == [existing_file]
 
 
 def test_wizard_noninteractive_diagnose_json() -> None:

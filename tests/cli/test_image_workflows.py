@@ -1,4 +1,4 @@
-"""Regression checks for shared image handling in v1 commands."""
+"""Regression checks for shared image handling in canonical commands."""
 
 import json
 from pathlib import Path
@@ -19,9 +19,7 @@ def _image_command(
     options = ["--image", str(image), "--out", str(out), "--mode", mode]
     if workflow == "apply":
         return ["apply", "thermal", "--type", "sequential", *options, "--json"]
-    if workflow == "cmap apply":
-        return ["cmap", "apply", "--cmap", "thermal", *options, "--json"]
-    options += ["--goal", "apply", "--cmap", "thermal", "--type", "sequential"]
+    options += ["--apply", "--cmap", "thermal", "--type", "sequential"]
     if workflow == "wizard":
         return [
             "wizard",
@@ -31,12 +29,10 @@ def _image_command(
             "--no-interactive",
             "--json",
         ]
-    return ["report", *options, "--no-fix", "--no-cvd", "--format", "json"]
+    return ["report", *options, "--no-fix", "--no-cvd", "--json"]
 
 
-@pytest.mark.parametrize(
-    "workflow", ["apply", "cmap apply", "wizard", "report"]
-)
+@pytest.mark.parametrize("workflow", ["apply", "wizard", "report"])
 @pytest.mark.parametrize(
     ("image_kind", "mode"),
     [
@@ -91,9 +87,7 @@ def test_image_workflows_preserve_colors_alpha_and_input(
     assert image.read_bytes() == original_bytes
 
 
-@pytest.mark.parametrize(
-    "workflow", ["apply", "cmap apply", "wizard", "report"]
-)
+@pytest.mark.parametrize("workflow", ["apply", "wizard", "report"])
 @pytest.mark.parametrize("malformed", [True, False])
 def test_image_workflows_return_actionable_json_errors(
     tmp_path: Path, workflow: str, malformed: bool

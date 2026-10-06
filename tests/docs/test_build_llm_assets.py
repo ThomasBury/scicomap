@@ -6,10 +6,8 @@ import json
 from pathlib import Path
 
 import pytest
-from typer.testing import CliRunner
 
 from scicomap import _llm_assets as module
-from scicomap.cli import app
 
 
 def test_sidebar_skip_is_balanced_for_div_wrappers() -> None:
@@ -185,29 +183,26 @@ def test_table_keeps_cells_rows_and_inline_code() -> None:
     ]
 
 
-@pytest.mark.parametrize("command", [["docs-llm"], ["docs", "llm-assets"]])
-def test_docs_commands_generate_assets(command, tmp_path: Path) -> None:
+def test_generator_entry_point(tmp_path: Path, monkeypatch) -> None:
     html = tmp_path / "index.html"
     html.write_text("<main><h1>Example</h1><p>Content.</p></main>")
-    result = CliRunner().invoke(
-        app, [*command, "--html-dir", str(tmp_path), "--json"]
+    monkeypatch.setattr(
+        "sys.argv", ["build_llm_assets.py", "--html-dir", str(tmp_path)]
     )
-    assert result.exit_code == 0, result.output
-    payload = json.loads(result.stdout)
-    assert payload["data"]["generated_pages"] == 1
+    assert module.main() == 0
     assert (
         tmp_path / "llm/index.md"
     ).read_text() == "# Index\n\n# Example\n\nContent.\n"
     assert (tmp_path / "llms.txt").exists()
 
 
-def test_docs_command_missing_directory_does_not_create_it(
-    tmp_path: Path,
+def test_generator_missing_directory_does_not_create_it(
+    tmp_path: Path, monkeypatch
 ) -> None:
     missing = tmp_path / "missing"
-    result = CliRunner().invoke(
-        app, ["docs-llm", "--html-dir", str(missing), "--json"]
+    monkeypatch.setattr(
+        "sys.argv", ["build_llm_assets.py", "--html-dir", str(missing)]
     )
-    assert result.exit_code == 2
-    assert json.loads(result.stdout)["ok"] is False
+    with pytest.raises(FileNotFoundError):
+        module.main()
     assert not missing.exists()

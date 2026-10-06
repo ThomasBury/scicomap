@@ -32,8 +32,7 @@ dependencies = [
     "cmasher >= 1.5.8",
     "palettable >= 3.3.0",
     "matplotlib >= 3.3.0",
-    # ponytail: v1 subclasses Click-backed TyperGroup; revisit in the M6 CLI rewrite.
-    "typer >= 0.12.0, < 0.26",
+    "typer >= 0.26.0",
     "rich >= 13.0.0",
 ]
 

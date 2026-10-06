@@ -1,5 +1,8 @@
 """Scientific colormap catalog, family conveniences, and plotting functions."""
 
+import json
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from matplotlib.colors import Colormap, ListedColormap
@@ -130,10 +133,13 @@ class SciCoMap:
             raise TypeError(
                 "cmap must be a catalog name, Matplotlib Colormap, or color list."
             )
-        get_ctab(cmap)
+        self._source_colors = get_ctab(cmap).tolist()
         self.ctype = ctype
         self.cmap = cmap
         self.cname = name
+        # ponytail: provenance covers method calls, not direct cmap mutation;
+        # make cmap managed state if external edits need to be replayed.
+        self._transformations: list[dict[str, Any]] = []
 
     def __repr__(self) -> str:
         return (
@@ -171,6 +177,14 @@ class SciCoMap:
         self.cmap = uniformize_cmap(
             self.cmap, name=self.cname, lightness_rounding=lightness_rounding
         )
+        self._transformations.append(
+            {
+                "operation": "uniformize_cmap",
+                "lightness_rounding": float(lightness_rounding)
+                if lightness_rounding is not None
+                else None,
+            }
+        )
         return self.cmap
 
     def symmetrize_cmap(
@@ -192,6 +206,13 @@ class SciCoMap:
         """
         self.cmap = symmetrize_cmap(
             self.cmap, name=self.cname, bitonic=bitonic, diffuse=diffuse
+        )
+        self._transformations.append(
+            {
+                "operation": "symmetrize_cmap",
+                "bitonic": bool(bitonic),
+                "diffuse": bool(diffuse),
+            }
         )
         return self.cmap
 
@@ -225,7 +246,64 @@ class SciCoMap:
             bitonic=bitonic,
             diffuse=diffuse,
         )
+        self._transformations.append(
+            {
+                "operation": "unif_sym_cmap",
+                "lightness_rounding": float(lightness_rounding)
+                if lightness_rounding is not None
+                else None,
+                "bitonic": bool(bitonic),
+                "diffuse": bool(diffuse),
+            }
+        )
         return self.cmap
+
+    def export_cmap(self, out: str | Path) -> Path:
+        """Write sampled RGBA colors and correction provenance as JSON.
+
+        Parameters
+        ----------
+        out : str or pathlib.Path
+            Destination file. Parent directories are created if necessary.
+            An existing file is replaced.
+
+        Returns
+        -------
+        pathlib.Path
+            Absolute path to the export. The JSON contains the package
+            version, family, name, RGBA table, source table, and ordered
+            transformation parameters.
+
+        Raises
+        ------
+        ValueError
+            If the current sampled colors are invalid.
+        OSError
+            If the destination cannot be written.
+
+        Notes
+        -----
+        Reload with ``ListedColormap(export["rgba"], name=export["name"])``
+        or pass the RGBA list to ``SciCoMap``. Correction provenance records
+        calls to this object's transformation methods; direct changes to
+        ``cmap`` are not recorded. Special under/over/bad colors are not
+        included in the sampled table.
+        """
+        from scicomap import __version__
+
+        payload = {
+            "scicomap_version": __version__,
+            "name": self.cname,
+            "family": self.ctype,
+            "rgba": get_ctab(self.cmap).tolist(),
+            "source_rgba": self._source_colors,
+            "transformations": self._transformations,
+        }
+        content = json.dumps(payload, indent=2, allow_nan=False) + "\n"
+        path = Path(out).resolve()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+        return path
 
     def assess_cmap(self, figsize: tuple[float, float] = (18, 8)) -> Figure:
         """Return a Figure showing lightness, chroma, hue, and CVD simulations.

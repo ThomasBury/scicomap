@@ -76,7 +76,7 @@ not in its family catalog. Its signature remains unchanged; example checks
 use the supported `cmap="bukavu"`. Resolve this constructor inconsistency in
 M5, where breaking signatures are allowed.
 
-### [ ] M3 — Trustworthy diagnostics and CLI workflows
+### [x] M3 — Trustworthy diagnostics and CLI workflows
 
 **Outcome:** requested stages run correctly and every artifact uses the intended
 map.
@@ -96,6 +96,26 @@ map.
 **Acceptance:** regressions cover each family, disabled stages, interactive apply,
 agent apply, original versus transformed artifacts, invalid counts, and parseable
 JSON failures. Existing public interfaces remain available.
+
+**Completed:** `just check` passed (204 tests, Ruff lint and formatting).
+Family-aware diagnostics are shared by the CLI and both tutorials. Workflow
+regressions cover disabled stages, interactive and agent apply, one-time map
+correction, original versus corrected assessments/simulations/applied images,
+invalid counts and paths, finite lift values, and parseable JSON failures.
+The v1 `cvd-safe` profile's documented CVD enforcement remains unchanged.
+`just docs`, strict Sphinx validation, LLM asset generation, full local
+tutorial execution, and `just marimo validate-doc-artifacts` passed.
+The additional checks used these exact commands:
+
+```bash
+UV_PROJECT_ENVIRONMENT=.venv.just uv run sphinx-build -n -W -b html docs/source docs/build/html
+UV_PROJECT_ENVIRONMENT=.venv.just uv run marimo export html docs/marimo/tutorial_app.py -o /tmp/scicomap-m3-tutorial.html
+```
+
+The browser export includes the shared
+diagnostic module; a bootstrap regression verifies dependency installation,
+worker-relative URL resolution, and importing that module. Marimo retains its
+existing formatting warnings. Live browser verification remains part of M9.
 
 ### [ ] M4 — Documentation integrity and v1 package readiness
 

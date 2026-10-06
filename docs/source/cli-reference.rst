@@ -65,8 +65,36 @@ Profiles
 - ``quick-look``: minimal checks and fast feedback.
 - ``publication``: quality-first defaults for final figures.
 - ``presentation``: publication defaults with brighter lift bias.
-- ``cvd-safe``: accessibility-first defaults.
+- ``cvd-safe``: CVD simulation defaults; this profile enforces the CVD stage.
 - ``agent``: deterministic JSON-first behavior.
+
+Workflow stages and diagnostics
+-------------------------------
+
+Wizard and report resolve profile defaults, then run the enabled ``--fix``,
+``--cvd``, and ``--apply`` stages. Explicit ``--no-fix`` and ``--no-apply``
+disable those stages, including for improve and apply goals. ``--no-cvd``
+disables simulation except with the enforcing ``cvd-safe`` profile.
+The agent profile applies an image when its resolved goal is ``apply``;
+it never prompts. Interactive wizard collects a missing image before validation.
+
+Diagnostics, CVD simulations, and applied images use the corrected map when
+fix is enabled, and the original otherwise. Reports retain an original
+assessment alongside the corrected assessment and identify the selected map
+in ``map_used``. The ``diagnostics`` field describes that selected map;
+``original_diagnostics`` describes the original.
+
+Statuses are heuristics, not accessibility certification. Sequential maps are
+checked for lightness progression; diverging maps for progression on each
+branch toward a central extremum; multi-sequential maps for progression within
+each half. Circular maps are checked for an endpoint seam and repeated
+lightness oscillations. Unordered qualitative and miscellaneous maps receive
+a caution to inspect color distinctions in context, rather than a request to
+linearize their lightness. ``monotonic_lightness`` is a measurement of the whole
+map, so a false value alone does not indicate a problem for every family.
+
+CVD images simulate selected vision conditions. They do not establish that
+colors are distinguishable for every viewer or certify a figure's accessibility.
 
 Output modes
 ------------
@@ -124,5 +152,5 @@ What command outputs look like
    :width: 58%
    :alt: Color-vision deficiency concept image.
 
-   ``cvd`` validates how your map is perceived under common color-vision
+   ``cvd`` simulates how your map may appear under common color-vision
    deficiency conditions.

@@ -1082,7 +1082,12 @@ def compare_cmap(
 
         ax.imshow(lum_img, cmap=chartcm.get_mpl_color_map())
         if title:
-            ax.set_title(color_map, fontsize=16, color=fontcolor)
+            label = (
+                color_map.name
+                if isinstance(color_map, Colormap)
+                else color_map
+            )
+            ax.set_title(label, fontsize=16, color=fontcolor)
         # Remove axis clutter
         ax.set_axis_off()
 

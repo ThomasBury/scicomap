@@ -81,6 +81,19 @@ def test_compare_loads_pyramid_scalar_data(image) -> None:
         plt.close(fig)
 
 
+def test_compare_titles_identify_named_and_resolved_maps() -> None:
+    fig = compare_cmap(
+        image="pyramid",
+        cm_list=["viridis", plt.get_cmap("plasma")],
+        ncols=2,
+        uniformize=False,
+    )
+    try:
+        assert [ax.get_title() for ax in fig.axes] == ["viridis", "plasma"]
+    finally:
+        plt.close(fig)
+
+
 @pytest.mark.parametrize(
     "family",
     [

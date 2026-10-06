@@ -212,7 +212,13 @@ class HtmlToMarkdownParser(HTMLParser):
             self._in_list_item = True
             self._text_chunks = []
         elif tag in {"p", "pre"}:
-            if not self._in_cell and not self._in_list_item:
+            if tag == "pre":
+                if self._in_list_item:
+                    text = " ".join("".join(self._text_chunks).split())
+                    if text:
+                        self.blocks.append(f"- {text}")
+                self._text_chunks = []
+            elif not self._in_cell and not self._in_list_item:
                 self._text_chunks = []
             else:
                 self._text_chunks.append(" ")

@@ -135,9 +135,9 @@ existing formatting warnings. Live browser verification remains part of M9.
 pass; generated examples remain executable; wheel smoke checks verify data
 resources and advertised commands.
 
-**Completed:** `just check` passed (216 tests, Ruff lint and formatting).
+**Completed:** `just check` passed (217 tests, Ruff lint and formatting).
 Parser regressions cover highlighted tokens, indentation, blank lines, inline
-code, table rows/cells, and installed docs command aliases. A fresh strict
+code, code blocks nested in lists, table rows/cells, and installed docs command aliases. A fresh strict
 Sphinx build and all 34 generated Python examples passed, including exact
 notebook cell comparisons after Sphinx trims trailing line whitespace.
 Numerical, dataset, and family-class docstring examples passed.

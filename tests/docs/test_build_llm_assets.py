@@ -152,6 +152,24 @@ def test_highlighted_code_preserves_whitespace_and_inline_tokens() -> None:
     )
 
 
+def test_list_prose_does_not_enter_highlighted_code() -> None:
+    parser = module.HtmlToMarkdownParser()
+    parser.feed(
+        '<main><ul><li><p>Run this:</p><div class="highlight-python">'
+        "<pre><span>x</span> = 1\n</pre></div></li>"
+        "<li><p>Another item.</p></li></ul><p>After list.</p></main>"
+    )
+    assert parser.blocks == [
+        "- Run this:",
+        "```python\nx = 1\n```",
+        "- Another item.",
+        "After list.",
+    ]
+    namespace = {}
+    exec(parser.blocks[1].split("\n", 1)[1].rsplit("\n", 1)[0], namespace)
+    assert namespace["x"] == 1
+
+
 def test_table_keeps_cells_rows_and_inline_code() -> None:
     parser = module.HtmlToMarkdownParser()
     parser.feed(

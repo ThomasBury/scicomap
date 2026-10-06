@@ -4,6 +4,8 @@ scicomap documentation
 scicomap helps you choose, assess, and correct scientific colormaps and preview
 selected color-vision deficiency conditions in your figures.
 
+In a hurry? Try the `interactive marimo demo <https://thomasbury.github.io/scicomap/marimo/index.html>`_ 
+
 Why this matters
 ----------------
 

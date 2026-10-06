@@ -57,39 +57,29 @@ scicomap doctor --json
 scicomap compare hawaii viridis thermal --type sequential --out compare.png
 scicomap fix hawaii --type sequential --out hawaii-fixed.png
 
+# save a correction and reuse its exact colors
+scicomap fix hawaii --export hawaii.json --json
+scicomap apply hawaii.json --image input.png --out mapped.png --json
+
 # apply a colormap to your own image
 scicomap apply thermal --type sequential --image input.png --out output.png
 
-# explicit long-form aliases for automation
-scicomap cmap assess --cmap hawaii --type sequential --out hawaii-assess.png
-scicomap docs llm-assets --html-dir docs/build/html
-
-# one-command workflow report bundle
+# inspect an original map and write a report bundle
 scicomap report --cmap hawaii --type sequential --out reports/hawaii
-scicomap report --cmap thermal --image input.png --goal apply --format json
 
-# profile-driven defaults
-scicomap report --profile publication --cmap hawaii
-scicomap report --profile cvd-safe --cmap thermal --format json
-scicomap wizard --profile quick-look
+# request correction, simulation, and application explicitly
+scicomap report --cmap thermal --fix --cvd --apply --image input.png --out reports/thermal --json
 ```
 
-### CLI profiles
+Inspection uses the original map. `--fix` requests a correction; supplying an
+image or a rounding step does not enable a stage. Only `wizard` prompts.
+Every command accepts `--json`, which never prompts or opens a window.
+Rendering in JSON mode requires `--out`.
 
-- `quick-look`: fast diagnosis, minimal artifacts
-- `publication`: quality-first defaults (`improve` + fix + CVD checks)
-- `presentation`: publication defaults with brighter lift bias
-- `cvd-safe`: accessibility-first, CVD checks enforced
-- `agent`: deterministic machine mode (`--format json`, non-interactive)
-
-### Profile precedence
-
-Configuration resolution order:
-
-1. Profile defaults
-2. Context inference (for example, image presence)
-3. Explicit user flags
-4. Strict profile enforcement (`cvd-safe`, `agent`)
+JSON responses contain `ok`, `command`, `inputs`, `data`, `warnings`, and
+`errors`. Rendered outputs use `data.artifacts`, a list of records with
+`kind`, absolute `path`, and the `map` used. Exit codes are 0 for success,
+2 for invalid arguments or inputs, and 1 for operational failures.
 
 ## Documentation map
 

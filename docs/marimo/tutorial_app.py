@@ -109,12 +109,7 @@ def _(build_cmap_options, ctype, mo):
 
 @app.cell
 def _(mo):
-    profile = mo.ui.dropdown(
-        options=["quick-look", "publication", "presentation", "cvd-safe"],
-        value="publication",
-        label="Profile",
-    )
-    fix = mo.ui.checkbox(value=True, label="Apply fix")
+    fix = mo.ui.checkbox(value=False, label="Apply fix")
     bitonic = mo.ui.checkbox(value=True, label="Bitonic")
     diffuse = mo.ui.checkbox(value=True, label="Diffuse")
     lift = mo.ui.slider(
@@ -140,16 +135,15 @@ def _(mo):
         value="scan",
         label="Sample image",
     )
-    return bitonic, diffuse, fix, lift, n_colors, profile, sample_image
+    return bitonic, diffuse, fix, lift, n_colors, sample_image
 
 
 @app.cell
-def _(bitonic, ctype, diffuse, fix, lift, mo, n_colors, profile, sample_image):
+def _(bitonic, ctype, diffuse, fix, lift, mo, n_colors, sample_image):
     controls = mo.vstack(
         [
             mo.md("## Controls"),
             ctype,
-            profile,
             fix,
             bitonic,
             diffuse,
@@ -243,12 +237,11 @@ def _(compare_cmap, ctype, sample_image, selected_map):
 
 
 @app.cell
-def _(bitonic, cmap, ctype, diffuse, fix, lift, mo, profile, sample_image):
+def _(bitonic, cmap, ctype, diffuse, fix, lift, mo, sample_image):
     cmd_report = (
         f"scicomap report --cmap {cmap.value} --type {ctype.value} "
-        f"--profile {profile.value} --goal diagnose "
         f"{'--fix' if fix.value else '--no-fix'} --cvd --apply "
-        f"--lift {float(lift.value):.0f} "
+        f"--lightness-rounding {float(lift.value):.0f} "
         f"{'--bitonic' if bitonic.value else '--no-bitonic'} "
         f"{'--diffuse' if diffuse.value else '--no-diffuse'} "
         f"--image {sample_image.value} --out tutorial-report"

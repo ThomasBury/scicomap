@@ -1,9 +1,8 @@
 scicomap documentation
 ======================
 
-scicomap helps you choose, assess, and improve scientific colormaps so figures
-remain readable, faithful to the data, and safer for color-vision-deficient
-readers.
+scicomap helps you choose, assess, and correct scientific colormaps and preview
+selected color-vision deficiency conditions in your figures.
 
 Why this matters
 ----------------
@@ -51,7 +50,7 @@ Same workflow in both interfaces:
       .. code-block:: shell
 
          scicomap check hawaii --type sequential
-         scicomap report --profile publication --cmap hawaii --type sequential
+         scicomap report --cmap hawaii --type sequential --out reports/hawaii
          scicomap cvd hawaii --type sequential --out hawaii-cvd.png
 
 Choose your path
@@ -70,7 +69,7 @@ Common tasks
 
 - Assess a colormap before publication.
 - Fix non-uniform lightness and chroma artifacts.
-- Validate colorblind accessibility.
+- Inspect color-vision deficiency simulations with your data.
 - Apply a colormap to your own image data.
 
 Advanced and automation

@@ -2,7 +2,7 @@ Getting Started
 ===============
 
 In five minutes, you should be able to pick a colormap, assess it, and run a
-safe default improvement workflow.
+workflow with optional correction and color-vision deficiency simulations.
 
 Install
 -------
@@ -41,7 +41,7 @@ The same starter workflow is available in Python and CLI forms.
       .. code-block:: shell
 
          scicomap check hawaii --type sequential
-         scicomap report --profile publication --cmap hawaii --type sequential
+         scicomap report --cmap hawaii --type sequential --out reports/hawaii
          scicomap cvd hawaii --type sequential --out hawaii-cvd.png
 
 Expected result:
@@ -115,12 +115,12 @@ Get a Matplotlib colormap object
 Advanced next steps
 -------------------
 
-Use profiles and guided workflows when you want repeatable quality checks.
+Use explicit stages and guided workflows for repeatable inspections.
 
 .. code-block:: shell
 
-   scicomap wizard --profile quick-look --type sequential --cmap thermal --no-interactive
-   scicomap report --profile cvd-safe --cmap thermal --format json
+   scicomap wizard --type sequential --cmap thermal --no-interactive
+   scicomap report --cmap thermal --cvd --out reports/thermal --json
 
 .. figure:: pics/hawaii-fixed-examples.png
    :width: 78%

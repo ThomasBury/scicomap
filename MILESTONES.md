@@ -228,7 +228,7 @@ UV_PROJECT_ENVIRONMENT=.venv.just uv run marimo check docs/marimo/tutorial_app.p
 UV_PROJECT_ENVIRONMENT=.venv.just uv run marimo export html docs/marimo/tutorial_app.py -o /tmp/scicomap-m5-tutorial.html
 ```
 
-### [ ] M6 — Smaller CLI for people and agents
+### [x] M6 — Smaller CLI for people and agents
 
 **Outcome:** one command surface provides predictable human and machine behavior.
 
@@ -248,7 +248,50 @@ UV_PROJECT_ENVIRONMENT=.venv.just uv run marimo export html docs/marimo/tutorial
 is parseable; rendering in machine mode requires an output destination; help and
 tests contain no removed commands or profiles.
 
-### [ ] M7 — Reusable corrections and useful reports
+**Completed:** the CLI has eleven canonical top-level commands. Duplicate
+command groups, documentation-build commands, workflow profiles, goal inference,
+and alternate output-format options are removed without forwarding aliases.
+Wizard and report share map preparation and artifact generation. Inspection
+uses the original map; correction, CVD simulation, and application require
+explicit stage choices. Guided choices default to no, and JSON mode never
+prompts. Machine rendering requires an output destination and uses the Agg
+backend. Comparison explicitly preserves the supplied original maps.
+
+Every command uses ``--json`` and the same response envelope. Family lists are
+structured arrays, artifact records share kind/path/map fields, and written
+paths are absolute. Stored report JSON matches emitted JSON. Exit codes are
+0 for success, 2 for invalid inputs, and 1 for operational failures.
+``--lightness-rounding`` matches the Python parameter's meaning. Current docs,
+local tutorial controls/commands, parser entry-point tests, and wheel checks
+use the smaller command surface. The v1 Typer bound is replaced with
+``typer >= 0.26.0``; installed-wheel checks pass on 0.26.0 and 0.27.2.
+
+`just check` passed 256 tests and Ruff. A subsequent 31-test CLI run passed,
+including the added headless-backend regression (257 tests in the final tree).
+Strict Sphinx, all generated Python examples, LLM asset generation, Marimo
+structure checks, local tutorial execution, sdist/wheel builds, Twine validation,
+and both isolated wheel checks passed. Existing Marimo formatting warnings
+remain. The wheel checks verify all five data resources and eleven commands
+outside the checkout. M7 and later milestones remain unstarted; browser v2
+verification and release version changes remain in M9. Additional checks used:
+
+```bash
+UV_PROJECT_ENVIRONMENT=.venv.just uv run python -m pytest tests/cli tests/docs/test_build_llm_assets.py -q
+UV_PROJECT_ENVIRONMENT=.venv.just uv run python -m pytest tests/cli/test_cli.py -q
+UV_PROJECT_ENVIRONMENT=.venv.just uv run sphinx-build -n -W -b html docs/source docs/build/html
+UV_PROJECT_ENVIRONMENT=.venv.just uv run python scripts/build_llm_assets.py
+UV_PROJECT_ENVIRONMENT=.venv.just uv run marimo check docs/marimo/tutorial_app.py docs/marimo/tutorial_app_lite.py
+UV_PROJECT_ENVIRONMENT=.venv.just uv run marimo export html docs/marimo/tutorial_app.py -o /tmp/scicomap-m6-tutorial.html
+just build
+uv run --isolated --no-project --with ./dist/scicomap-1.1.1-py3-none-any.whl python scripts/smoke_wheel.py
+uv run --isolated --no-project --with ./dist/scicomap-1.1.1-py3-none-any.whl --with 'typer==0.26.0' python scripts/smoke_wheel.py
+UV_PROJECT_ENVIRONMENT=.venv.just uv run ruff check src tests scripts/smoke_wheel.py
+UV_PROJECT_ENVIRONMENT=.venv.just uv run ruff format --check src tests scripts/smoke_wheel.py
+uv lock --check
+git diff --check
+```
+
+### [x] M7 — Reusable corrections and useful reports
 
 **Outcome:** users can reuse a correction and judge what changed.
 
@@ -265,6 +308,43 @@ tests contain no removed commands or profiles.
 
 **Acceptance:** exported maps reload and reproduce their sampled colors; reports
 agree with Python results; examples apply the exported map to real scalar data.
+
+**Completed:** ``SciCoMap.export_cmap`` writes sampled RGBA colors, source
+colors, ordered transformation parameters, family/name, and package version.
+Matplotlib ``ListedColormap`` and the existing ``SciCoMap`` color-list input
+reload the tables exactly, including alpha and sample count. ``fix`` and wizard
+support table-only ``--export`` without rendering; corrected report bundles
+include ``corrected-cmap.json``. All CLI map consumers load exported JSON files.
+
+Reports expose separate original and transformed diagnostics and show both
+stages in text summaries, with artifact map labels and the actual Colorspacious
+CVD conditions. Accessibility claims are replaced with simulation descriptions.
+The guide applies an exported map to measured elevation data and explains
+``Normalize``, shared bounds, and ``TwoSlopeNorm`` reference selection.
+Provenance covers transformation method calls, not direct colormap edits;
+special under/over/bad colors remain outside sampled-table exports.
+
+``just check`` passed all 277 tests and Ruff. Regressions verify exact reload
+and ordered replay, odd/even sample counts and alpha, Python/CLI agreement,
+headless table-only exports, invalid files and destination collisions, and
+original/transformed report artifacts. Strict Sphinx and generated Python
+examples passed. ``just docs`` regenerated all 13 Markdown mirrors and
+``llms.txt``; ``just build`` passed sdist/wheel and Twine checks. An isolated
+wheel installation verified all five data resources, eleven commands, table
+reuse, and corrected report exports outside the checkout. Additional checks:
+
+```bash
+UV_PROJECT_ENVIRONMENT=.venv.just uv run sphinx-build -n -W -b html docs/source docs/build/html
+UV_PROJECT_ENVIRONMENT=.venv.just uv run python scripts/build_llm_assets.py
+uv run --isolated --no-project --with ./dist/scicomap-1.1.1-py3-none-any.whl python scripts/smoke_wheel.py
+UV_PROJECT_ENVIRONMENT=.venv.just uv run ruff check scripts/smoke_wheel.py
+UV_PROJECT_ENVIRONMENT=.venv.just uv run ruff format --check scripts/smoke_wheel.py
+uv lock --check
+git diff --check
+```
+
+M8 and M9 remain unstarted; release version changes and publication remain
+outside this milestone.
 
 ### [ ] M8 — Modern tooling and short AGENTS.md
 

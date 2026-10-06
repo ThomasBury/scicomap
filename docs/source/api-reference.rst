@@ -59,6 +59,12 @@ J' units: the lower bound becomes ``ceil(J' / step) * step``. ``None`` and
 ``0`` leave it unchanged. It is not an additive increase in lightness.
 ``bitonic`` requires a central chroma extremum; ``diffuse`` smooths chroma.
 
+``chart.export_cmap(path)`` returns the absolute path to a JSON export of the
+current RGBA table, source colors, ordered transformation parameters, family,
+name, and package version. Reload using ``ListedColormap(export["rgba"])``
+or ``SciCoMap(ctype=export["family"], cmap=export["rgba"])``. See
+:doc:`user-guide` for replay limits and an example using scalar elevation data.
+
 Plotting
 --------
 
@@ -87,6 +93,6 @@ M5 removes ``get_available_ctype``, ``get_ctype``, ``get_color_map_dic``, and
 ``get_color_map_names``. Use the catalog mapping instead. It also removes the
 Python ``lift`` keyword, caller-controlled ``uniformized`` keyword, tuple
 transformation returns, and the ``uniformized`` object attribute. There are no
-forwarding aliases. The CLI's current ``--lift`` option remains until M6.
+forwarding aliases. The CLI uses ``--lightness-rounding`` for the same operation.
 
 For runnable workflows, see :doc:`user-guide` and :doc:`notebooks/tutorial`.

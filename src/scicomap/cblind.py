@@ -256,7 +256,7 @@ def _colorblind_cmap(
     Notes
     -----
     This function takes a base colormap and applies a color space transformation using the provided `c_space_transf`
-    function to create a colorblind-friendly colormap. It returns the resulting colormap as a `ListedColormap` object.
+    function to simulate a color-vision deficiency. It returns the resulting colormap as a `ListedColormap` object.
 
     Example
     -------
@@ -281,7 +281,7 @@ def colorblind_vision(
     facecolor: str = "black",
 ) -> plt.Figure:
     """
-    Generate a visualization of colorblind-friendly colormaps.
+    Generate previews of selected color-vision deficiency simulations.
 
     Parameters
     ----------
@@ -297,11 +297,13 @@ def colorblind_vision(
     Returns
     -------
     plt.Figure
-        A Matplotlib figure showing colorblind-friendly versions of the specified colormap(s).
+        A Matplotlib figure showing simulations of the specified colormap(s).
 
     Notes
     -----
-    This function generates a figure displaying colorblind-friendly versions of the input colormap(s).
+    This function displays Colorspacious simulations of deuteranomaly at severity
+    50 and 100, protanomaly at 50, and tritanomaly at 100, with RGB clipped to
+    [0, 1]. These simulations do not certify accessibility.
     It creates subplots for each colormap and visualizes the colormap with a gradient of colors.
 
     Example

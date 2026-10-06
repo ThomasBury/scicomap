@@ -90,7 +90,7 @@ def colorblind_transform(
     >>> def simulate_colorblindness(rgb):
     ...     # Simulate colorblindness by desaturating the colors
     ...     return np.mean(rgb, axis=-1, keepdims=True)
-    >>> rgba_image = np.random.rand(10, 10, 4)  # Example RGBA image
+    >>> rgba_image = np.random.default_rng(19680801).random((10, 10, 4))
     >>> transformed_image = colorblind_transform(rgba_image, simulate_colorblindness)
     """
     # clipping, alpha handling

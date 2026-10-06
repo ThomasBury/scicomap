@@ -7,11 +7,13 @@ import json
 from datetime import datetime
 from importlib.util import find_spec
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
 import typer
+from matplotlib.colors import Colormap
 from rich.console import Console
 from rich.table import Table
 
@@ -187,6 +189,57 @@ def _normalize(values: np.ndarray) -> np.ndarray:
     if np.isclose(vmax, vmin):
         return np.zeros_like(values, dtype=float)
     return (values - vmin) / (vmax - vmin)
+
+
+def _remap_image(image: Path, cmap_obj: Colormap, mode: str) -> np.ndarray:
+    """Read and remap a grayscale, RGB, or RGBA image, preserving its alpha."""
+    if mode not in VALID_MODES:
+        raise ValueError(f"Invalid mode '{mode}'.")
+    try:
+        arr = plt.imread(image)
+    except (OSError, ValueError, SyntaxError) as exc:
+        raise ValueError(
+            f"Cannot read image '{image}': {exc}. "
+            "Provide a readable PNG, JPEG, or another supported image."
+        ) from exc
+
+    if arr.size == 0 or not (
+        arr.ndim == 2 or (arr.ndim == 3 and arr.shape[2] in {3, 4})
+    ):
+        raise ValueError(
+            "Unsupported image shape; expected grayscale (H, W), "
+            "RGB (H, W, 3), or RGBA (H, W, 4)."
+        )
+    if not np.isfinite(arr).all():
+        raise ValueError(
+            "Image pixels must be finite; remove NaN or infinity."
+        )
+
+    pixels = arr.astype(float)
+    if arr.ndim == 2:
+        scalar = pixels
+    else:
+        if mode == "gray-only":
+            raise ValueError("gray-only mode requires a grayscale image.")
+        if np.issubdtype(arr.dtype, np.integer):
+            pixels /= np.iinfo(arr.dtype).max
+        if np.any((pixels < 0) | (pixels > 1)):
+            raise ValueError(
+                "RGB and alpha values must be in the range [0, 1]."
+            )
+        if mode == "first-channel":
+            scalar = pixels[..., 0]
+        else:
+            scalar = (
+                0.2126 * pixels[..., 0]
+                + 0.7152 * pixels[..., 1]
+                + 0.0722 * pixels[..., 2]
+            )
+
+    mapped = cmap_obj(_normalize(scalar))
+    if arr.ndim == 3 and arr.shape[2] == 4:
+        mapped[..., 3] = pixels[..., 3]
+    return mapped
 
 
 def _diagnose_cmap(cmap_obj: Any) -> dict[str, Any]:
@@ -612,29 +665,10 @@ def apply(
     except ValueError as exc:
         _fail("scicomap apply", str(exc), as_json)
 
-    arr = plt.imread(image)
-    if arr.ndim == 2:
-        scalar = arr.astype(float)
-    elif arr.ndim == 3 and arr.shape[2] >= 3:
-        rgb = arr[..., :3].astype(float)
-        if mode == "gray-only":
-            _fail(
-                "scicomap apply",
-                "gray-only mode requires a grayscale image.",
-                as_json,
-            )
-        if mode == "first-channel":
-            scalar = rgb[..., 0]
-        else:
-            scalar = (
-                0.2126 * rgb[..., 0]
-                + 0.7152 * rgb[..., 1]
-                + 0.0722 * rgb[..., 2]
-            )
-    else:
-        _fail("scicomap apply", "Unsupported image format.", as_json)
-
-    mapped = cmap_obj(_normalize(scalar))
+    try:
+        mapped = _remap_image(image, cmap_obj, mode)
+    except ValueError as exc:
+        _fail("scicomap apply", str(exc), as_json)
     out_path = out.resolve()
     out_path.parent.mkdir(parents=True, exist_ok=True)
     plt.imsave(out_path, mapped)
@@ -757,9 +791,13 @@ def doctor(
     out_ok = True
     try:
         out_dir.mkdir(parents=True, exist_ok=True)
-        probe = out_dir / ".scicomap_write_test"
-        probe.write_text("ok", encoding="utf-8")
-        probe.unlink()
+        with NamedTemporaryFile(
+            dir=out_dir,
+            prefix=".scicomap_write_test-",
+            mode="w",
+            encoding="utf-8",
+        ) as probe:
+            probe.write("ok")
     except OSError:
         out_ok = False
         errors.append(f"Output directory is not writable: {out_dir}")
@@ -956,29 +994,10 @@ def wizard(
                 "No --out provided; writing 'scicomap-applied.png' in cwd."
             )
             out = Path("scicomap-applied.png")
-        arr = plt.imread(selected_image)
-        if arr.ndim == 2:
-            scalar = arr.astype(float)
-        elif arr.ndim == 3 and arr.shape[2] >= 3:
-            rgb = arr[..., :3].astype(float)
-            if mode == "gray-only":
-                _fail(
-                    "scicomap wizard",
-                    "gray-only mode requires a grayscale image.",
-                    as_json,
-                )
-            if mode == "first-channel":
-                scalar = rgb[..., 0]
-            else:
-                scalar = (
-                    0.2126 * rgb[..., 0]
-                    + 0.7152 * rgb[..., 1]
-                    + 0.0722 * rgb[..., 2]
-                )
-        else:
-            _fail("scicomap wizard", "Unsupported image format.", as_json)
-
-        mapped = cmap_obj(_normalize(scalar))
+        try:
+            mapped = _remap_image(selected_image, cmap_obj, mode)
+        except ValueError as exc:
+            _fail("scicomap wizard", str(exc), as_json)
         out_path = out.resolve()
         out_path.parent.mkdir(parents=True, exist_ok=True)
         plt.imsave(out_path, mapped)
@@ -1182,29 +1201,10 @@ def report(
                     f"Image path does not exist: {image_path}",
                     as_json,
                 )
-            arr = plt.imread(image_path)
-            if arr.ndim == 2:
-                scalar = arr.astype(float)
-            elif arr.ndim == 3 and arr.shape[2] >= 3:
-                rgb = arr[..., :3].astype(float)
-                if mode == "gray-only":
-                    _fail(
-                        "scicomap report",
-                        "gray-only mode requires a grayscale image.",
-                        as_json,
-                    )
-                if mode == "first-channel":
-                    scalar = rgb[..., 0]
-                else:
-                    scalar = (
-                        0.2126 * rgb[..., 0]
-                        + 0.7152 * rgb[..., 1]
-                        + 0.0722 * rgb[..., 2]
-                    )
-            else:
-                _fail("scicomap report", "Unsupported image format.", as_json)
-
-            mapped = cmap_obj(_normalize(scalar))
+            try:
+                mapped = _remap_image(image_path, cmap_obj, mode)
+            except ValueError as exc:
+                _fail("scicomap report", str(exc), as_json)
             plt.imsave(applied_path, mapped)
             artifact = str(applied_path.resolve())
         artifacts.append(

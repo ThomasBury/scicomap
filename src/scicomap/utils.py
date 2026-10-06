@@ -288,10 +288,10 @@ def _plot_examples_qual(color_map, dict_arr, figsize, facecolor, cname, year):
         elif axi in range(2, n_rows * n_cols, n_cols):
             ax = fig.add_subplot(n_rows, n_cols, axi, facecolor=facecolor)
             N = 45
-            x, y = np.random.rand(2, N)
-            np.random.seed(19680801)
-            s = np.random.randint(10, 220, size=N)
-            c = np.random.randint(0, 5, size=N)
+            rng = np.random.default_rng(19680801)
+            x, y = rng.random((2, N))
+            s = rng.integers(10, 220, size=N)
+            c = rng.integers(0, 5, size=N)
             scatter = ax.scatter(
                 x, y, cmap=ListedColormap(np.clip(c_map, 0, 1)), s=s, c=c
             )

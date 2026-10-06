@@ -923,6 +923,11 @@ class ScicoQualitative(SciCoMap):
         -------
         matplotlib.figure.Figure
             The matplotlib figure object.
+
+        Notes
+        -----
+        Example data use local seeded generators and leave NumPy's global
+        random state unchanged.
         """
         color_map = self.get_mpl_color_map()
 
@@ -937,16 +942,15 @@ class ScicoQualitative(SciCoMap):
             "oceania": [12, 15, 19, 22, 26, 31, 36, 39],
         }
         x = np.linspace(0, 10)
-        # Fixing random state for reproducibility
-        np.random.seed(19680801)
+        rng = np.random.default_rng(19680801)
         noisy_trends = np.array(
             [
-                np.sin(x) + x + np.random.randn(50),
-                np.sin(x) + 0.5 * x + np.random.randn(50),
-                np.sin(x) + 2 * x + np.random.randn(50),
-                np.sin(x) - 0.5 * x + np.random.randn(50),
-                np.sin(x) - 2 * x + np.random.randn(50),
-                np.sin(x) + np.random.randn(50),
+                np.sin(x) + x + rng.standard_normal(50),
+                np.sin(x) + 0.5 * x + rng.standard_normal(50),
+                np.sin(x) + 2 * x + rng.standard_normal(50),
+                np.sin(x) - 0.5 * x + rng.standard_normal(50),
+                np.sin(x) - 2 * x + rng.standard_normal(50),
+                np.sin(x) + rng.standard_normal(50),
             ]
         )
         noisy_trends = noisy_trends.T

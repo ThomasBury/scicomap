@@ -44,6 +44,21 @@ Quick command map
      - Environment and path diagnostics.
      - ``scicomap doctor --json``
 
+Image handling
+--------------
+
+``apply``, wizard apply workflows, and reports using an image file share the
+same conversion modes. ``luminance`` combines RGB channels using weights
+0.2126, 0.7152, and 0.0722; ``first-channel`` uses the red channel;
+``gray-only`` requires a single-channel image. Scalar values are scaled from
+the image minimum and maximum to [0, 1]; constant images use 0.
+Input alpha is preserved when saving to a format that supports transparency,
+such as PNG. Reports using a builtin image still produce a rendered figure.
+Unreadable or malformed images produce an actionable error.
+
+``doctor`` checks directory writability with a temporary file that is removed
+after the check, preserving existing files.
+
 Profiles
 --------
 

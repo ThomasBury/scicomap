@@ -200,6 +200,8 @@ def _get_color_weak_ctab(
     _deuter100_transform = lambda x: colorblind_transform(
         x, _deuter100_to_sRGB1
     )
+    if isinstance(color_map, str):
+        color_map = plt.get_cmap(color_map)
     ctab = get_ctab(color_map)  # get the colormap as a color table in sRGB
     ctab_deuter100 = _deuter100_transform(ctab)
 
@@ -262,6 +264,8 @@ def _colorblind_cmap(
     >>> colorblind_cm = _colorblind_cmap(base_colormap, deuteranopia_transform)
     >>> print(colorblind_cm)
     """
+    if isinstance(cmap, str):
+        cmap = plt.get_cmap(cmap)
     ctab = get_ctab(cmap)  # get the colormap as a color table in sRGB
     ctab_cb = c_space_transf(ctab)
     return ListedColormap(np.clip(ctab_cb, 0, 1))
@@ -314,13 +318,11 @@ def colorblind_vision(
     )
     cmap_dic["visible spectrum"] = spectral_list
 
-    if isinstance(cmap, list):
-        for cm in cmap:
-            cmap_list, _ = _get_color_weak_cmap(color_map=cm, n_images=0)
-            cmap_dic[cm.name] = cmap_list
-    else:
-        cmap_list, _ = _get_color_weak_cmap(color_map=cmap, n_images=0)
-        cmap_dic[cmap.name] = cmap_list
+    for cm in cmap if isinstance(cmap, list) else [cmap]:
+        if isinstance(cm, str):
+            cm = plt.get_cmap(cm)
+        cmap_list, _ = _get_color_weak_cmap(color_map=cm, n_images=0)
+        cmap_dic[cm.name] = cmap_list
 
     sub_titles = (
         ["Normal\n~95%% of pop"]
@@ -338,7 +340,11 @@ def colorblind_vision(
 
     fontcolor = "white" if facecolor == "black" else "black"
     fig, axes = plt.subplots(
-        nrows=nrows, ncols=ncols, figsize=figsize, facecolor=facecolor
+        nrows=nrows,
+        ncols=ncols,
+        figsize=figsize,
+        facecolor=facecolor,
+        squeeze=False,
     )
     fig.subplots_adjust(top=0.95, bottom=0.01, left=0.2, right=0.99)
 
@@ -366,7 +372,6 @@ def colorblind_vision(
                 fontdict=font,
             )
 
-    for ax in axes:
-        ax[0].set_axis_off()
-        ax[1].set_axis_off()
+    for ax in axes.flat:
+        ax.set_axis_off()
     return fig

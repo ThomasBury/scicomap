@@ -33,7 +33,7 @@ import matplotlib.image as mpimg
 from matplotlib.colors import Colormap, ListedColormap
 import numpy as np
 from scicomap.datasets import load_hill_topography, load_scan_image, load_pic
-from typing import List, Tuple, Union, Callable, Optional, Dict, Any
+from typing import List, Tuple, Union, Callable, Optional, Dict, Any, KeysView
 
 # Scientific Colours
 import colorcet as cc
@@ -170,7 +170,7 @@ class SciCoMap:
 
         return self.cmap
 
-    def uniformize_cmap(self, lift: Optional[int] = None):
+    def uniformize_cmap(self, lift: Optional[int] = None) -> None:
         """
         Uniformize the colormap, meaning linearizing the brightness (J')
         in the CAM02-UCS color space.
@@ -178,7 +178,8 @@ class SciCoMap:
         Parameters
         ----------
         lift : None or int in [0, 100], optional
-            Lift or not the darkest part of the colormap.
+            Round the lower lightness bound up to a multiple of this step:
+            ceil(Jplower / lift) * lift. None or 0 applies no rounding.
 
         Returns
         -------
@@ -221,7 +222,7 @@ class SciCoMap:
         lift: Optional[int] = None,
         bitonic: bool = True,
         diffuse: bool = True,
-    ):
+    ) -> None:
         """
         First, uniformize the colormap, meaning linearizing the brightness (J')
         in the CAM02-UCS color space.
@@ -235,7 +236,8 @@ class SciCoMap:
         Parameters
         ----------
         lift : None or int in [0, 100], optional
-            Lift or not the darkest part of the colormap.
+            Round the lower lightness bound up to a multiple of this step:
+            ceil(Jplower / lift) * lift. None or 0 applies no rounding.
         bitonic : bool, optional (default=True)
             Bitonic symmetrization or not (extremum located at the center of the hue curve).
         diffuse : bool, optional (default=True)
@@ -447,13 +449,13 @@ class ScicoSequential(SciCoMap):
         elevation = load_hill_topography()
         scan_im = load_scan_image()
         xpyr, ypyr, zpyr = _pyramid()
-        per_x, per_z, per_z = _periodic_fn()
+        per_x, per_y, per_z = _periodic_fn()
         images = [elevation, scan_im, zpyr, "3D", per_z, "3D"]
 
         fig = _plot_examples(
             color_map=color_map,
             images=images,
-            arr_3d=[(xpyr, ypyr, zpyr), (per_x, per_z, per_z)],
+            arr_3d=[(xpyr, ypyr, zpyr), (per_x, per_y, per_z)],
             figsize=figsize,
             facecolor=facecolor,
             cname=self.cname,
@@ -546,13 +548,13 @@ class ScicoMultiSequential(SciCoMap):
         elevation = load_hill_topography()
         scan_im = load_scan_image()
         xpyr, ypyr, zpyr = _pyramid_zombie(stacked=True)
-        per_x, per_z, per_z = _periodic_fn()
+        per_x, per_y, per_z = _periodic_fn()
         images = [elevation, scan_im, zpyr, "3D", per_z, "3D"]
 
         fig = _plot_examples(
             color_map=color_map,
             images=images,
-            arr_3d=[(xpyr, ypyr, zpyr), (per_x, per_z, per_z)],
+            arr_3d=[(xpyr, ypyr, zpyr), (per_x, per_y, per_z)],
             figsize=figsize,
             facecolor=facecolor,
             cname=self.cname,
@@ -640,14 +642,14 @@ class ScicoDiverging(SciCoMap):
         # Create diverging image data
         image_div = _fn_with_roots()
         xpyr, ypyr, zpyr = _pyramid_zombie(stacked=False)
-        per_x, per_z, per_z = _periodic_fn()
+        per_x, per_y, per_z = _periodic_fn()
 
         images = [image_div, zpyr, "3D", per_z, "3D"]
 
         fig = _plot_examples(
             color_map=color_map,
             images=images,
-            arr_3d=[(xpyr, ypyr, zpyr), (per_x, per_z, per_z)],
+            arr_3d=[(xpyr, ypyr, zpyr), (per_x, per_y, per_z)],
             figsize=figsize,
             facecolor=facecolor,
             cname=self.cname,
@@ -740,7 +742,6 @@ class ScicoCircular(SciCoMap):
         color_map = self.get_mpl_color_map()
         elevation = load_hill_topography()
         scan_im = load_scan_image()
-        per_x, per_z, per_z = _periodic_fn()
         images = [elevation, scan_im, "electric", "complex"]
 
         fig = _plot_examples(
@@ -833,14 +834,14 @@ class ScicoMiscellaneous(SciCoMap):
         color_map = self.get_mpl_color_map()
         image_div = _fn_with_roots()
         xpyr, ypyr, zpyr = _pyramid_zombie(stacked=False)
-        per_x, per_z, per_z = _periodic_fn()
+        per_x, per_y, per_z = _periodic_fn()
 
         images = [image_div, zpyr, "3D", per_z, "3D"]
 
         fig = _plot_examples(
             color_map=color_map,
             images=images,
-            arr_3d=[(xpyr, ypyr, zpyr), (per_x, per_z, per_z)],
+            arr_3d=[(xpyr, ypyr, zpyr), (per_x, per_y, per_z)],
             figsize=figsize,
             facecolor=facecolor,
             cname=self.cname,
@@ -1067,7 +1068,7 @@ def get_cmap_dict() -> Dict[str, Dict[str, Any]]:
             "Greys": plt.get_cmap("Greys"),
             "haline": cmocean.cm.haline,
             "hawaii": scico.hawaii,
-            "hawaii_r": scico.hawaii,
+            "hawaii_r": scico.hawaii_r,
             "heat": cmr.torch,
             "heat_r": cmr.torch_r,
             "hot": plt.get_cmap("hot"),
@@ -1084,7 +1085,7 @@ def get_cmap_dict() -> Dict[str, Dict[str, Any]]:
             "neutral": cmr.neutral,
             "neutral_r": cmr.neutral_r,
             "nuuk": scico.nuuk,
-            "nuuk_r": scico.nuuk,
+            "nuuk_r": scico.nuuk_r,
             "ocean": cmr.ocean,
             "ocean_r": cmr.ocean_r,
             "OrRd": plt.get_cmap("OrRd"),
@@ -1196,22 +1197,28 @@ def get_cmap_dict() -> Dict[str, Dict[str, Any]]:
     return cmap_dict
 
 
-def get_available_ctype():
-    """return available the colormap type"""
-    return get_cmap_dict.keys()
+def get_available_ctype() -> KeysView[str]:
+    """Return the available colormap family names.
+
+    Returns
+    -------
+    KeysView[str]
+        Dictionary keys for the catalog's colormap families.
+    """
+    return get_cmap_dict().keys()
 
 
 def plot_colormap(
-    ctype,
-    cmap_list="all",
-    figsize=None,
-    n_colors=10,
-    facecolor="black",
-    uniformize=True,
-    symmetrize=False,
-    unif_kwargs=None,
-    sym_kwargs=None,
-):
+    ctype: str,
+    cmap_list: Union[str, List[Union[str, Colormap]]] = "all",
+    figsize: Optional[Tuple[float, float]] = None,
+    n_colors: int = 10,
+    facecolor: str = "black",
+    uniformize: bool = True,
+    symmetrize: bool = False,
+    unif_kwargs: Optional[Dict[str, Any]] = None,
+    sym_kwargs: Optional[Dict[str, Any]] = None,
+) -> plt.Figure:
     """
     Plot the gradient of the corresponding color palette (or bar plot if qualitative)
 
@@ -1255,6 +1262,7 @@ def plot_colormap(
     fontcolor = "white" if facecolor == "black" else "black"
     font = {"color": fontcolor, "size": 16}
     fig, axes = plt.subplots(nrows=nrows, figsize=figsize, facecolor=facecolor)
+    axes = np.atleast_1d(axes)
     fig.subplots_adjust(top=0.95, bottom=0.01, left=0.2, right=0.99)
     axes[0].set_title("Colormaps", fontdict=font)
 
@@ -1351,18 +1359,18 @@ def plot_colorblind_vision(
 
 
 def compare_cmap(
-    image="scan",
-    ctype="sequential",
-    cm_list=None,
-    ncols=3,
-    uniformize=True,
-    title=True,
-    symmetrize=False,
-    unif_kwargs=None,
-    sym_kwargs=None,
-    facecolor="black",
-    figsize=None,
-):
+    image: Optional[str] = "scan",
+    ctype: str = "sequential",
+    cm_list: Optional[List[str]] = None,
+    ncols: int = 3,
+    uniformize: bool = True,
+    title: bool = True,
+    symmetrize: bool = False,
+    unif_kwargs: Optional[Dict[str, Any]] = None,
+    sym_kwargs: Optional[Dict[str, Any]] = None,
+    facecolor: str = "black",
+    figsize: Optional[Tuple[float, float]] = None,
+) -> plt.Figure:
     """
     Utility function to visualize how the different color maps render the details and the information.
     You can pass the image of your choice, like a topographic profile for sequential and sea-earth level for
@@ -1411,7 +1419,7 @@ def compare_cmap(
         img = mpimg.imread(image)
         lum_img = img[:, :, 0]
     elif image == "pyramid":
-        lum_img = _pyramid()
+        lum_img = _pyramid()[2]
     elif image == "topography":
         lum_img = load_hill_topography()
     elif image == "fn_roots":
@@ -1427,7 +1435,7 @@ def compare_cmap(
     elif image == "tng":
         lum_img = load_pic(name=image)
     else:
-        lum_img = _pyramid()
+        lum_img = _pyramid()[2]
 
     if cm_list is None:
         cm_list = list(SciCoMap(ctype=ctype).get_color_map_names())
@@ -1482,32 +1490,26 @@ def compare_cmap(
     return f
 
 
-def jch_plot(cmap, figsize=(12, 10)):
+def jch_plot(
+    cmap: Union[str, Colormap], figsize: Tuple[float, float] = (12, 10)
+) -> plt.Figure:
+    """Plot CAM02-UCS lightness, chroma, and hue for a colormap.
+
+    Parameters
+    ----------
+    cmap : str or matplotlib.colors.Colormap
+        A Matplotlib colormap name or object.
+    figsize : tuple of float, optional
+        Figure width and height in inches.
+
+    Returns
+    -------
+    matplotlib.figure.Figure
+        Assessment plots for normal vision and simulated color-vision
+        deficiencies. Hue is displayed in degrees.
     """
-    Stolen from the ehtplot package
-
-    Plot J', C', and h' of a colormap as function of the mapped value
-
-    The CAM02-UCS lightness J' should serve us as a good approximation for
-    generating perceptually uniform colormaps. In fact, linearity in J'
-    is used as the working definition of Perceptually Uniform Sequential
-    colormaps by matplotlib.
-
-    Hue h' can encode an additional physical quantity in an image
-    (when used in this way, the change of hue should be linearly
-    proportional to the quantity)
-
-    The other dimension chroma is less recognizable and should not be
-    used to encode physical information. Since sRGB is only a subset
-    of the Lab color space, there are human recognizable colors that
-    are not displayable. In order to accurately represent the physical
-    quantities.
-
-    :param cmap: string or matplotlib.colors.Colormap): The colormap to
-            be plotted.
-    :param figsize: 2-uple of int
-        the figure size
-    """
+    if isinstance(cmap, str):
+        cmap = plt.get_cmap(cmap)
     f = plt.figure(figsize=figsize)
     c_maps, _ = _get_color_weak_cmap(cmap, n_images=2)
     color_map, deuter50_cm, prot50_cm, deuter100_cm, trit100_cm = c_maps

@@ -105,10 +105,14 @@ Reuse the exact colors
 
    .. tab:: CLI
 
+      The CLI takes an image file. Save the bundled elevation as a grayscale
+      image first; use Python to retain the original elevation values.
+
       .. code-block:: shell
 
+         python -c "import scicomap as sc; import matplotlib.pyplot as plt; plt.imsave('topography.png', sc.datasets.load_hill_topography(), cmap='gray')"
          scicomap fix hawaii --lightness-rounding 0 --no-bitonic --export hawaii.json --json
-         scicomap apply hawaii.json --image topography --out elevation.png --json
+         scicomap apply hawaii.json --image topography.png --out elevation.png --json
 
 Review simulations and automate
 -------------------------------

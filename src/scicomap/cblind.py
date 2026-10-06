@@ -32,20 +32,6 @@ _prot50_space = {
 }
 _prot50_to_sRGB1 = cspace_converter(_prot50_space, "sRGB1")
 
-_prot100_space = {
-    "name": "sRGB1+CVD",
-    "cvd_type": "protanomaly",
-    "severity": 100,
-}
-_prot100_to_sRGB1 = cspace_converter(_prot100_space, "sRGB1")
-
-_trit50_space = {
-    "name": "sRGB1+CVD",
-    "cvd_type": "tritanomaly",
-    "severity": 50,
-}
-_trit50_to_sRGB1 = cspace_converter(_trit50_space, "sRGB1")
-
 _trit100_space = {
     "name": "sRGB1+CVD",
     "cvd_type": "tritanomaly",
@@ -54,8 +40,11 @@ _trit100_space = {
 _trit100_to_sRGB1 = cspace_converter(_trit100_space, "sRGB1")
 
 
+__all__ = ["colorblind_transform", "colorblind_vision"]
+
+
 def colorblind_transform(
-    RGBA: np.ndarray, colorblind_space: callable
+    RGBA: np.ndarray, colorblind_space: Callable[[np.ndarray], np.ndarray]
 ) -> np.ndarray:
     """
     Apply a colorblind transformation to an RGBA image.
@@ -101,7 +90,7 @@ def colorblind_transform(
 
 def _get_color_weak_cmap(
     color_map: Union[str, Colormap], n_images: int
-) -> Tuple[List[Union[str, Colormap]], List[str]]:
+) -> tuple[list[Colormap], list[str]]:
     """
     Generate color maps for different color vision deficiencies.
 
@@ -114,7 +103,7 @@ def _get_color_weak_cmap(
 
     Returns
     -------
-    Tuple[List[Union[str, mcolors.Colormap]], List[str]]
+    tuple[list[matplotlib.colors.Colormap], list[str]]
         A tuple containing two lists:
         1. List of color maps, including the base color map and color maps transformed for color vision deficiencies.
         2. List of subtitles describing each color map in the order they appear in the color maps list.
@@ -133,6 +122,8 @@ def _get_color_weak_cmap(
     >>> print(c_maps)
     >>> print(sub_title)
     """
+    if isinstance(color_map, str):
+        color_map = plt.get_cmap(color_map)
     _deuter50_transform = lambda x: colorblind_transform(x, _deuter50_to_sRGB1)
     _deuter100_transform = lambda x: colorblind_transform(
         x, _deuter100_to_sRGB1
@@ -163,15 +154,15 @@ def _get_color_weak_cmap(
 
 
 def _get_color_weak_ctab(
-    color_map: Union[str, Callable], n_blank: int
+    color_map: Union[str, Colormap], n_blank: int
 ) -> Tuple[List[np.ndarray], List[str]]:
     """
     Generate color tables (ctabs) for different color vision deficiencies.
 
     Parameters
     ----------
-    color_map : str or Callable
-        The base color map or a callable function to generate it.
+    color_map : str or matplotlib.colors.Colormap
+        The base colormap or a Matplotlib colormap name.
     n_blank : int
         The number of blank entries to insert between each pair of generated color tables.
 
@@ -212,7 +203,6 @@ def _get_color_weak_ctab(
     ctab_prot50 = _prot50_transform(ctab)
 
     _trit100_transform = lambda x: colorblind_transform(x, _trit100_to_sRGB1)
-    # _trit100_transform = lambda x: colorblind_transform(x, _trit100_to_sRGB1)
     ctab_trit100 = _trit100_transform(ctab)
 
     c_tabs = [ctab, ctab_deuter50, ctab_prot50, ctab_deuter100, ctab_trit100]
@@ -233,15 +223,16 @@ def _get_color_weak_ctab(
 
 
 def _colorblind_cmap(
-    cmap: Union[str, Callable], c_space_transf: Callable
+    cmap: Union[str, Colormap],
+    c_space_transf: Callable[[np.ndarray], np.ndarray],
 ) -> ListedColormap:
     """
     Create a colorblind-friendly colormap by applying a color space transformation to a base colormap.
 
     Parameters
     ----------
-    cmap : str or Callable
-        The base colormap or a callable function to generate it.
+    cmap : str or matplotlib.colors.Colormap
+        The base colormap or a Matplotlib colormap name.
     c_space_transf : Callable
         A function for transforming the color space to create a colorblind-friendly colormap.
 
@@ -253,7 +244,7 @@ def _colorblind_cmap(
     Notes
     -----
     This function takes a base colormap and applies a color space transformation using the provided `c_space_transf`
-    function to create a colorblind-friendly colormap. It returns the resulting colormap as a `ListedColormap` object.
+    function to simulate a color-vision deficiency. It returns the resulting colormap as a `ListedColormap` object.
 
     Example
     -------
@@ -272,19 +263,19 @@ def _colorblind_cmap(
 
 
 def colorblind_vision(
-    cmap: Union[str, List[str], List[Colormap]],
-    figsize: Optional[Tuple[int, int]] = None,
+    cmap: str | Colormap | list[str] | list[Colormap] | list[str | Colormap],
+    figsize: Optional[Tuple[float, float]] = None,
     n_colors: int = 10,
     facecolor: str = "black",
 ) -> plt.Figure:
     """
-    Generate a visualization of colorblind-friendly colormaps.
+    Generate previews of selected color-vision deficiency simulations.
 
     Parameters
     ----------
-    cmap : str, list of str, or list of plt.Colormap
+    cmap : str, matplotlib.colors.Colormap, or list of either
         The base colormap(s) or list of colormaps to visualize.
-    figsize : tuple of int, optional
+    figsize : tuple of float, optional
         The size of the generated figure (width, height).
     n_colors : int, optional (default=10)
         The number of colors to include in the colorblind visualization.
@@ -294,11 +285,13 @@ def colorblind_vision(
     Returns
     -------
     plt.Figure
-        A Matplotlib figure showing colorblind-friendly versions of the specified colormap(s).
+        A Matplotlib figure showing simulations of the specified colormap(s).
 
     Notes
     -----
-    This function generates a figure displaying colorblind-friendly versions of the input colormap(s).
+    This function displays Colorspacious simulations of deuteranomaly at severity
+    50 and 100, protanomaly at 50, and tritanomaly at 100, with RGB clipped to
+    [0, 1]. These simulations do not certify accessibility.
     It creates subplots for each colormap and visualizes the colormap with a gradient of colors.
 
     Example
@@ -353,8 +346,7 @@ def colorblind_vision(
 
     for i, j in itertools.product(range(nrows), range(ncols)):
         ax = axes[i, j]
-        cmap = cmap_list[j][i]
-        ax.imshow(gradient, aspect="auto", cmap=cmap)
+        ax.imshow(gradient, aspect="auto", cmap=cmap_list[j][i])
         if i == 0:
             font = {"color": fontcolor, "size": 24}
             ax.set_title(cmap_name[j], fontdict=font)

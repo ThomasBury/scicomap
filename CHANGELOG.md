@@ -5,6 +5,48 @@ All notable changes to this project are documented in this file.
 The format is based on Keep a Changelog and this project follows Semantic
 Versioning.
 
+## [2.0.0] - Unreleased
+
+### Added
+
+- One public `diagnose_cmap` function shared by Python, CLI, and tutorials.
+- Reusable RGBA table exports with source colors, ordered correction parameters,
+  family, name, and package version; CLI commands load exported tables.
+- Reports with separate original and transformed diagnostics, labeled artifacts,
+  and the CVD simulation conditions actually used.
+- Generated public API signatures and parameter documentation, matching Python
+  and CLI onboarding, and a concise v1-to-v2 migration guide.
+- Browser tutorial installs the candidate wheel served with the documentation.
+  CI checks Python 3.10 and 3.14; release checks include installed-wheel smoke tests.
+
+### Changed
+
+- Constructors resolve and validate maps immediately. Family conveniences share
+  `SciCoMap` operations; the multi-sequential default is now `bukavu`.
+- Transformation functions and methods return Colormaps directly. Methods replace
+  object state. `lightness_rounding` names the lower-bound rounding operation.
+- Plotting returns Figures without implicit display. CVD methods use the current
+  map. Standalone plotting retains explicit correction options.
+- CLI inspection preserves original maps; correction, simulation, and application
+  require explicit stage choices. Only wizard prompts; JSON mode stays headless.
+- Every CLI command uses the same JSON envelope, absolute artifact paths, and
+  exit codes (0 success, 2 invalid input, 1 operational failure).
+- Required Typer is now >=0.26.0. Development uses one locked uv environment;
+  ordinary checks require pytest, Ruff, and ty, with docs checks separate.
+- Diagnostics and simulations describe heuristics and conditions, without
+  accessibility guarantees.
+
+### Removed
+
+- Redundant discovery methods, accidental dependency exports, Python `lift` and
+  caller-controlled `uniformized` arguments/state, and tuple transformation returns.
+- Duplicate `cmap` CLI aliases, documentation-build commands, profiles, inferred
+  workflow goals, and alternate output-format options. No forwarding aliases remain.
+- Unused dependencies and private CVD converters.
+
+See [the migration guide](docs/source/migrating-v2.rst) for before/after examples.
+Publishing 2.0.0 remains a separate release action.
+
 ## [1.1.1] - Unreleased
 
 ### Fixed
@@ -58,6 +100,7 @@ Versioning.
 
 - Initial stable package release on PyPI.
 
-[1.1.1]: https://github.com/ThomasBury/scicomap/compare/1.1.0...HEAD
+[2.0.0]: https://github.com/ThomasBury/scicomap/compare/1.1.0...HEAD
+[1.1.1]: https://github.com/ThomasBury/scicomap/compare/1.1.0...11d9da5
 [1.1.0]: https://github.com/ThomasBury/scicomap/releases/tag/1.1.0
 [1.0.1]: https://github.com/ThomasBury/scicomap/releases/tag/1.0.1

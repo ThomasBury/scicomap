@@ -22,20 +22,17 @@ Stability policy
 - Add new sections without breaking existing ``llms.txt`` entries.
 - Regenerate LLM assets after each docs build.
 
-Generate assets from installed commands
-----------------------------------------
+Generate assets from the repository
+-----------------------------------
 
-Both v1 commands work from an installed wheel. Build or supply the HTML first;
-Sphinx and documentation sources are only needed to build the HTML itself.
+Build or supply the HTML first, then run the documentation maintenance script:
 
 .. code-block:: shell
 
-   scicomap docs-llm --html-dir path/to/html --json
-   scicomap docs llm-assets --html-dir path/to/html --json
+   uv run --locked python scripts/build_llm_assets.py --html-dir path/to/html
 
-The repository script calls the same packaged generator. Code fences preserve
-whitespace and their language, and ordinary documentation tables retain their
-rows and columns.
+The script calls the packaged generator. Code fences preserve whitespace and
+their language, and ordinary documentation tables retain their rows and columns.
 
 Parser assumptions
 ------------------
@@ -50,6 +47,5 @@ Theme upgrade checklist
 
 Run these checks after changing Sphinx themes or major theme versions:
 
-- ``uv run python -m pytest tests/docs/test_build_llm_assets.py``
-- ``uv run sphinx-build -n -b html docs/source docs/build/html``
-- ``uv run python scripts/build_llm_assets.py``
+- ``uv run --locked python -m pytest tests/docs/test_build_llm_assets.py``
+- ``just docs check-docs`` (installs documentation extras and runs the strict examples)

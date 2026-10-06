@@ -6,39 +6,45 @@ Thanks for helping improve scicomap.
 Local setup
 -----------
 
-Use ``uv`` for reproducible local development.
+Use the ``just`` recipes with ``uv``'s single project ``.venv``. Routine
+commands use the committed lockfile without updating it. Run ``uv lock`` only
+when changing dependencies and review the lockfile diff.
 
 .. code-block:: shell
 
-   uv sync --extra lint --extra test --extra docs
+   just sync  # locked lint and test extras
 
 Quality checks
 --------------
 
 .. code-block:: shell
 
-   uv run python -m pytest
-   uv run ruff check src tests
-   uv run ruff format --check src tests
+   just check  # ordinary pytest, Ruff on src/tests/scripts, ty on src/scicomap
+   uv run --locked python -m pytest tests/core/test_cmath.py
+
+Tests marked ``docs`` require documentation dependencies and run separately
+through ``just check-docs``. Ordinary checks need only lint/test extras.
 
 Build docs and LLM assets
 -------------------------
 
 .. code-block:: shell
 
-   uv run sphinx-build -n -W -b html docs/source docs/build/html
-   uv run python scripts/build_llm_assets.py
+   just sync-docs  # add docs extras; install the Pandoc binary separately
+   just docs
+   just check-docs  # strict generated examples and WASM bootstrap tests
 
 Check the installed wheel
 -------------------------
 
 After ``just build``, run the smoke check in an isolated environment. It verifies
-packaged datasets and v1 commands from a temporary directory outside the checkout.
+packaged datasets and canonical commands from a temporary directory outside
+the checkout.
 Replace the wheel filename below if the package version changes.
 
 .. code-block:: shell
 
-   uv run --isolated --no-project --with ./dist/scicomap-1.1.1-py3-none-any.whl python scripts/smoke_wheel.py
+   uv run --isolated --no-project --with ./dist/scicomap-2.0.0-py3-none-any.whl python scripts/smoke_wheel.py
 
 Pull request checklist
 ----------------------

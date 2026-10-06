@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from matplotlib import pyplot as plt
 
-from scicomap.cblind import colorblind_vision
+from scicomap.cblind import _get_color_weak_cmap, colorblind_vision
 from scicomap.cmath import get_ctab, unif_sym_cmap
 from scicomap.scicomap import (
     SciCoMap,
@@ -16,7 +16,6 @@ from scicomap.scicomap import (
     ScicoMultiSequential,
     ScicoSequential,
     compare_cmap,
-    get_available_ctype,
     get_cmap_dict,
     jch_plot,
     plot_colormap,
@@ -41,7 +40,7 @@ def test_every_catalog_map_preserves_samples_and_reversal_pairs() -> None:
                 warnings.filterwarnings(
                     "ignore", message="The colormap .* type is unknown"
                 )
-                corrected, _ = unif_sym_cmap(cmap)
+                corrected = unif_sym_cmap(cmap)
             result = get_ctab(corrected)
             assert result.shape == table.shape, name
             assert np.isfinite(result).all(), name
@@ -51,7 +50,9 @@ def test_every_catalog_map_preserves_samples_and_reversal_pairs() -> None:
 
 
 def test_family_discovery_agrees_with_catalog() -> None:
-    assert list(get_available_ctype()) == SciCoMap.get_ctype()
+    for family, maps in get_cmap_dict().items():
+        assert SciCoMap(ctype=family).ctype == family
+        assert maps
 
 
 @pytest.mark.parametrize(
@@ -76,6 +77,19 @@ def test_compare_loads_pyramid_scalar_data(image) -> None:
             fig.axes[0].images[0].get_array(), _pyramid()[2]
         )
         fig.canvas.draw()
+    finally:
+        plt.close(fig)
+
+
+def test_compare_titles_identify_named_and_resolved_maps() -> None:
+    fig = compare_cmap(
+        image="pyramid",
+        cm_list=["viridis", plt.get_cmap("plasma")],
+        ncols=2,
+        uniformize=False,
+    )
+    try:
+        assert [ax.get_title() for ax in fig.axes] == ["viridis", "plasma"]
     finally:
         plt.close(fig)
 
@@ -143,3 +157,14 @@ def test_jch_plot_accepts_documented_matplotlib_name() -> None:
         fig.canvas.draw()
     finally:
         plt.close(fig)
+
+
+def test_cvd_palette_name_resolves_all_maps() -> None:
+    from matplotlib.colors import Colormap
+
+    maps, _ = _get_color_weak_cmap("viridis", n_images=1)
+    assert len(maps) == 5
+    assert all(isinstance(cmap, Colormap) for cmap in maps)
+    np.testing.assert_array_equal(
+        get_ctab(maps[0]), get_ctab(plt.get_cmap("viridis"))
+    )

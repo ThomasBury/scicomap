@@ -1,6 +1,7 @@
-"""Check installed resources and v1 commands outside the checkout."""
+"""Check installed resources and canonical commands outside the checkout."""
 
 import json
+from importlib.metadata import version
 import os
 from pathlib import Path
 import subprocess
@@ -17,6 +18,7 @@ from scicomap.datasets import load_hill_topography, load_pic, load_scan_image
 def main() -> None:
     """Verify the wheel's data loaders, console entry point, and artifacts."""
     root = Path(__file__).resolve().parents[1]
+    assert version("scicomap") == scicomap.__version__
     assert not Path(scicomap.__file__).resolve().is_relative_to(root)
     images = [load_hill_topography(), load_scan_image()]
     images.extend(load_pic(name) for name in ("grmhd", "vortex", "tng"))
@@ -27,10 +29,6 @@ def main() -> None:
     with TemporaryDirectory(prefix="scicomap-wheel-") as directory:
         cwd = Path(directory)
         plt.imsave(cwd / "input.png", np.arange(16).reshape(4, 4), cmap="gray")
-        (cwd / "index.html").write_text(
-            '<main><h1>Example</h1><div class="highlight-python">'
-            "<pre><span>if</span> True:\n    value = 1\n</pre></div></main>"
-        )
         operations = [
             ["list"],
             ["check", "hawaii", "--type", "sequential"],
@@ -45,26 +43,29 @@ def main() -> None:
                 "--out",
                 "compare.png",
             ],
-            ["fix", "hawaii", "--out", "fixed.png"],
+            [
+                "fix",
+                "hawaii",
+                "--out",
+                "fixed.png",
+                "--export",
+                "corrected.json",
+            ],
             ["cvd", "hawaii", "--out", "cvd.png"],
             [
                 "apply",
-                "hawaii",
+                "corrected.json",
                 "--image",
                 "input.png",
                 "--out",
                 "applied.png",
             ],
-            ["wizard", "--profile", "agent", "--cmap", "hawaii"],
-            ["report", "--cmap", "hawaii", "--out", "report"],
-            ["docs-llm", "--html-dir", directory],
-            ["docs", "llm-assets", "--html-dir", directory],
+            ["wizard", "--cmap", "hawaii"],
+            ["report", "--cmap", "hawaii", "--fix", "--out", "report"],
         ]
         for args in [["version"], *operations]:
             if args[0] != "version":
-                args += (
-                    ["--format", "json"] if args[0] == "report" else ["--json"]
-                )
+                args += ["--json"]
             result = subprocess.run(
                 [str(command), *args],
                 cwd=cwd,
@@ -77,15 +78,27 @@ def main() -> None:
                 assert json.loads(result.stdout)["ok"], (args, result.stdout)
             else:
                 assert scicomap.__version__ in result.stdout
-        assert (cwd / "llms.txt").exists()
-        assert (
-            "```python\nif True:\n    value = 1\n```"
-            in (cwd / "llm/index.md").read_text()
-        )
         for name in ("preview", "compare", "fixed", "cvd", "applied"):
             assert (cwd / f"{name}.png").stat().st_size > 0
         assert (cwd / "report/report.json").exists()
-    print("Wheel smoke checks passed: five data resources and 13 v1 commands.")
+        for path in (
+            cwd / "corrected.json",
+            cwd / "report/corrected-cmap.json",
+        ):
+            exported = json.loads(path.read_text(encoding="utf-8"))
+            assert exported["scicomap_version"] == scicomap.__version__
+            loaded = scicomap.SciCoMap(
+                ctype=exported["family"], cmap=exported["rgba"]
+            )
+            expected = scicomap.ScicoSequential("hawaii")
+            expected.unif_sym_cmap()
+            np.testing.assert_array_equal(
+                loaded.cmap(np.arange(loaded.cmap.N)),
+                expected.cmap(np.arange(expected.cmap.N)),
+            )
+    print(
+        "Wheel smoke checks passed: five data resources and 11 canonical commands."
+    )
 
 
 if __name__ == "__main__":

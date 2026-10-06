@@ -1,8 +1,8 @@
 Introduction
 ============
 
-scicomap helps you build scientific visualizations with perceptually safer
-colormaps.
+scicomap helps you inspect lightness and chroma in scientific colormaps
+and preview selected color-vision deficiency conditions.
 
 Many default colormaps can create false boundaries and hide important structure.
 The problem gets worse for readers with color-vision deficiency. scicomap gives
@@ -62,7 +62,7 @@ What you can do with scicomap
 -----------------------------
 
 - Browse colormaps by purpose (sequential, diverging, circular, qualitative).
-- Assess lightness, chroma symmetry, and colorblind accessibility.
+- Assess lightness, chroma symmetry, and simulated color-vision deficiencies.
 - Uniformize and symmetrize existing colormaps.
 - Generate examples that make artifacts easy to spot.
 

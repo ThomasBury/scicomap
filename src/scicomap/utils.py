@@ -2,13 +2,12 @@ import itertools
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
 from matplotlib.colors import ListedColormap
 from matplotlib.patches import Circle
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from os.path import dirname, join
 
 # internal import
+from scicomap.cmath import get_ctab
 from scicomap.cblind import _get_color_weak_ctab, _get_color_weak_cmap
 
 
@@ -224,7 +223,6 @@ def _plot_examples(
             ax3d.plot_surface(
                 px, py, pz, cmap=c_map, linewidth=0, antialiased=False
             )
-            ax3d = plt.gca()
             ax3d.xaxis.set_ticklabels([])
             ax3d.yaxis.set_ticklabels([])
             ax3d.zaxis.set_ticklabels([])
@@ -256,11 +254,16 @@ def _plot_examples(
     return fig
 
 
-def _plot_examples_qual(color_map, dict_arr, figsize, facecolor, cname, year):
+def _plot_examples_qual(
+    color_map, dict_arr, figsize, facecolor, cname, year, cblind=True
+):
     """Create the figure with examples for discrete colormaps"""
     fig = plt.figure(figsize=figsize, facecolor=facecolor)
 
-    c_tabs, sub_title = _get_color_weak_ctab(color_map, len(dict_arr) - 1)
+    if cblind:
+        c_tabs, sub_title = _get_color_weak_ctab(color_map, len(dict_arr) - 1)
+    else:
+        c_tabs, sub_title = [get_ctab(color_map)], [""] * len(dict_arr)
 
     title_color = "white" if facecolor == "black" else "black"
 
@@ -268,6 +271,8 @@ def _plot_examples_qual(color_map, dict_arr, figsize, facecolor, cname, year):
     n_rows = len(c_tabs)
     n_cols = len(dict_arr)
 
+    # ponytail: repeat colors when categories outnumber them; supply a larger
+    # palette when each category needs a distinct color.
     for c_map, d in itertools.product(c_tabs, dict_arr):
         if axi in range(1, n_rows * n_cols, len(dict_arr)):
             ax = fig.add_subplot(n_rows, n_cols, axi, facecolor=facecolor)
@@ -276,7 +281,7 @@ def _plot_examples_qual(color_map, dict_arr, figsize, facecolor, cname, year):
                 year,
                 d.values(),
                 labels=d.keys(),
-                colors=c_map[range(n_colors), ...],
+                colors=c_map[np.arange(n_colors) % len(c_map), ...],
             )
             ax.legend(loc="upper left")
             ax.set_facecolor(facecolor)
@@ -303,16 +308,14 @@ def _plot_examples_qual(color_map, dict_arr, figsize, facecolor, cname, year):
             ax.set_facecolor(facecolor)
             # produce a legend with a cross section of sizes from the scatter
             handles, labels = scatter.legend_elements(prop="sizes", alpha=0.6)
-            legend2 = ax.legend(
-                handles, labels, loc="upper right", title="Sizes"
-            )
+            ax.legend(handles, labels, loc="upper right", title="Sizes")
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
         else:
             ax = fig.add_subplot(n_rows, n_cols, axi, facecolor=facecolor)
             n_colors = d.shape[1]
             for col in range(n_colors):
-                ax.plot(d[..., col], color=c_map[col, ...])
+                ax.plot(d[..., col], color=c_map[col % len(c_map), ...])
             ax.set_facecolor(facecolor)
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)

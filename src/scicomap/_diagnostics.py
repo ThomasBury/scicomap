@@ -1,4 +1,4 @@
-"""Internal, family-aware diagnostics shared by commands and tutorials."""
+"""Family-aware diagnostics shared by Python, commands, and tutorials."""
 
 from typing import Any
 
@@ -8,10 +8,36 @@ from matplotlib.colors import Colormap
 from scicomap.cmath import classify, get_ctab, transform
 
 
-def _diagnose_cmap(
+def diagnose_cmap(
     cmap_obj: Colormap, ctype: str = "sequential"
 ) -> dict[str, Any]:
-    """Assess lightness heuristically; this does not certify accessibility."""
+    """Assess sampled lightness according to the intended colormap family.
+
+    Parameters
+    ----------
+    cmap_obj : matplotlib.colors.Colormap
+        Colormap to inspect; samples must be finite RGB(A) values in [0, 1].
+    ctype : str, optional
+        Intended family: sequential, diverging, multi-sequential, circular,
+        qualitative, or miscellaneous.
+
+    Returns
+    -------
+    dict[str, Any]
+        JSON-compatible classification, lightness monotonicity and turn count,
+        family, branch progression or circular seam assessment, status, reasons,
+        recommendation, and a heuristic flag. Inapplicable branch/seam fields
+        are None. Status is good, caution, or fix-recommended.
+
+    Raises
+    ------
+    ValueError
+        If the family or sampled colors are invalid.
+
+    Notes
+    -----
+    These sampled heuristics and CVD simulations do not certify accessibility.
+    """
     colors = transform(get_ctab(cmap_obj))[:, :3]
     lightness = colors[:, 0]
     tolerance = 1e-6

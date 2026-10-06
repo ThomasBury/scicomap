@@ -1,8 +1,12 @@
 import gzip
 import warnings
 from importlib.resources import files
+from typing import BinaryIO, cast
 import numpy as np
 import matplotlib.image as mpimg
+
+
+__all__ = ["load_hill_topography", "load_scan_image", "load_pic"]
 
 
 def load_hill_topography() -> np.ndarray:
@@ -124,5 +128,5 @@ def load_pic(name: str = "grmhd") -> np.ndarray:
 
     resource = files("scicomap").joinpath(resource_name)
     with resource.open("rb") as handle:
-        img = mpimg.imread(handle)
+        img = mpimg.imread(cast(BinaryIO, handle))
     return img[:, :, 0]

@@ -1,18 +1,17 @@
 """M3 regressions for family diagnostics, stages, map selection, and failures."""
 
 import json
-from pathlib import Path
 
 import numpy as np
 import pytest
-from click import unstyle
+import re
 from matplotlib import pyplot as plt
 from matplotlib.colors import ListedColormap
 from PIL import Image
 from typer.testing import CliRunner
 
 import scicomap.cli as cli
-from scicomap._diagnostics import _diagnose_cmap
+from scicomap._diagnostics import diagnose_cmap
 from scicomap.cmath import transform
 from scicomap.scicomap import SciCoMap
 
@@ -38,7 +37,7 @@ from scicomap.scicomap import SciCoMap
 def test_family_lightness_rules(family, lightness, status) -> None:
     perceptual = np.column_stack((lightness, np.zeros((len(lightness), 2))))
     cmap = ListedColormap(transform(perceptual, inverse=True))
-    diagnostics = _diagnose_cmap(cmap, family)
+    diagnostics = diagnose_cmap(cmap, family)
     assert diagnostics["status"] == status
     assert diagnostics["heuristic"] is True
     if family == "diverging" and status == "good":
@@ -57,7 +56,7 @@ def test_circular_diagnostics(oscillations, closed) -> None:
             10 * np.sin(angle),
         )
     )
-    diagnostics = _diagnose_cmap(
+    diagnostics = diagnose_cmap(
         ListedColormap(transform(colors, inverse=True)), "circular"
     )
     assert diagnostics["seam_closed"] is closed
@@ -84,7 +83,7 @@ def test_workflow_uses_one_selected_map(
     )
     expected = SciCoMap(cmap="thermal")
     if fix:
-        expected.unif_sym_cmap(lift=20)
+        expected.unif_sym_cmap(lightness_rounding=20)
     expected_map = expected.get_mpl_color_map()
     original_map = SciCoMap(cmap="thermal").get_mpl_color_map()
     assessed = []
@@ -122,8 +121,6 @@ def test_workflow_uses_one_selected_map(
         workflow,
         "--cmap",
         "thermal",
-        "--goal",
-        "diagnose",
         "--image",
         "scan" if builtin else str(image),
         "--out",
@@ -131,23 +128,26 @@ def test_workflow_uses_one_selected_map(
         "--apply",
         "--cvd",
         "--fix" if fix else "--no-fix",
-        "--lift",
+        "--lightness-rounding",
         "20",
     ]
     args += (
-        ["--format", "json"]
-        if workflow == "report"
-        else ["--json", "--no-interactive"]
+        ["--json"] if workflow == "report" else ["--json", "--no-interactive"]
     )
     result = CliRunner().invoke(cli.app, args)
     assert result.exit_code == 0, result.output
     data = json.loads(result.stdout)["data"]
     assert len(fixes) == int(fix)
-    assert data["diagnostics"] == _diagnose_cmap(expected_map, "sequential")
-    assert data["original_diagnostics"] == _diagnose_cmap(
+    assert data["diagnostics"] == diagnose_cmap(expected_map, "sequential")
+    assert data["original_diagnostics"] == diagnose_cmap(
         original_map, "sequential"
     )
     assert data["map_used"] == ("transformed" if fix else "original")
+    assert data["transformed_diagnostics"] == (
+        data["diagnostics"] if fix else None
+    )
+    assert data["cvd_simulation"]["map"] == data["map_used"]
+    assert "deuteranomaly" in data["cvd_simulation"]["description"]
     samples = np.linspace(0, 1, 64)
     for used in simulated + applied:
         np.testing.assert_allclose(used(samples), expected_map(samples))
@@ -157,6 +157,21 @@ def test_workflow_uses_one_selected_map(
         )
     if workflow == "report":
         np.testing.assert_allclose(assessed[0](samples), original_map(samples))
+        assert json.loads((out / "report.json").read_text())["data"] == data
+        summary = (out / "summary.txt").read_text()
+        assert "original diagnostics:" in summary
+        assert "transformed diagnostics:" in summary
+        assert f"colorblind ({data['map_used']})" in summary
+        assert f"applied ({data['map_used']})" in summary
+        if fix:
+            exported = json.loads((out / "corrected-cmap.json").read_text())
+            reloaded = ListedColormap(exported["rgba"])
+            np.testing.assert_array_equal(
+                reloaded(samples), expected_map(samples)
+            )
+        else:
+            assert not (out / "corrected-cmap.json").exists()
+            assert "- not requested" in summary
     if not builtin:
         artifact = out / "applied.png" if workflow == "report" else out
         np.testing.assert_allclose(
@@ -167,10 +182,7 @@ def test_workflow_uses_one_selected_map(
 
 
 @pytest.mark.parametrize("workflow", ["wizard", "report"])
-@pytest.mark.parametrize("goal", ["diagnose", "improve", "apply"])
-def test_disabled_stages_do_not_run(
-    tmp_path, monkeypatch, workflow, goal
-) -> None:
+def test_disabled_stages_do_not_run(tmp_path, monkeypatch, workflow) -> None:
     def forbidden(*args, **kwargs):
         pytest.fail("Disabled stage ran")
 
@@ -181,8 +193,6 @@ def test_disabled_stages_do_not_run(
     out = tmp_path / ("report" if workflow == "report" else "assessment.png")
     args = [
         workflow,
-        "--goal",
-        goal,
         "--cmap",
         "thermal",
         "--out",
@@ -192,15 +202,16 @@ def test_disabled_stages_do_not_run(
         "--no-apply",
     ]
     args += (
-        ["--format", "json"]
-        if workflow == "report"
-        else ["--json", "--no-interactive"]
+        ["--json"] if workflow == "report" else ["--json", "--no-interactive"]
     )
     result = CliRunner().invoke(cli.app, args)
     assert result.exit_code == 0, result.output
     data = json.loads(result.stdout)["data"]
     assert not any(data["actions"].values())
-    assert all(item["kind"] == "assessment" for item in data["artifacts"])
+    assert all(
+        item["kind"] in {"assessment", "report", "summary"}
+        for item in data["artifacts"]
+    )
 
 
 def test_interactive_apply_collects_missing_image(tmp_path) -> None:
@@ -211,10 +222,9 @@ def test_interactive_apply_collects_missing_image(tmp_path) -> None:
         cli.app,
         [
             "wizard",
-            "--profile",
-            "quick-look",
-            "--goal",
-            "apply",
+            "--apply",
+            "--no-fix",
+            "--no-cvd",
             "--out",
             str(out),
         ],
@@ -226,29 +236,24 @@ def test_interactive_apply_collects_missing_image(tmp_path) -> None:
 
 
 @pytest.mark.parametrize("workflow", ["wizard", "report"])
-def test_agent_applies_image_by_default(tmp_path, workflow) -> None:
-    image = tmp_path / "input.png"
-    Image.fromarray(np.array([[0, 255]], dtype=np.uint8)).save(image)
-    out = tmp_path / ("report" if workflow == "report" else "applied.png")
+def test_image_option_does_not_enable_apply(tmp_path, workflow) -> None:
+    out = tmp_path / ("report" if workflow == "report" else "assessment.png")
     result = CliRunner().invoke(
         cli.app,
         [
             workflow,
-            "--profile",
-            "agent",
-            "--cmap",
-            "thermal",
             "--image",
-            str(image),
+            str(tmp_path / "missing.png"),
             "--out",
             str(out),
+            "--json",
         ],
     )
     assert result.exit_code == 0, result.output
     data = json.loads(result.stdout)["data"]
-    assert data["goal"] == "apply"
-    assert data["actions"]["image_applied"] is True
-    assert (out / "applied.png" if workflow == "report" else out).is_file()
+    assert not any(data["actions"].values())
+    assert data["map_used"] == "original"
+    assert all(item["kind"] != "applied" for item in data["artifacts"])
 
 
 @pytest.mark.parametrize(
@@ -258,7 +263,6 @@ def test_agent_applies_image_by_default(tmp_path, workflow) -> None:
         ["cvd", "--n-colors", "-2", "--json"],
         ["cvd", "--n-colors", "bad", "--json"],
         ["compare", "thermal", "viridis", "--ncols", "0", "--json"],
-        ["cmap", "colorblind", "--n-colors", "0", "--json"],
         [
             "apply",
             "--image",
@@ -268,24 +272,16 @@ def test_agent_applies_image_by_default(tmp_path, workflow) -> None:
             "--json",
         ],
         ["apply", "--json"],
-        ["fix", "--lift", "-1", "--json"],
-        ["fix", "--lift", "nan", "--json"],
-        ["wizard", "--lift", "nan", "--format", "json"],
-        ["report", "--lift", "nan", "--format", "json"],
-        ["report", "--lift", "bad", "--format", "text", "--format=json"],
-        ["wizard", "--goal", "bad", "--format", "json"],
-        [
-            "wizard",
-            "--profile",
-            "agent",
-            "--goal",
-            "apply",
-            "--cmap",
-            "thermal",
-        ],
-        ["report", "--profile", "bad", "--format=json"],
-        ["report", "--profile", "agent", "--goal", "apply"],
-        ["report", "--lift", "bad", "--format", "json"],
+        ["fix", "--lightness-rounding", "-1", "--json"],
+        ["fix", "--lightness-rounding", "nan", "--json"],
+        ["wizard", "--lightness-rounding", "nan", "--json"],
+        ["report", "--lightness-rounding", "nan", "--json"],
+        ["report", "--lightness-rounding", "bad", "--json"],
+        ["wizard", "--apply", "--json"],
+        ["report", "--apply", "--json"],
+        ["list", "bad", "--json"],
+        ["check", "unknown", "--json"],
+        ["--not-an-option", "--json"],
     ],
 )
 def test_json_validation_failures(args) -> None:
@@ -307,7 +303,7 @@ def test_json_validation_failures(args) -> None:
 def test_text_usage_errors_keep_help_guidance(args) -> None:
     result = CliRunner().invoke(cli.app, args, env={"FORCE_COLOR": "1"})
     assert result.exit_code == 2
-    output = unstyle(result.output)
+    output = re.sub(r"\x1b\[[0-9;]*m", "", result.output)
     assert "Usage:" in output
     assert "--help" in output
 
@@ -323,17 +319,14 @@ def test_invalid_image_creates_no_workflow_artifacts(
         workflow,
         "--cmap",
         "thermal",
-        "--goal",
-        "apply",
+        "--apply",
         "--image",
         str(image),
         "--out",
         str(out),
     ]
     args += (
-        ["--format", "json"]
-        if workflow == "report"
-        else ["--json", "--no-interactive"]
+        ["--json"] if workflow == "report" else ["--json", "--no-interactive"]
     )
     result = CliRunner().invoke(cli.app, args)
     assert result.exit_code == 2
@@ -357,7 +350,7 @@ def test_json_runtime_failure(tmp_path, monkeypatch) -> None:
             "--json",
         ],
     )
-    assert result.exit_code == 2
+    assert result.exit_code == 1
     assert "not writable" in json.loads(result.stdout)["errors"][0]
     assert not list(tmp_path.iterdir())
 
@@ -367,7 +360,7 @@ def test_all_output_paths_checked_before_writing(tmp_path, workflow) -> None:
     if workflow == "report":
         out = tmp_path / "report"
         conflict = out / "cvd.png"
-        args = ["--format", "json"]
+        args = ["--json"]
     else:
         out = tmp_path / "out.png"
         conflict = tmp_path / "out-cvd.png"
@@ -381,6 +374,7 @@ def test_all_output_paths_checked_before_writing(tmp_path, workflow) -> None:
             "thermal",
             "--out",
             str(out),
+            "--cvd",
             *args,
         ],
     )

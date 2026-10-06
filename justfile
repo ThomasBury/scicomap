@@ -1,50 +1,53 @@
 set shell := ["bash", "-cu"]
 
-venv := ".venv.just"
-
 default:
   @just --list
 
 sync:
-  UV_PROJECT_ENVIRONMENT={{venv}} uv sync --extra lint --extra test --extra docs
+  uv sync --locked --extra lint --extra test
 
 sync-docs:
-  UV_PROJECT_ENVIRONMENT={{venv}} uv sync --extra docs
+  uv sync --locked --extra lint --extra test --extra docs
 
 check: sync
-  UV_PROJECT_ENVIRONMENT={{venv}} uv run python -m pytest
-  UV_PROJECT_ENVIRONMENT={{venv}} uv run ruff check src tests
-  UV_PROJECT_ENVIRONMENT={{venv}} uv run ruff format --check src tests
+  uv run --locked python -m pytest -m "not docs"
+  uv run --locked ruff check src tests scripts
+  uv run --locked ruff format --check src tests scripts
+  uv run --locked ty check --error-on-warning
+
+check-docs: sync-docs
+  uv run --locked python -m pytest -m docs
 
 docs: sync-docs
   rm -rf docs/build/html
-  UV_PROJECT_ENVIRONMENT={{venv}} uv run sphinx-build -n -b html docs/source docs/build/html
-  UV_PROJECT_ENVIRONMENT={{venv}} uv run python scripts/build_llm_assets.py
+  uv run --locked sphinx-build -n -W -b html docs/source docs/build/html
+  uv run --locked python scripts/build_llm_assets.py
 
 marimo: sync-docs
-  UV_PROJECT_ENVIRONMENT={{venv}} uv run marimo check docs/marimo/tutorial_app.py docs/marimo/tutorial_app_lite.py
-  UV_PROJECT_ENVIRONMENT={{venv}} uv run marimo export html-wasm docs/marimo/tutorial_app_lite.py -o docs/build/html/marimo --mode run
+  uv run --locked marimo check docs/marimo/tutorial_app.py docs/marimo/tutorial_app_lite.py
+  uv run --locked marimo export html-wasm docs/marimo/tutorial_app_lite.py -o docs/build/html/marimo --mode run
   mkdir -p docs/build/html/marimo/public
-  cp src/scicomap/_diagnostics.py docs/build/html/marimo/public/_diagnostics.py
+  uv build --wheel --out-dir docs/build/html/marimo/public
   touch docs/build/html/.nojekyll
 
 validate-doc-artifacts:
-  cmp src/scicomap/_diagnostics.py docs/build/html/marimo/public/_diagnostics.py
+  test -f docs/build/html/marimo/public/scicomap-2.0.0-py3-none-any.whl
   test -f docs/build/html/marimo/index.html
   test -f docs/build/html/.nojekyll
   test -f docs/build/html/marimo/.nojekyll
   test -f docs/build/html/llms.txt
-  UV_PROJECT_ENVIRONMENT={{venv}} uv run python -c "from pathlib import Path; md=list((Path('docs/build/html/llm')).rglob('*.md')); assert md, 'No markdown mirrors generated'"
+  uv run --locked python -c "from pathlib import Path; md=list((Path('docs/build/html/llm')).rglob('*.md')); assert md, 'No markdown mirrors generated'"
 
 validate-pages-artifacts: validate-doc-artifacts
-  UV_PROJECT_ENVIRONMENT={{venv}} uv run python -c "from pathlib import Path; text=Path('docs/build/html/llms.txt').read_text(encoding='utf-8'); assert 'getting-started' in text, 'llms.txt missing getting-started'; assert 'user-guide' in text, 'llms.txt missing user-guide'"
+  uv run --locked python -c "from pathlib import Path; text=Path('docs/build/html/llms.txt').read_text(encoding='utf-8'); assert 'getting-started' in text, 'llms.txt missing getting-started'; assert 'user-guide' in text, 'llms.txt missing user-guide'"
 
 build: sync
   rm -rf dist
-  UV_PROJECT_ENVIRONMENT={{venv}} uv run --with build python -m build
-  UV_PROJECT_ENVIRONMENT={{venv}} uv run --with twine python -m twine check dist/*
+  uv run --locked --with build python -m build
+  uv run --locked --with twine python -m twine check dist/*
 
-release-check: check docs marimo validate-doc-artifacts build
+release-check: check docs check-docs marimo validate-doc-artifacts build
+  uv run --isolated --no-project --with ./dist/scicomap-2.0.0-py3-none-any.whl python scripts/smoke_wheel.py
 
 smoke-testpypi version:
   rm -rf .venv.testpypi

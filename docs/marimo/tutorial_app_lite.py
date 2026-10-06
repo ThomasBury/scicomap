@@ -7,16 +7,11 @@ app = marimo.App(width="full")
 async def _():
     import micropip
     import marimo as _mo
-    from pyodide.http import pyfetch
 
-    await micropip.install("scicomap>=1.1.0")
-    response = await pyfetch(
-        str(_mo.notebook_location() / "public" / "_diagnostics.py")
+    wheel_url = str(
+        _mo.notebook_location() / "public" / "scicomap-2.0.0-py3-none-any.whl"
     )
-    if not response.ok:
-        raise OSError("Cannot load the shared diagnostic module.")
-    with open("_scicomap_diagnostics.py", "w", encoding="utf-8") as module:
-        module.write(await response.string())
+    await micropip.install(wheel_url)
     wasm_deps_ready = True
     return (wasm_deps_ready,)
 
@@ -24,7 +19,6 @@ async def _():
 @app.cell
 def _(wasm_deps_ready):
     _ = wasm_deps_ready
-
     COLORMAP_FAMILIES = (
         "sequential",
         "diverging",
@@ -34,8 +28,8 @@ def _(wasm_deps_ready):
         "qualitative",
     )
 
-    def build_cmap_options(sci_co_map_cls, ctype):
-        cmap_names = sorted(sci_co_map_cls(ctype=ctype).get_color_map_names())
+    def build_cmap_options(ctype):
+        cmap_names = sorted(get_cmap_dict()[ctype])
         default_cmap = cmap_names[0]
         if ctype == "sequential" and "thermal" in cmap_names:
             default_cmap = "thermal"
@@ -43,11 +37,21 @@ def _(wasm_deps_ready):
 
     import marimo as mo
 
-    from _scicomap_diagnostics import _diagnose_cmap as diagnose_cmap
-    from scicomap.scicomap import SciCoMap
-    from scicomap.scicomap import plot_colorblind_vision
+    from scicomap import (
+        SciCoMap,
+        get_cmap_dict,
+        diagnose_cmap,
+        plot_colorblind_vision,
+        __version__ as scicomap_version,
+    )
+
+    if scicomap_version != "2.0.0":
+        raise RuntimeError(
+            "The browser tutorial requires the bundled v2 candidate."
+        )
 
     return (
+        scicomap_version,
         COLORMAP_FAMILIES,
         SciCoMap,
         build_cmap_options,
@@ -58,21 +62,13 @@ def _(wasm_deps_ready):
 
 
 @app.cell
-def _(mo):
+def _(scicomap_version, mo):
     mo.md(
-        """
-# scicomap interactive tutorial
+        f"""
+# scicomap {scicomap_version} interactive tutorial
 
-Perceptual uniformity is the idea that Euclidean distance between colors in color space should match human color perception distance judgements.
-
-**Data should speak for itself, not for the color map.**
-Using the wrong gradient can lead to "optical illusions" where your data looks broken or banded when it is actually smooth.
-
-| Problem | Consequence | Example |
-| --- | --- | --- |
-| **Uneven Gradients** | Creates "false boundaries" (artifacts). | The infamous **`jet`** map. |
-| **Non-Linearity** | Distorts the perceived magnitude of data. | A 10% change looks like 50% in certain zones. |
-| **Color-Vision Deficiency (CVD)** | Excludes **8% of the male population**. | Red-Green maps that look identical to a color-blind user. |
+Explore colormaps, diagnose artifacts, simulate color-vision deficiencies, and map the
+same decisions to CLI commands.
         """
     )
     return
@@ -91,19 +87,20 @@ def _(mo):
 
 | Attribute | Role in Encoding | Rule of Thumb |
 | --- | --- | --- |
-| **Lightness (`J'`)** | **The Scalar Value** | Must vary **linearly** with the data. If the data goes up, the brightness must follow smoothly. |
-| **Hue (`h'`)** | **Appeal & Clarity** | Ideal for making a map attractive. It can encode an extra variable if it changes at a constant rate. |
-| **Chroma (`C'`)** | **Aesthetics Only** | **Do not use for data.** Humans struggle to distinguish subtle saturation changes accurately. |
+| **Lightness (`J'`)** | **Ordered Values** | Sequential maps should progress smoothly; diverging maps use two branches around a reference. |
+| **Hue (`h'`)** | **Categories & Cycles** | Use with labels or alternate encodings; numerical hue angles are in radians. |
+| **Chroma (`C'`)** | **Distance from Gray** | Chroma is distinct from lightness; abrupt changes can introduce false boundaries. |
 
 
 ### The "Scicomap" Uniformization Process
 
-To "fix" a problematic color map, we follow a rigorous scientific recipe:
+Correction linearizes recognized lightness patterns and adjusts chroma.
+Review the result on your actual data: these operations do not certify accessibility.
 
-1. **Linearize Lightness:** We force `J'` into a straight line so that the visual weight matches the data points.
-2. **Round the Floor:** `lift` rounds the lower lightness bound up to a multiple of that step. `None` and `0` leave it unchanged.
+1. **Linearize Lightness:** Make recognized sequential or diverging lightness branches linear.
+2. **Round the Floor:** `lightness_rounding` rounds the lower lightness bound up to a multiple of that step. `None` and `0` leave it unchanged.
 3. **Smooth the Chroma:** We symmetrize the `C'` curve to remove "kinks" or sharp edges.
-4. **Remove Artifacts:** We avoid abrupt changes in the chroma trajectory to prevent the eye from seeing "steps" that don't exist in the data.
+4. **Remove Artifacts:** Reassess the transformed map for abrupt transitions and remaining artifacts.
         """
     )
     return
@@ -120,32 +117,62 @@ def _(COLORMAP_FAMILIES, mo):
 
 
 @app.cell
-def _(SciCoMap, build_cmap_options, ctype, mo):
-    cmap_names, default_cmap = build_cmap_options(SciCoMap, ctype.value)
+def _(build_cmap_options, ctype, mo):
+    cmap_names, default_cmap = build_cmap_options(ctype.value)
+
     cmap = mo.ui.dropdown(
-        options=cmap_names, value=default_cmap, label="Colormap"
+        options=cmap_names,
+        value=default_cmap,
+        label="Colormap",
     )
     return (cmap,)
 
 
 @app.cell
 def _(mo):
-    n_colors = mo.ui.slider(
-        16, 256, value=128, step=16, label="CVD color bins"
+    fix = mo.ui.checkbox(value=False, label="Apply fix")
+    bitonic = mo.ui.checkbox(value=True, label="Bitonic")
+    diffuse = mo.ui.checkbox(value=True, label="Diffuse")
+    lightness_rounding = mo.ui.slider(
+        start=0, stop=40, value=10, step=1, label="Lightness rounding step"
     )
-    return (n_colors,)
+    n_colors = mo.ui.slider(
+        start=16,
+        stop=256,
+        value=128,
+        step=16,
+        label="CVD color bins",
+    )
+    return bitonic, diffuse, fix, lightness_rounding, n_colors
 
 
 @app.cell
-def _(cmap, ctype, mo, n_colors):
-    controls = mo.hstack([ctype, cmap, n_colors], gap=1.0, align="center")
-    controls
-    return
+def _(bitonic, cmap, ctype, diffuse, fix, lightness_rounding, mo, n_colors):
+    controls = mo.vstack(
+        [
+            mo.md("## Controls"),
+            ctype,
+            cmap,
+            fix,
+            bitonic,
+            diffuse,
+            lightness_rounding,
+            n_colors,
+        ],
+        gap=0.5,
+    )
+    return (controls,)
 
 
 @app.cell
-def _(SciCoMap, cmap, ctype):
+def _(SciCoMap, bitonic, cmap, ctype, diffuse, fix, lightness_rounding):
     chart = SciCoMap(ctype=ctype.value, cmap=cmap.value)
+    if fix.value:
+        chart.unif_sym_cmap(
+            lightness_rounding=float(lightness_rounding.value),
+            bitonic=bitonic.value,
+            diffuse=diffuse.value,
+        )
     selected_map = chart.get_mpl_color_map()
     return chart, selected_map
 
@@ -157,7 +184,11 @@ def _(diagnose_cmap, ctype, selected_map):
 
 
 @app.cell
-def _(cmap, ctype, diagnostics, mo):
+def _(diagnostics, mo):
+    reason_lines = "\n".join(f"- {msg}" for msg in diagnostics["reasons"])
+    if not reason_lines:
+        reason_lines = "- No obvious issues detected."
+
     diag_md = mo.md(
         f"""
 ## Diagnostics for the selected map
@@ -169,9 +200,8 @@ Statuses are lightness heuristics. CVD simulations do not certify accessibility.
 - **Monotonic lightness:** `{diagnostics["monotonic_lightness"]}`
 - **Extrema count:** `{diagnostics["extrema_count"]}`
 
-```bash
-scicomap check {cmap.value} --type {ctype.value}
-```
+**Reasons**
+{reason_lines}
         """
     )
     return (diag_md,)
@@ -197,14 +227,24 @@ def _(ctype, n_colors, plot_colorblind_vision, selected_map):
 
 
 @app.cell
-def _(cmap, ctype, mo, n_colors):
+def _(bitonic, cmap, ctype, diffuse, fix, lightness_rounding, mo):
+    cmd_report = (
+        f"scicomap report --cmap {cmap.value} --type {ctype.value} "
+        f"{'--fix' if fix.value else '--no-fix'} --cvd "
+        f"--lightness-rounding {float(lightness_rounding.value):.0f} "
+        f"{'--bitonic' if bitonic.value else '--no-bitonic'} "
+        f"{'--diffuse' if diffuse.value else '--no-diffuse'} "
+        "--out tutorial-report"
+    )
     cli_md = mo.md(
         f"""
-## Equivalent CLI
+## Matching map and stages in the CLI
+
+The report uses the same correction and stage choices. Its CVD simulation
+uses 256 color bins.
 
 ```bash
-scicomap check {cmap.value} --type {ctype.value}
-scicomap cvd {cmap.value} --type {ctype.value} --n-colors {int(n_colors.value)}
+{cmd_report}
 ```
         """
     )
@@ -212,16 +252,26 @@ scicomap cvd {cmap.value} --type {ctype.value} --n-colors {int(n_colors.value)}
 
 
 @app.cell
-def _(cli_md, diag_md, fig_cvd, fig_preview, mo):
-    tabs = mo.ui.tabs(
+def _(cli_md, fig_cvd, mo):
+    secondary_tabs = mo.ui.tabs(
         {
-            "Diagnostics": diag_md,
             "Color-vision deficiency": fig_cvd,
             "Equivalent CLI": cli_md,
         }
     )
+    return (secondary_tabs,)
+
+
+@app.cell
+def _(controls, diag_md, fig_preview, mo, secondary_tabs):
     mo.vstack(
-        [mo.md("## Preview"), fig_preview, mo.md("## Explore more"), tabs],
+        [
+            diag_md,
+            mo.md("## Preview"),
+            fig_preview,
+            mo.md("## Explore more"),
+            mo.hstack([controls, secondary_tabs], gap=1.0, align="start"),
+        ],
         gap=0.75,
     )
     return

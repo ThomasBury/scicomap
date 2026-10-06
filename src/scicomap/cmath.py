@@ -14,14 +14,49 @@ https://github.com/liamedeiros/ehtplot/blob/7a0567496ba9ab72f4a541d5994352bbe4ea
 
 import numpy as np
 import warnings
-import matplotlib
+from numbers import Real
+from matplotlib.axes import Axes
+from mpl_toolkits.mplot3d import Axes3D
 from colorspacious import cspace_convert
 from matplotlib.colors import Colormap, ListedColormap, to_rgba_array
 from scipy.interpolate import CubicSpline
-from typing import List, Tuple, Union, Callable, Optional
+from typing import Union
+from numpy.typing import ArrayLike
 
 
-def _as_color_table(ctab: np.ndarray) -> np.ndarray:
+__all__ = [
+    "get_ctab",
+    "max_chroma",
+    "transform",
+    "interp",
+    "extrema",
+    "classify",
+    "uniformize",
+    "factor",
+    "symmetrize",
+    "adjust_sequential",
+    "adjust_circular_flat",
+    "adjust_circular",
+    "adjust_divergent",
+    "uniformize_cmap",
+    "symmetrize_cmap",
+    "unif_sym_cmap",
+]
+
+
+def _validate_lightness_rounding(step: float | None) -> None:
+    """Reject invalid rounding steps before any numerical transformation."""
+    if step is None:
+        return
+    if isinstance(step, (bool, np.bool_)) or not isinstance(step, Real):
+        raise TypeError("lightness_rounding must be a real number or None.")
+    if not np.isfinite(step) or step < 0:
+        raise ValueError(
+            "lightness_rounding must be a finite nonnegative step or None."
+        )
+
+
+def _as_color_table(ctab: ArrayLike) -> np.ndarray:
     """Copy a finite RGB(A) or perceptual table into floating point."""
     out = np.array(ctab, dtype=float, copy=True)
     if out.ndim != 2 or out.shape[0] == 0 or out.shape[1] not in (3, 4):
@@ -155,12 +190,12 @@ def max_chroma(
         )
 
     if Cpmax == "auto":
-        Cpmax = np.clip(np.sqrt(100 * Jp), 0, 64)
+        CpU = np.clip(np.sqrt(100 * Jp), 0, 64)
     else:
-        Cpmax = np.asarray(Cpmax, dtype=float)
-        Cpmax = np.broadcast_to(Cpmax, Jp.shape)
-
-    CpU = np.array(Cpmax, copy=True)
+        CpU = np.array(
+            np.broadcast_to(np.asarray(Cpmax, dtype=float), Jp.shape),
+            copy=True,
+        )
     CpL = np.full(Jp.shape, Cpmin, dtype=float)
 
     for i in range(64):
@@ -241,13 +276,15 @@ def transform(
     return out
 
 
-def interp(x: float, xp: np.ndarray, yp: np.ndarray) -> float:
+def interp(
+    x: float | np.ndarray, xp: np.ndarray, yp: np.ndarray
+) -> float | np.ndarray:
     """
     One-dimensional linear interpolation.
 
     Parameters
     ----------
-    x : float
+    x : float or numpy.ndarray
         The x-coordinate at which to interpolate.
     xp : np.ndarray
         1-D array of x-coordinates of data points.
@@ -256,7 +293,7 @@ def interp(x: float, xp: np.ndarray, yp: np.ndarray) -> float:
 
     Returns
     -------
-    float
+    float or numpy.ndarray
         The interpolated value at x.
 
     Notes
@@ -390,10 +427,10 @@ def classify(Jpapbp: np.ndarray) -> str:
 
 def uniformize(
     Jpapbp: np.ndarray,
-    JpL: float = None,
-    JpR: float = None,
-    Jplower: float = None,
-    Jpupper: float = None,
+    JpL: float | None = None,
+    JpR: float | None = None,
+    Jplower: float | None = None,
+    Jpupper: float | None = None,
 ) -> np.ndarray:
     """
     Uniformize a colormap in the Jpapbp color space, linear in lightness J'
@@ -458,8 +495,8 @@ def factor(
     softening: float = 1.0,
     bitonic: bool = True,
     diffuse: bool = True,
-    CpL: float = None,
-    CpR: float = None,
+    CpL: float | None = None,
+    CpR: float | None = None,
     verbose: bool = False,
     diverging: bool = False,
 ) -> np.ndarray:
@@ -576,7 +613,6 @@ def symmetrize(Jpapbp: np.ndarray, **kwargs) -> np.ndarray:
            [60.  , 20.06, 10.03]])
     """
     out = _as_color_table(Jpapbp)
-    Jp = out[:, 0]
     Cp = np.sqrt(out[:, 1] * out[:, 1] + out[:, 2] * out[:, 2])
 
     f = factor(Cp, **kwargs)
@@ -586,7 +622,9 @@ def symmetrize(Jpapbp: np.ndarray, **kwargs) -> np.ndarray:
 
 
 def adjust_sequential(
-    Jpapbp: np.ndarray, roundup: float = None, bi_seq: bool = False
+    Jpapbp: np.ndarray,
+    lightness_rounding: float | None = None,
+    bi_seq: bool = False,
 ) -> np.ndarray:
     """
     Linearize lightness J' in one or two sequential branches.
@@ -596,7 +634,7 @@ def adjust_sequential(
     Jpapbp : np.ndarray
         Array of Jpapbp values.
 
-    roundup : float, optional
+    lightness_rounding : float or None, optional
         Round the lower lightness bound up to a multiple of this positive
         step. None or 0 leaves the lower bound unchanged.
 
@@ -610,19 +648,20 @@ def adjust_sequential(
 
     Notes
     -----
-    The lower lightness bound is rounded using ceil(Jplower / roundup)
-    * roundup. This is rounding to a step, rather than an additive lift.
+    The lower lightness bound is rounded using ceil(Jplower / lightness_rounding)
+    * lightness_rounding. This is rounding to a step, rather than an additive lift.
 
     Examples
     --------
     >>> import numpy as np
     >>> Jpapbp = np.array([[40.0, 20.0, 10.0], [60.0, 30.0, 15.0]])
-    >>> adjusted_colormap = adjust_sequential(Jpapbp, roundup=15)
+    >>> adjusted_colormap = adjust_sequential(Jpapbp, lightness_rounding=15)
     >>> adjusted_colormap
     array([[45.  , 22.5 , 11.25],
            [60.  , 30.  , 15.  ]])
     """
 
+    _validate_lightness_rounding(lightness_rounding)
     Jpapbp = _as_color_table(Jpapbp)
     if bi_seq:
         x_boundary = extrema(Jpapbp[:, 0])[0]
@@ -630,20 +669,26 @@ def adjust_sequential(
         Jpapbp2 = Jpapbp[x_boundary + 1 :, ...].copy()
         Jp = Jpapbp1[:, 0]
         Jplower = min(Jp[0], Jp[-1])
-        if roundup not in (None, 0):
-            Jplower = np.ceil(Jplower / roundup) * roundup
+        if lightness_rounding not in (None, 0):
+            Jplower = (
+                np.ceil(Jplower / lightness_rounding) * lightness_rounding
+            )
         Jpapbp1 = uniformize(Jpapbp1, Jplower=Jplower)
         Jp = Jpapbp2[:, 0]
         Jplower = min(Jp[0], Jp[-1])
-        if roundup not in (None, 0):
-            Jplower = np.ceil(Jplower / roundup) * roundup
+        if lightness_rounding not in (None, 0):
+            Jplower = (
+                np.ceil(Jplower / lightness_rounding) * lightness_rounding
+            )
         Jpapbp2 = uniformize(Jpapbp2, Jplower=Jplower)
         return np.append(Jpapbp1, Jpapbp2, axis=0)
     else:
         Jp = Jpapbp[:, 0]
         Jplower = min(Jp[0], Jp[-1])
-        if roundup not in (None, 0):
-            Jplower = np.ceil(Jplower / roundup) * roundup
+        if lightness_rounding not in (None, 0):
+            Jplower = (
+                np.ceil(Jplower / lightness_rounding) * lightness_rounding
+            )
 
         return uniformize(Jpapbp, Jplower=Jplower)
 
@@ -681,7 +726,9 @@ def adjust_circular_flat(Jpapbp: np.ndarray) -> np.ndarray:
     return out
 
 
-def adjust_circular(Jpapbp: np.ndarray, roundup: float = None) -> np.ndarray:
+def adjust_circular(
+    Jpapbp: np.ndarray, lightness_rounding: float | None = None
+) -> np.ndarray:
     """
     Adjust a circular colormap.
 
@@ -691,7 +738,7 @@ def adjust_circular(Jpapbp: np.ndarray, roundup: float = None) -> np.ndarray:
     ----------
     Jpapbp : np.ndarray
         Array of Jpapbp values.
-    roundup : float, optional
+    lightness_rounding : float or None, optional
         Round the lower lightness bound up to a multiple of this positive
         step. None or 0 leaves the lower bound unchanged.
 
@@ -708,12 +755,13 @@ def adjust_circular(Jpapbp: np.ndarray, roundup: float = None) -> np.ndarray:
     --------
     >>> import numpy as np
     >>> Jpapbp = np.array([[40., 20., 10.], [60., 30., 15.], [40., 20., 10.]])
-    >>> adjusted_colormap = adjust_circular(Jpapbp, roundup=15)
+    >>> adjusted_colormap = adjust_circular(Jpapbp, lightness_rounding=15)
     >>> adjusted_colormap
     array([[45.  , 22.5 , 11.25],
            [60.  , 30.  , 15.  ],
            [45.  , 22.5 , 11.25]])
     """
+    _validate_lightness_rounding(lightness_rounding)
     Jpapbp = _as_color_table(Jpapbp)
     Jp = Jpapbp[:, 0]
     x_extr = extrema(Jp)
@@ -732,8 +780,8 @@ def adjust_circular(Jpapbp: np.ndarray, roundup: float = None) -> np.ndarray:
     else:  # valley
         Jplower = max(Jp[h], Jp[H])
         Jpupper = min(Jp[0], Jp[-1])
-    if roundup not in (None, 0):
-        Jplower = np.ceil(Jplower / roundup) * roundup
+    if lightness_rounding not in (None, 0):
+        Jplower = np.ceil(Jplower / lightness_rounding) * lightness_rounding
 
     L = uniformize(Jpapbp[: h + 1, :], Jplower=Jplower, Jpupper=Jpupper)
     R = uniformize(Jpapbp[H:, :], Jplower=Jplower, Jpupper=Jpupper)
@@ -742,7 +790,7 @@ def adjust_circular(Jpapbp: np.ndarray, roundup: float = None) -> np.ndarray:
 
 def adjust_divergent(
     Jpapbp: np.ndarray,
-    roundup: float = None,
+    lightness_rounding: float | None = None,
     circular: bool = False,
     symmetric: bool = True,
 ) -> np.ndarray:
@@ -755,7 +803,7 @@ def adjust_divergent(
     ----------
     Jpapbp : np.ndarray
         Array of Jpapbp values.
-    roundup : float, optional
+    lightness_rounding : float or None, optional
         Round the lower lightness bound up to a multiple of this positive
         step. None or 0 leaves the lower bound unchanged.
     circular : bool, optional
@@ -776,12 +824,13 @@ def adjust_divergent(
     --------
     >>> import numpy as np
     >>> Jpapbp = np.array([[40., 20., 10.], [60., 30., 15.], [40., 20., 10.]])
-    >>> adjusted_colormap = adjust_divergent(Jpapbp, roundup=15)
+    >>> adjusted_colormap = adjust_divergent(Jpapbp, lightness_rounding=15)
     >>> adjusted_colormap
     array([[45.  , 22.5 , 11.25],
            [60.  , 30.  , 15.  ],
            [45.  , 22.5 , 11.25]])
     """
+    _validate_lightness_rounding(lightness_rounding)
     Jpapbp = _as_color_table(Jpapbp)
     Jp = Jpapbp[:, 0]
     out = Jpapbp.copy()
@@ -805,8 +854,8 @@ def adjust_divergent(
     else:  # valley
         Jplower = max(Jp[h], Jp[H])
         Jpupper = min(Jp[0], Jp[-1])
-    if roundup not in (None, 0):
-        Jplower = np.ceil(Jplower / roundup) * roundup
+    if lightness_rounding not in (None, 0):
+        Jplower = np.ceil(Jplower / lightness_rounding) * lightness_rounding
 
     L = uniformize(Jpapbp[: h + 1, :], Jplower=Jplower, Jpupper=Jpupper)
     R = uniformize(Jpapbp[H:, :], Jplower=Jplower, Jpupper=Jpupper)
@@ -821,90 +870,85 @@ def adjust_divergent(
 
 
 def uniformize_cmap(
-    cmap: ListedColormap,
+    cmap: Colormap | list,
     name: str = "new_cmap",
-    lift: float = None,
-    uniformized: bool = False,
-) -> Tuple[ListedColormap, bool]:
-    """
-    Uniformize a colormap.
-
-    This function uniformizes a given colormap if it's not already uniformized.
+    lightness_rounding: float | None = None,
+) -> ListedColormap:
+    """Linearize CAM02-UCS lightness J' according to the sampled pattern.
 
     Parameters
     ----------
-    cmap : ListedColormap
-        The input colormap to be uniformized.
+    cmap : matplotlib.colors.Colormap or list
+        A colormap or nonempty list of color names or RGB(A) rows in [0, 1].
     name : str, optional
-        The name of the new colormap, by default "new_cmap".
-    lift : float, optional
-        Round the lower lightness bound up to a multiple of this positive
-        step: ceil(Jplower / lift) * lift. None or 0 applies no rounding.
-    uniformized : bool, optional
-        Indicates whether the colormap is already uniformized, by default False.
+        Name of the resulting colormap.
+    lightness_rounding : float or None, optional
+        Finite nonnegative step in CAM02-UCS J' units. Round the lower
+        lightness bound to ceil(J' / step) * step. None or 0 leaves it
+        unchanged; this does not add a fixed amount of lightness.
 
     Returns
     -------
-    Tuple[ListedColormap, bool]
-        A tuple containing the uniformized colormap and a boolean indicating if
-        the colormap was uniformized. The flag is False if its lightness
-        pattern is unknown and no uniformization was performed.
+    matplotlib.colors.ListedColormap
+        The transformed map, preserving sample count and alpha. Unknown
+        lightness patterns warn and return the original sampled colors.
 
-    Notes
-    -----
-    This function uniformizes a colormap by analyzing its color table and transforming
-    it into a uniformized version based on its color characteristics.
+    Raises
+    ------
+    ValueError
+        If color values or the lightness rounding step are invalid.
 
     Examples
     --------
-    >>> import matplotlib.pyplot as plt
-    >>> from matplotlib.colors import ListedColormap
-    >>> from scicomap.cmath import uniformize_cmap
-    >>> # Create a sample colormap
-    >>> original_cmap = plt.get_cmap("viridis")
-    >>> uniformized_cmap, was_uniformized = uniformize_cmap(original_cmap, name="uniform_viridis", lift=5.0)
-    >>> was_uniformized
+    >>> from matplotlib import pyplot as plt
+    >>> original = plt.get_cmap("viridis")
+    >>> corrected = uniformize_cmap(original, lightness_rounding=5)
+    >>> corrected.N == original.N
     True
-    >>> # Now you can use the uniformized_cmap for plotting.
-
     """
-    # if not uniformized yet, uniformize the cmap
-    # else do nothing
-    if not uniformized:
-        # get the color table
-        ctab = get_ctab(cmap)
-        # transform to Jpapbp
-        t_ctab = transform(ctab)
-        # find if sequential or divergent or unknown
-        cmap_type = classify(t_ctab)
-        if cmap_type == "divergent":
-            lin_ctab = adjust_divergent(t_ctab, roundup=lift)
-        elif cmap_type == "asym_div":
-            lin_ctab = adjust_divergent(t_ctab, roundup=lift, symmetric=False)
-        elif cmap_type == "sequential":
-            lin_ctab = adjust_sequential(t_ctab, roundup=lift)
-        elif cmap_type == "multiseq":
-            lin_ctab = adjust_sequential(t_ctab, roundup=lift, bi_seq=True)
-        elif cmap_type == "circular-flat":
-            lin_ctab = adjust_circular_flat(t_ctab)
-        elif cmap_type == "circular-div":
-            lin_ctab = adjust_divergent(t_ctab, roundup=lift, circular=True)
-        else:
-            warnings.warn(
-                "The colormap {} type is unknown (not recognized as sequential or divergent)\n"
-                "Not uniformized".format(name)
-            )
-            return ListedColormap(ctab, name=name), False
-
-        lin_cmap = transform(ctab=lin_ctab, inverse=True)
-
-        return ListedColormap(np.clip(lin_cmap, 0, 1), name=name), True
+    _validate_lightness_rounding(lightness_rounding)
+    # get the color table
+    ctab = get_ctab(cmap)
+    # transform to Jpapbp
+    t_ctab = transform(ctab)
+    # find if sequential or divergent or unknown
+    cmap_type = classify(t_ctab)
+    if cmap_type == "divergent":
+        lin_ctab = adjust_divergent(
+            t_ctab, lightness_rounding=lightness_rounding
+        )
+    elif cmap_type == "asym_div":
+        lin_ctab = adjust_divergent(
+            t_ctab, lightness_rounding=lightness_rounding, symmetric=False
+        )
+    elif cmap_type == "sequential":
+        lin_ctab = adjust_sequential(
+            t_ctab, lightness_rounding=lightness_rounding
+        )
+    elif cmap_type == "multiseq":
+        lin_ctab = adjust_sequential(
+            t_ctab, lightness_rounding=lightness_rounding, bi_seq=True
+        )
+    elif cmap_type == "circular-flat":
+        lin_ctab = adjust_circular_flat(t_ctab)
+    elif cmap_type == "circular-div":
+        lin_ctab = adjust_divergent(
+            t_ctab, lightness_rounding=lightness_rounding, circular=True
+        )
     else:
-        return cmap, True
+        warnings.warn(
+            "The colormap {} type is unknown (not recognized as sequential or divergent)\n"
+            "Not uniformized".format(name)
+        )
+        return ListedColormap(ctab, name=name)
+
+    lin_cmap = transform(ctab=lin_ctab, inverse=True)
+
+    return ListedColormap(np.clip(lin_cmap, 0, 1), name=name)
 
 
 def symmetrize_cmap(
-    cmap: ListedColormap,
+    cmap: Colormap | list,
     name: str = "new_cmap",
     bitonic: bool = True,
     diffuse: bool = True,
@@ -916,7 +960,7 @@ def symmetrize_cmap(
 
     Parameters
     ----------
-    cmap : ListedColormap
+    cmap : matplotlib.colors.Colormap or list
         The input colormap to be symmetrized.
     name : str, optional
         The name of the new colormap, by default "new_cmap".
@@ -963,73 +1007,48 @@ def symmetrize_cmap(
 
 
 def unif_sym_cmap(
-    cmap: ListedColormap,
+    cmap: Colormap | list,
     name: str = "new_cmap",
-    lift: float = None,
-    uniformized: bool = False,
+    lightness_rounding: float | None = None,
     bitonic: bool = True,
     diffuse: bool = True,
-) -> tuple[ListedColormap, bool]:
-    """
-    Uniformize and symmetrize a colormap (perceptually homogeneous).
-
-    This function performs both uniformization and symmetrization of a given colormap
-    based on its color characteristics (symmetric saturation for even perception of both sides of the cmap).
+) -> ListedColormap:
+    """Linearize CAM02-UCS lightness, then symmetrize chroma.
 
     Parameters
     ----------
-    cmap : ListedColormap
-        The input colormap to be uniformized and symmetrized.
+    cmap : matplotlib.colors.Colormap or list
+        A colormap or nonempty list of color names or RGB(A) rows in [0, 1].
     name : str, optional
-        The name of the new colormap, by default "new_cmap".
-    lift : float, optional
-        Round the lower lightness bound up to a multiple of this positive
-        step: ceil(Jplower / lift) * lift. None or 0 applies no rounding.
-    uniformized : bool, optional
-        If True, skip uniformization step if the colormap is already uniformized,
-        by default False.
+        Name of the resulting colormap.
+    lightness_rounding : float or None, optional
+        Finite nonnegative step in CAM02-UCS J' units. Round the lower
+        lightness bound to ceil(J' / step) * step; None or 0 leaves it unchanged.
     bitonic : bool, optional
-        If True, ensures that half of Cp increases monotonically, by default True.
+        Require a central chroma extremum.
     diffuse : bool, optional
-        If True, diffuses the colormap, by default True.
+        Smooth the chroma curve.
 
     Returns
     -------
-    tuple[ListedColormap, bool]
-        A tuple containing the uniformized and symmetrized colormap, and a boolean
-        indicating whether uniformization was performed.
-
-    Notes
-    -----
-    This function first checks if uniformization is needed based on the `uniformized`
-    parameter. If uniformization is performed, the colormap is transformed into a
-    uniformized version based on its color characteristics. Then, symmetrization is
-    applied to the uniformized colormap. The final colormap is returned along with
-    a boolean indicating whether uniformization was performed.
+    matplotlib.colors.ListedColormap
+        Resulting map with the input sample count and alpha preserved.
 
     Examples
     --------
-    >>> import matplotlib.pyplot as plt
-    >>> from matplotlib.colors import ListedColormap
-    >>> from scicomap.cmath import unif_sym_cmap
-    >>> # Create a sample colormap
-    >>> original_cmap = plt.get_cmap("coolwarm")
-    >>> uniformized_symmetric_cmap, uniformized = unif_sym_cmap(original_cmap, name="uni_sym_coolwarm", lift=0.1)
-    >>> # Now you can use the uniformized_symmetric_cmap for plotting.
-
+    >>> from matplotlib import pyplot as plt
+    >>> original = plt.get_cmap("coolwarm")
+    >>> corrected = unif_sym_cmap(original, lightness_rounding=0)
+    >>> corrected.N == original.N
+    True
     """
-    uni_cmap, uniformized = uniformize_cmap(
-        cmap, name=name, lift=lift, uniformized=uniformized
+    cmap = uniformize_cmap(
+        cmap, name=name, lightness_rounding=lightness_rounding
     )
-    return (
-        symmetrize_cmap(uni_cmap, name=name, bitonic=bitonic, diffuse=diffuse),
-        uniformized,
-    )
+    return symmetrize_cmap(cmap, name=name, bitonic=bitonic, diffuse=diffuse)
 
 
-def _ax_cylinder_JCh(
-    ax: matplotlib.axes.Axes, cmap: Colormap, title: str
-) -> matplotlib.axes.Axes:
+def _ax_cylinder_JCh(ax: Axes, cmap: Colormap, title: str) -> Axes:
     """
     Plot Jp, Cp, and hp coordinates in a cylindrical representation for a colormap.
 
@@ -1095,9 +1114,7 @@ def _ax_cylinder_JCh(
     return ax
 
 
-def _ax_scatter_Jpapbp(
-    ax: matplotlib.axes.Axes, cmap: Colormap, title: str
-) -> matplotlib.axes.Axes:
+def _ax_scatter_Jpapbp(ax: Axes3D, cmap: Colormap, title: str) -> Axes3D:
     """
     Create a scatter plot in 3D to visualize Jpapbp coordinates of a colormap.
 

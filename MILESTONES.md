@@ -162,9 +162,17 @@ uv lock --check
 **Branch transition:** merge the completed fixes into `main`, then create
 `feat/v2`. Breaking changes begin only after this checkpoint.
 
+**V1 preparation verified before branching:** `main` remained clean at
+`11d9da5`. `just release-check` passed 217 tests and Ruff before the runner
+terminated it as the docs recipe started. The remaining recipes passed with
+`just docs marimo validate-doc-artifacts build`. The 1.1.1 patch notes were
+reviewed against M1–M4 with no blocking omissions. The isolated 1.1.1 wheel
+smoke check passed all five data resources and 13 commands; `uv lock --check`
+passed. No release was published or tagged.
+
 ## Stage 2 — Build v2 without backward compatibility
 
-### [ ] M5 — Consistent Python API
+### [x] M5 — Consistent Python API
 
 **Outcome:** users can discover, inspect, transform, and plot maps through a
 coherent interface.
@@ -185,7 +193,42 @@ coherent interface.
 transformations, and absence of hidden plotting side effects. Removed interfaces
 receive no forwarding aliases.
 
-### [ ] M6 — Smaller CLI for people and agents
+**Completed:** `feat/v2` was created from the verified current `main`.
+The family conveniences share construction, representation, transformation,
+and example plotting through `SciCoMap`; all defaults resolve immediately,
+including `ScicoMultiSequential`'s supported `bukavu` default. Constructors
+validate family names, catalog names, Matplotlib objects, and color lists.
+The catalog is the single discovery API, and package/submodule exports are
+explicit. `diagnose_cmap` exposes the existing structured family heuristics to
+Python, CLI callers, and tutorials. Plotting returns Figures without display
+or changing the current map; transformations return colormaps and replace
+object state consistently. `lightness_rounding` replaces ambiguous Python
+keywords, and caller-managed uniformization controls and discovery aliases
+are removed without forwarding shims. Short qualitative palettes render;
+example categories reuse colors when the supplied palette is too short.
+
+All 264 tests passed across the runtime and documentation commands below,
+including 47 public API checks and every catalog map's numerical invariants.
+Ruff, strict Sphinx, LLM asset generation, Marimo structure checks, and local
+tutorial execution passed. Marimo retains its existing formatting warnings.
+The browser tutorial still installs a floating v1 package; verification
+against the v2 candidate remains in M9. CLI commands, aliases, profiles, and
+options retain their existing surface; only M5 Python callers were adapted.
+M6 and later milestones remain unstarted, and the release version remains
+unchanged until M9.
+
+```bash
+UV_PROJECT_ENVIRONMENT=.venv.just uv run python -m pytest --ignore=tests/docs/test_generated_examples.py
+UV_PROJECT_ENVIRONMENT=.venv.just uv run python -m pytest tests/core/test_public_api.py tests/docs/test_generated_examples.py
+UV_PROJECT_ENVIRONMENT=.venv.just uv run ruff check src tests
+UV_PROJECT_ENVIRONMENT=.venv.just uv run ruff format --check src tests
+UV_PROJECT_ENVIRONMENT=.venv.just uv run sphinx-build -n -W -b html docs/source docs/build/html
+UV_PROJECT_ENVIRONMENT=.venv.just uv run python scripts/build_llm_assets.py
+UV_PROJECT_ENVIRONMENT=.venv.just uv run marimo check docs/marimo/tutorial_app.py docs/marimo/tutorial_app_lite.py
+UV_PROJECT_ENVIRONMENT=.venv.just uv run marimo export html docs/marimo/tutorial_app.py -o /tmp/scicomap-m5-tutorial.html
+```
+
+### [x] M6 — Smaller CLI for people and agents
 
 **Outcome:** one command surface provides predictable human and machine behavior.
 
@@ -205,7 +248,50 @@ receive no forwarding aliases.
 is parseable; rendering in machine mode requires an output destination; help and
 tests contain no removed commands or profiles.
 
-### [ ] M7 — Reusable corrections and useful reports
+**Completed:** the CLI has eleven canonical top-level commands. Duplicate
+command groups, documentation-build commands, workflow profiles, goal inference,
+and alternate output-format options are removed without forwarding aliases.
+Wizard and report share map preparation and artifact generation. Inspection
+uses the original map; correction, CVD simulation, and application require
+explicit stage choices. Guided choices default to no, and JSON mode never
+prompts. Machine rendering requires an output destination and uses the Agg
+backend. Comparison explicitly preserves the supplied original maps.
+
+Every command uses ``--json`` and the same response envelope. Family lists are
+structured arrays, artifact records share kind/path/map fields, and written
+paths are absolute. Stored report JSON matches emitted JSON. Exit codes are
+0 for success, 2 for invalid inputs, and 1 for operational failures.
+``--lightness-rounding`` matches the Python parameter's meaning. Current docs,
+local tutorial controls/commands, parser entry-point tests, and wheel checks
+use the smaller command surface. The v1 Typer bound is replaced with
+``typer >= 0.26.0``; installed-wheel checks pass on 0.26.0 and 0.27.2.
+
+`just check` passed 256 tests and Ruff. A subsequent 31-test CLI run passed,
+including the added headless-backend regression (257 tests in the final tree).
+Strict Sphinx, all generated Python examples, LLM asset generation, Marimo
+structure checks, local tutorial execution, sdist/wheel builds, Twine validation,
+and both isolated wheel checks passed. Existing Marimo formatting warnings
+remain. The wheel checks verify all five data resources and eleven commands
+outside the checkout. M7 and later milestones remain unstarted; browser v2
+verification and release version changes remain in M9. Additional checks used:
+
+```bash
+UV_PROJECT_ENVIRONMENT=.venv.just uv run python -m pytest tests/cli tests/docs/test_build_llm_assets.py -q
+UV_PROJECT_ENVIRONMENT=.venv.just uv run python -m pytest tests/cli/test_cli.py -q
+UV_PROJECT_ENVIRONMENT=.venv.just uv run sphinx-build -n -W -b html docs/source docs/build/html
+UV_PROJECT_ENVIRONMENT=.venv.just uv run python scripts/build_llm_assets.py
+UV_PROJECT_ENVIRONMENT=.venv.just uv run marimo check docs/marimo/tutorial_app.py docs/marimo/tutorial_app_lite.py
+UV_PROJECT_ENVIRONMENT=.venv.just uv run marimo export html docs/marimo/tutorial_app.py -o /tmp/scicomap-m6-tutorial.html
+just build
+uv run --isolated --no-project --with ./dist/scicomap-1.1.1-py3-none-any.whl python scripts/smoke_wheel.py
+uv run --isolated --no-project --with ./dist/scicomap-1.1.1-py3-none-any.whl --with 'typer==0.26.0' python scripts/smoke_wheel.py
+UV_PROJECT_ENVIRONMENT=.venv.just uv run ruff check src tests scripts/smoke_wheel.py
+UV_PROJECT_ENVIRONMENT=.venv.just uv run ruff format --check src tests scripts/smoke_wheel.py
+uv lock --check
+git diff --check
+```
+
+### [x] M7 — Reusable corrections and useful reports
 
 **Outcome:** users can reuse a correction and judge what changed.
 
@@ -223,7 +309,44 @@ tests contain no removed commands or profiles.
 **Acceptance:** exported maps reload and reproduce their sampled colors; reports
 agree with Python results; examples apply the exported map to real scalar data.
 
-### [ ] M8 — Modern tooling and short AGENTS.md
+**Completed:** ``SciCoMap.export_cmap`` writes sampled RGBA colors, source
+colors, ordered transformation parameters, family/name, and package version.
+Matplotlib ``ListedColormap`` and the existing ``SciCoMap`` color-list input
+reload the tables exactly, including alpha and sample count. ``fix`` and wizard
+support table-only ``--export`` without rendering; corrected report bundles
+include ``corrected-cmap.json``. All CLI map consumers load exported JSON files.
+
+Reports expose separate original and transformed diagnostics and show both
+stages in text summaries, with artifact map labels and the actual Colorspacious
+CVD conditions. Accessibility claims are replaced with simulation descriptions.
+The guide applies an exported map to measured elevation data and explains
+``Normalize``, shared bounds, and ``TwoSlopeNorm`` reference selection.
+Provenance covers transformation method calls, not direct colormap edits;
+special under/over/bad colors remain outside sampled-table exports.
+
+``just check`` passed all 277 tests and Ruff. Regressions verify exact reload
+and ordered replay, odd/even sample counts and alpha, Python/CLI agreement,
+headless table-only exports, invalid files and destination collisions, and
+original/transformed report artifacts. Strict Sphinx and generated Python
+examples passed. ``just docs`` regenerated all 13 Markdown mirrors and
+``llms.txt``; ``just build`` passed sdist/wheel and Twine checks. An isolated
+wheel installation verified all five data resources, eleven commands, table
+reuse, and corrected report exports outside the checkout. Additional checks:
+
+```bash
+UV_PROJECT_ENVIRONMENT=.venv.just uv run sphinx-build -n -W -b html docs/source docs/build/html
+UV_PROJECT_ENVIRONMENT=.venv.just uv run python scripts/build_llm_assets.py
+uv run --isolated --no-project --with ./dist/scicomap-1.1.1-py3-none-any.whl python scripts/smoke_wheel.py
+UV_PROJECT_ENVIRONMENT=.venv.just uv run ruff check scripts/smoke_wheel.py
+UV_PROJECT_ENVIRONMENT=.venv.just uv run ruff format --check scripts/smoke_wheel.py
+uv lock --check
+git diff --check
+```
+
+M8 and M9 remain unstarted; release version changes and publication remain
+outside this milestone.
+
+### [x] M8 — Modern tooling and short AGENTS.md
 
 **Outcome:** development checks are reproducible and contributor guidance matches
 reality.
@@ -246,7 +369,45 @@ reality.
 synchronized environment. Documented commands match the justfile and routine
 checks do not update the lockfile.
 
-### [ ] M9 — Documentation, browser tutorial, and 2.0 release readiness
+**Completed:** routine recipes use the single project ``.venv`` with locked
+synchronization and execution. ``just check`` installs only lint/test extras;
+the two tests needing Sphinx or Marimo are marked ``docs`` and run through
+``just check-docs``. The release recipe includes both sets. Maintained scripts
+join Ruff lint and formatting, and ty is in the lint extra with a required
+production-source check that also fails on warnings.
+
+The ty baseline is resolved without diagnostic suppressions: annotations match
+array, optional, callable, and figure inputs; CLI branches narrow validated
+paths; generated provider attributes use local ``getattr`` lookups. Unused
+imports, bindings, and two unreferenced CVD converters are removed. Reference
+checks identified five unused dependency declarations: pandas, ipython_genutils,
+pandoc (the Python wrapper), sphinx-autoapi, and sphinx-autodoc-typehints.
+Required numerical, plotting, palette, and CLI dependencies remain; no Pydantic
+dependency was added. Contributor commands match the recipes, and ``AGENTS.md``
+is 41 lines covering scope, scientific invariants, checks, and release limits.
+
+All 278 tests passed: 276 ordinary tests in the freshly synchronized lint/test
+environment and two separate documentation tests, including strict Sphinx and
+executable generated examples. Ruff and ty passed; docs/LLM assets, Marimo export,
+artifact validation, sdist/wheel builds, and Twine checks passed. The isolated
+wheel smoke check verified five data resources and eleven canonical commands.
+The lockfile hash stayed unchanged across routine checks. Existing Marimo
+formatting, setuptools license-metadata, and Colorspacious warnings remain.
+Validation used:
+
+```bash
+just check
+uv run --locked python -m pytest tests/core/test_cmath.py tests/core/test_catalog_plotting.py -q
+just docs check-docs
+just marimo validate-doc-artifacts build check
+uv run --isolated --no-project --with ./dist/scicomap-1.1.1-py3-none-any.whl python scripts/smoke_wheel.py
+uv lock --check
+git diff --check
+```
+
+M9 remains unstarted; the release version is unchanged.
+
+### [x] M9 — Documentation, browser tutorial, and 2.0 release readiness
 
 **Outcome:** the new version is understandable and verified as an installed
 product.
@@ -266,3 +427,54 @@ product.
 verification, installed-wheel smoke checks, and `just release-check` pass. CI
 covers the declared minimum Python version and a recent supported version.
 Publishing remains a separate authorized action.
+
+
+**Completed:** onboarding pairs the same discovery, original-map inspection,
+explicit correction, and table-reuse operations in Python and the CLI.
+Sphinx generates public signatures and NumPy-style parameter documentation;
+shared methods appear once on ``SciCoMap`` and family constructors are separate.
+Current guidance drops the removed profiles and command aliases. The v2
+migration guide supplies concise before/after examples, and ``CHANGELOG.md``
+records the breaking changes. The candidate version is ``2.0.0``.
+
+The notebook and both Marimo apps use the public shared diagnostics and the
+same selected map for assessment, simulations, and examples. Both apps expose
+the previously missing colormap selector. The browser app installs the wheel
+built from this checkout in ``marimo/public`` before importing public APIs;
+it no longer installs a floating v1 package or a copied diagnostic module.
+Live Chrome verification confirmed the 2.0.0 heading, sequential correction,
+diverging map selection, qualitative family heuristics, rendered assessment
+and CVD panels, and matching CLI stages, with no browser errors. The exported
+wheel's Python sources match the candidate source files exactly.
+
+A real stale editable-version failure led to adding the dynamic version file
+to uv's native cache keys. Existing API and wheel checks now assert agreement
+between distribution metadata and the runtime version. CI explicitly selects
+Python 3.10 and 3.14 for runtime checks and runs the full release gate for docs.
+Local ``just check`` passed 280 ordinary tests, Ruff, and ty on Python 3.10.18
+and 3.14.7. The original single-project Python 3.13 environment was restored.
+
+The final ``just release-check`` passed all 282 tests (280 ordinary plus two
+documentation tests), Ruff, ty, strict Sphinx, generated Python examples,
+14 Markdown mirrors and ``llms.txt``, Marimo export, artifact validation,
+sdist/wheel builds, Twine, and an isolated installed-wheel check. The wheel
+check verified five data resources, eleven canonical commands, version
+metadata, table reuse, and corrected reports outside the checkout. The final
+local tutorial HTML execution also passed. The lockfile stayed unchanged.
+Existing Marimo formatting, setuptools license-metadata, and upstream
+Colorspacious syntax warnings remain. Validation used:
+
+```bash
+just release-check
+uv run --locked marimo export html docs/marimo/tutorial_app.py -o /tmp/scicomap-m9-local-final.html
+uv sync --locked --python 3.10 --extra lint --extra test
+UV_PYTHON=3.10 just check
+uv sync --locked --python 3.14 --extra lint --extra test
+UV_PYTHON=3.14 just check
+uv sync --locked --python 3.13 --extra lint --extra test --extra docs
+UV_PYTHON=3.13 just release-check
+uv lock --check
+git diff --check
+```
+
+M9 is complete. Publication and release tags remain separate authorized actions.

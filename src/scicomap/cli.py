@@ -3,24 +3,28 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from importlib.util import find_spec
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Any
+from typing import Any, NoReturn
 
 import matplotlib.pyplot as plt
 import numpy as np
 import typer
-from click import ClickException
+from typer._click.exceptions import ClickException
 from matplotlib.colors import Colormap
 from rich.console import Console
 from rich.table import Table
 from typer.core import TyperGroup
 
-from scicomap._diagnostics import _diagnose_cmap
-from scicomap._llm_assets import build_markdown_mirror, write_llms_txt
-from scicomap.scicomap import SciCoMap, compare_cmap, plot_colorblind_vision
+from scicomap._diagnostics import diagnose_cmap
+from scicomap.scicomap import (
+    SciCoMap,
+    compare_cmap,
+    get_cmap_dict,
+    plot_colorblind_vision,
+)
 
 DEFAULT_TYPE = "sequential"
 DEFAULT_CMAP = "thermal"
@@ -33,104 +37,22 @@ BUILTIN_IMAGES = {
     "vortex",
     "tng",
 }
-VALID_GOALS = {"diagnose", "improve", "apply"}
 VALID_MODES = {"luminance", "first-channel", "gray-only"}
-VALID_FORMATS = {"text", "json"}
-VALID_PROFILES = {
-    "quick-look",
-    "publication",
-    "presentation",
-    "cvd-safe",
-    "agent",
-}
-PROFILE_DEFAULTS: dict[str, dict[str, Any]] = {
-    "quick-look": {
-        "goal": "diagnose",
-        "fix": False,
-        "cvd": False,
-        "apply": None,
-        "format": "text",
-        "lift": None,
-        "bitonic": True,
-        "diffuse": True,
-        "interactive": True,
-    },
-    "publication": {
-        "goal": "improve",
-        "fix": True,
-        "cvd": True,
-        "apply": None,
-        "format": "text",
-        "lift": None,
-        "bitonic": True,
-        "diffuse": True,
-        "interactive": True,
-    },
-    "presentation": {
-        "goal": "improve",
-        "fix": True,
-        "cvd": True,
-        "apply": None,
-        "format": "text",
-        "lift": 10.0,
-        "bitonic": True,
-        "diffuse": True,
-        "interactive": True,
-    },
-    "cvd-safe": {
-        "goal": "diagnose",
-        "fix": True,
-        "cvd": True,
-        "apply": None,
-        "format": "json",
-        "lift": None,
-        "bitonic": True,
-        "diffuse": True,
-        "interactive": True,
-    },
-    "agent": {
-        "goal": None,
-        "fix": False,
-        "cvd": False,
-        "apply": None,
-        "format": "json",
-        "lift": None,
-        "bitonic": True,
-        "diffuse": True,
-        "interactive": False,
-    },
-}
+_CVD_DESCRIPTION = (
+    "Colorspacious sRGB1+CVD simulations: deuteranomaly at severity 50 and "
+    "100, protanomaly at severity 50, and tritanomaly at severity 100. "
+    "RGB output is clipped to [0, 1]. These simulations do not certify "
+    "accessibility or guarantee distinguishable colors."
+)
 
 
 class _WorkflowGroup(TyperGroup):
     """Keep validation and expected runtime failures in the requested format."""
 
     def parse_args(self, ctx: Any, args: list[str]) -> list[str]:
-        options = {}
         tokens = args[: args.index("--")] if "--" in args else args
-        for index, token in enumerate(tokens):
-            key, separator, value = token.partition("=")
-            if key in {"--format", "--profile"}:
-                options[key] = (
-                    value
-                    if separator
-                    else tokens[index + 1]
-                    if index + 1 < len(tokens)
-                    else None
-                )
-        ctx.meta["json_output"] = (
-            "--json" in tokens
-            or options.get("--profile") == "agent"
-            or options.get("--format") == "json"
-            or (
-                options.get("--format") is None
-                and options.get("--profile") == "cvd-safe"
-                and tokens[:1] == ["wizard"]
-            )
-        )
-        ctx.meta["command"] = "scicomap " + " ".join(
-            args[:2] if args and args[0] in {"cmap", "docs"} else args[:1]
-        )
+        ctx.meta["json_output"] = "--json" in tokens
+        ctx.meta["command"] = "scicomap " + " ".join(args[:1])
         try:
             return super().parse_args(ctx, args)
         except ClickException as exc:
@@ -157,20 +79,17 @@ class _WorkflowGroup(TyperGroup):
                 ctx.meta["json_output"],
                 exc.exit_code,
             )
-        except (OSError, ValueError, RuntimeError, SyntaxError) as exc:
-            _fail(ctx.meta["command"], str(exc), ctx.meta["json_output"])
+        except (ValueError, SyntaxError) as exc:
+            _fail(ctx.meta["command"], str(exc), ctx.meta["json_output"], 2)
+        except (OSError, RuntimeError) as exc:
+            _fail(ctx.meta["command"], str(exc), ctx.meta["json_output"], 1)
 
 
 app = typer.Typer(
     cls=_WorkflowGroup,
     help="Scientific colormap tools for humans and agents.",
 )
-cmap_app = typer.Typer(help="Explicit colormap command aliases.")
-docs_app = typer.Typer(help="Explicit docs command aliases.")
 console = Console()
-
-app.add_typer(cmap_app, name="cmap")
-app.add_typer(docs_app, name="docs")
 
 
 def _emit(payload: dict[str, Any], as_json: bool) -> None:
@@ -199,7 +118,9 @@ def _emit(payload: dict[str, Any], as_json: bool) -> None:
         console.print(f"[yellow]warning:[/yellow] {warning}")
 
 
-def _fail(command: str, message: str, as_json: bool, code: int = 2) -> None:
+def _fail(
+    command: str, message: str, as_json: bool, code: int = 2
+) -> NoReturn:
     payload = {
         "ok": False,
         "command": command,
@@ -213,7 +134,36 @@ def _fail(command: str, message: str, as_json: bool, code: int = 2) -> None:
 
 
 def _resolve_cmap(cmap: str, ctype: str | None) -> tuple[str, Any]:
-    cmap_dict = SciCoMap.get_color_map_dic()
+    if Path(cmap).suffix == ".json":
+        path = Path(cmap)
+        if not path.is_file():
+            raise ValueError(f"Exported colormap file does not exist: {path}")
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if (
+            not isinstance(payload, dict)
+            or not {"family", "name", "rgba"} <= payload.keys()
+        ):
+            raise ValueError(
+                "Exported colormap JSON requires family, name, and rgba fields."
+            )
+        if (
+            not isinstance(payload["name"], str)
+            or not isinstance(payload["family"], str)
+            or not isinstance(payload["rgba"], list)
+        ):
+            raise ValueError(
+                "Exported colormap name and family must be strings and rgba must be a color table."
+            )
+        try:
+            chart = SciCoMap(
+                ctype=payload["family"] if ctype is None else ctype,
+                cmap=payload["rgba"],
+            )
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"Invalid exported colormap: {exc}") from exc
+        chart.cmap.name = payload["name"]
+        return chart.ctype, chart.cmap
+    cmap_dict = get_cmap_dict()
     if ctype is not None:
         if ctype not in cmap_dict:
             raise ValueError(f"Unknown ctype '{ctype}'.")
@@ -238,10 +188,10 @@ def _resolve_cmap(cmap: str, ctype: str | None) -> tuple[str, Any]:
 
 
 def _save_figure(fig: Any, out: Path | None) -> str:
-    if out is None:
-        plt.show()
-        return "displayed"
     try:
+        if out is None:
+            plt.show()
+            return "displayed"
         _validate_output(out)
         out_path = out.resolve()
         out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -263,6 +213,16 @@ def _validate_output(out: Path | None, *, directory: bool = False) -> None:
             raise ValueError(f"Output parent is not a directory: {parent}")
 
 
+def _validate_render_output(
+    out: Path | None, as_json: bool, *, directory: bool = False
+) -> None:
+    if as_json and out is None:
+        raise ValueError("Rendering with --json requires --out.")
+    _validate_output(out, directory=directory)
+    if as_json:
+        plt.switch_backend("Agg")
+
+
 def _prepare_maps(
     ctype: str, cmap_obj: Colormap, config: dict[str, Any]
 ) -> tuple[SciCoMap, SciCoMap]:
@@ -271,16 +231,11 @@ def _prepare_maps(
     if config["fix"]:
         selected = SciCoMap(ctype=ctype, cmap=cmap_obj)
         selected.unif_sym_cmap(
-            lift=config["lift"],
+            lightness_rounding=config["lightness_rounding"],
             bitonic=config["bitonic"],
             diffuse=config["diffuse"],
         )
     return original, selected
-
-
-def _validate_apply(config: dict[str, Any], image: Any) -> None:
-    if config["apply"] and image is None:
-        raise ValueError("Apply stage requires --image.")
 
 
 def _normalize(values: np.ndarray) -> np.ndarray:
@@ -346,7 +301,7 @@ def _report_output_dir(out: Path | None) -> Path:
     if out is not None:
         report_dir = out.resolve()
     else:
-        stamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
         report_dir = (Path.cwd() / f"scicomap-report-{stamp}").resolve()
     _validate_output(report_dir, directory=True)
     return report_dir
@@ -354,34 +309,44 @@ def _report_output_dir(out: Path | None) -> Path:
 
 def _write_summary_txt(report_dir: Path, payload: dict[str, Any]) -> Path:
     data = payload.get("data", {})
-    diagnostics = data.get("diagnostics", {})
     artifacts = data.get("artifacts", [])
 
     lines = [
         "scicomap report",
         f"status: {data.get('status', 'unknown')}",
-        f"goal: {data.get('goal', 'unknown')}",
+        f"fix applied: {data['actions']['fix_applied']}",
         f"cmap: {data.get('cmap', 'unknown')}",
         f"type: {data.get('type', 'unknown')}",
         f"map used: {data.get('map_used', 'unknown')}",
         "Statuses are heuristics; CVD simulations do not certify accessibility.",
-        "",
-        "diagnostics:",
-        f"- classification: {diagnostics.get('classification', 'unknown')}",
-        "- monotonic_lightness: "
-        f"{diagnostics.get('monotonic_lightness', 'unknown')}",
-        f"- extrema_count: {diagnostics.get('extrema_count', 'unknown')}",
     ]
 
-    reasons = diagnostics.get("reasons", [])
-    if reasons:
-        lines.append("- reasons:")
-        for reason in reasons:
-            lines.append(f"  - {reason}")
+    for label in ("original", "transformed"):
+        diagnostics = data[f"{label}_diagnostics"]
+        lines.extend(["", f"{label} diagnostics:"])
+        if diagnostics is None:
+            lines.append("- not requested")
+            continue
+        for key in (
+            "status",
+            "classification",
+            "monotonic_lightness",
+            "extrema_count",
+        ):
+            lines.append(f"- {key}: {diagnostics[key]}")
+        for reason in diagnostics["reasons"]:
+            lines.append(f"- reason: {reason}")
+
+    if data["cvd_simulation"] is not None:
+        lines.extend(
+            ["", f"CVD map: {data['cvd_simulation']['map']}", _CVD_DESCRIPTION]
+        )
 
     lines.extend(["", "artifacts:"])
     for artifact in artifacts:
-        lines.append(f"- {artifact['kind']}: {artifact['path']}")
+        lines.append(
+            f"- {artifact['kind']} ({artifact['map']}): {artifact['path']}"
+        )
 
     if payload.get("warnings"):
         lines.append("")
@@ -398,85 +363,6 @@ def _write_summary_txt(report_dir: Path, payload: dict[str, Any]) -> Path:
     return summary_path
 
 
-def _resolve_profile_config(
-    *,
-    profile: str | None,
-    goal: str | None,
-    has_image: bool,
-    fix: bool | None,
-    cvd: bool | None,
-    apply_output: bool | None,
-    output_format: str | None,
-    lift: float | None,
-    bitonic: bool | None,
-    diffuse: bool | None,
-    interactive: bool | None,
-) -> tuple[dict[str, Any], list[str]]:
-    resolved_profile = profile or "publication"
-    if resolved_profile not in VALID_PROFILES:
-        raise ValueError(f"Invalid profile '{resolved_profile}'.")
-
-    warnings: list[str] = []
-    defaults = PROFILE_DEFAULTS[resolved_profile]
-    cfg = dict(defaults)
-
-    if goal is not None:
-        cfg["goal"] = goal
-
-    if cfg["goal"] is None:
-        cfg["goal"] = "apply" if has_image else "diagnose"
-
-    if apply_output is not None:
-        cfg["apply"] = apply_output
-    elif defaults["apply"] is None:
-        cfg["apply"] = cfg["goal"] == "apply"
-
-    if fix is not None:
-        cfg["fix"] = fix
-    elif defaults["fix"] is None:
-        cfg["fix"] = cfg["goal"] == "improve"
-
-    if cvd is not None:
-        cfg["cvd"] = cvd
-    elif defaults["cvd"] is None:
-        cfg["cvd"] = cfg["goal"] in {"diagnose", "improve"}
-
-    if output_format is not None:
-        cfg["format"] = output_format
-    elif defaults["format"] is None:
-        cfg["format"] = "json" if resolved_profile == "agent" else "text"
-
-    if lift is not None:
-        if not np.isfinite(lift):
-            raise ValueError("--lift must be finite.")
-        cfg["lift"] = lift
-    if bitonic is not None:
-        cfg["bitonic"] = bitonic
-    if diffuse is not None:
-        cfg["diffuse"] = diffuse
-    if interactive is not None:
-        cfg["interactive"] = interactive
-
-    if resolved_profile == "cvd-safe" and cfg["cvd"] is False:
-        cfg["cvd"] = True
-        warnings.append("cvd-safe profile forces CVD analysis on.")
-
-    if resolved_profile == "agent":
-        if cfg["format"] != "json":
-            cfg["format"] = "json"
-            warnings.append("agent profile forces --format json.")
-        if cfg["interactive"] is True:
-            warnings.append("agent profile runs in non-interactive mode.")
-        cfg["interactive"] = False
-
-    if cfg["goal"] not in VALID_GOALS:
-        raise ValueError(f"Invalid goal '{cfg['goal']}'.")
-    if cfg["format"] not in VALID_FORMATS:
-        raise ValueError(f"Invalid format '{cfg['format']}'.")
-    cfg["profile"] = resolved_profile
-    return cfg, warnings
-
-
 @app.command(name="list")
 def list_command(
     family: str | None = typer.Argument(
@@ -485,7 +371,7 @@ def list_command(
     as_json: bool = typer.Option(False, "--json", help="Output JSON."),
 ) -> None:
     """List colormap families or names."""
-    cmap_dict = SciCoMap.get_color_map_dic()
+    cmap_dict = get_cmap_dict()
 
     if family is None:
         counts = {key: len(value) for key, value in cmap_dict.items()}
@@ -494,7 +380,7 @@ def list_command(
             "command": "scicomap list",
             "inputs": {"family": None},
             "data": {
-                "families": ", ".join(cmap_dict.keys()),
+                "families": list(cmap_dict),
                 "counts": counts,
             },
             "warnings": [],
@@ -536,7 +422,7 @@ def check(
     except ValueError as exc:
         _fail("scicomap check", str(exc), as_json)
 
-    diagnostics = _diagnose_cmap(cmap_obj, resolved_type)
+    diagnostics = diagnose_cmap(cmap_obj, resolved_type)
 
     payload = {
         "ok": True,
@@ -560,18 +446,23 @@ def preview(
 ) -> None:
     """Render a diagnostic figure for one colormap."""
     try:
-        resolved_type, _ = _resolve_cmap(cmap, ctype)
+        resolved_type, cmap_obj = _resolve_cmap(cmap, ctype)
     except ValueError as exc:
         _fail("scicomap preview", str(exc), as_json)
 
-    chart = SciCoMap(ctype=resolved_type, cmap=cmap)
+    _validate_render_output(out, as_json)
+    chart = SciCoMap(ctype=resolved_type, cmap=cmap_obj)
     fig = chart.assess_cmap()
     artifact = _save_figure(fig, out)
     payload = {
         "ok": True,
         "command": "scicomap preview",
         "inputs": {"cmap": cmap, "type": resolved_type},
-        "data": {"artifact": artifact},
+        "data": {
+            "artifacts": [
+                {"kind": "assessment", "path": artifact, "map": "original"}
+            ]
+        },
         "warnings": [],
         "errors": [],
     }
@@ -594,15 +485,14 @@ def compare(
     """Compare multiple colormaps on one image."""
     if ncols < 1:
         _fail("scicomap compare", "--ncols must be at least 1.", as_json)
-    _validate_output(out)
+    _validate_render_output(out, as_json)
     if len(cmaps) < 2:
         _fail(
             "scicomap compare", "Provide at least two colormap names.", as_json
         )
 
     try:
-        for name in cmaps:
-            _resolve_cmap(name, ctype)
+        resolved_maps = [_resolve_cmap(name, ctype)[1] for name in cmaps]
     except ValueError as exc:
         _fail("scicomap compare", str(exc), as_json)
 
@@ -615,13 +505,24 @@ def compare(
                 as_json,
             )
 
-    fig = compare_cmap(image=image, ctype=ctype, cm_list=cmaps, ncols=ncols)
+    fig = compare_cmap(
+        image=image,
+        ctype=ctype,
+        cm_list=resolved_maps,
+        ncols=ncols,
+        uniformize=False,
+        symmetrize=False,
+    )
     artifact = _save_figure(fig, out)
     payload = {
         "ok": True,
         "command": "scicomap compare",
         "inputs": {"cmaps": cmaps, "type": ctype, "image": image},
-        "data": {"artifact": artifact},
+        "data": {
+            "artifacts": [
+                {"kind": "comparison", "path": artifact, "map": "original"}
+            ]
+        },
         "warnings": [],
         "errors": [],
     }
@@ -632,8 +533,11 @@ def compare(
 def fix(
     cmap: str = typer.Argument(DEFAULT_CMAP, help="Colormap name."),
     ctype: str | None = typer.Option(None, "--type", help="Colormap family."),
-    lift: float | None = typer.Option(
-        None, "--lift", min=0.0, max=100.0, help="Lift value."
+    lightness_rounding: float | None = typer.Option(
+        None,
+        "--lightness-rounding",
+        min=0.0,
+        help="Lower lightness rounding step in CAM02-UCS J' units.",
     ),
     bitonic: bool = typer.Option(
         True, "--bitonic/--no-bitonic", help="Bitonic symmetrization."
@@ -644,31 +548,63 @@ def fix(
     out: Path | None = typer.Option(
         None, "--out", help="Optional output file path."
     ),
+    export: Path | None = typer.Option(
+        None,
+        "--export",
+        help="Save corrected RGBA colors and parameters as JSON.",
+    ),
     as_json: bool = typer.Option(False, "--json", help="Output JSON."),
 ) -> None:
     """Apply uniformize+symmetrize and preview result."""
-    if lift is not None and not np.isfinite(lift):
-        _fail("scicomap fix", "--lift must be finite.", as_json)
+    if lightness_rounding is not None and not np.isfinite(lightness_rounding):
+        _fail("scicomap fix", "--lightness-rounding must be finite.", as_json)
     try:
-        resolved_type, _ = _resolve_cmap(cmap, ctype)
+        resolved_type, cmap_obj = _resolve_cmap(cmap, ctype)
     except ValueError as exc:
         _fail("scicomap fix", str(exc), as_json)
 
-    chart = SciCoMap(ctype=resolved_type, cmap=cmap)
-    chart.unif_sym_cmap(lift=lift, bitonic=bitonic, diffuse=diffuse)
-    fig = chart.assess_cmap()
-    artifact = _save_figure(fig, out)
+    renders = out is not None or export is None
+    if renders:
+        _validate_render_output(out, as_json)
+    _validate_output(export)
+    if (
+        export is not None
+        and out is not None
+        and export.resolve() == out.resolve()
+    ):
+        raise ValueError("--export and --out must be different files.")
+    chart = SciCoMap(ctype=resolved_type, cmap=cmap_obj)
+    chart.unif_sym_cmap(
+        lightness_rounding=lightness_rounding, bitonic=bitonic, diffuse=diffuse
+    )
+    artifacts = []
+    if renders:
+        artifact = _save_figure(chart.assess_cmap(), out)
+        artifacts.append(
+            {"kind": "assessment", "path": artifact, "map": "transformed"}
+        )
+    if export is not None:
+        artifacts.append(
+            {
+                "kind": "color_table",
+                "path": str(chart.export_cmap(export)),
+                "map": "transformed",
+            }
+        )
     payload = {
         "ok": True,
         "command": "scicomap fix",
         "inputs": {
             "cmap": cmap,
             "type": resolved_type,
-            "lift": lift,
+            "lightness_rounding": lightness_rounding,
             "bitonic": bitonic,
             "diffuse": diffuse,
+            "export": str(export.resolve()) if export is not None else None,
         },
-        "data": {"artifact": artifact},
+        "data": {
+            "artifacts": artifacts,
+        },
         "warnings": [],
         "errors": [],
     }
@@ -690,7 +626,7 @@ def cvd_command(
     """Render color-vision-deficiency simulation for one colormap."""
     if n_colors < 1:
         _fail("scicomap cvd", "--n-colors must be at least 1.", as_json)
-    _validate_output(out)
+    _validate_render_output(out, as_json)
     try:
         resolved_type, cmap_obj = _resolve_cmap(cmap, ctype)
     except ValueError as exc:
@@ -708,7 +644,16 @@ def cvd_command(
         "ok": True,
         "command": "scicomap cvd",
         "inputs": {"cmap": cmap, "type": resolved_type, "n_colors": n_colors},
-        "data": {"artifact": artifact},
+        "data": {
+            "cvd_simulation": {
+                "map": "original",
+                "n_colors": n_colors,
+                "description": _CVD_DESCRIPTION,
+            },
+            "artifacts": [
+                {"kind": "colorblind", "path": artifact, "map": "original"}
+            ],
+        },
         "warnings": [],
         "errors": [],
     }
@@ -757,52 +702,10 @@ def apply(
             "image": str(image.resolve()),
             "mode": mode,
         },
-        "data": {"artifact": str(out_path)},
-        "warnings": [],
-        "errors": [],
-    }
-    _emit(payload, as_json=as_json)
-
-
-@app.command(name="docs-llm")
-def docs_llm(
-    html_dir: Path = typer.Option(
-        Path("docs/build/html"), "--html-dir", help="Built docs directory."
-    ),
-    base_url: str = typer.Option(
-        "https://thomasbury.github.io/scicomap",
-        "--base-url",
-        help="Canonical docs base URL.",
-    ),
-    as_json: bool = typer.Option(False, "--json", help="Output JSON."),
-) -> None:
-    """Generate markdown mirrors and llms.txt from Sphinx HTML."""
-    html_root = html_dir.resolve()
-    if not html_root.is_dir():
-        _fail(
-            "scicomap docs-llm",
-            f"Missing HTML directory: {html_root}",
-            as_json,
-        )
-    markdown_dir = html_root / "llm"
-    docs = build_markdown_mirror(html_dir=html_root, markdown_dir=markdown_dir)
-    if not docs:
-        _fail(
-            "scicomap docs-llm",
-            "No HTML pages were converted.",
-            as_json,
-            code=1,
-        )
-    write_llms_txt(html_dir=html_root, base_url=base_url, docs=docs)
-
-    payload = {
-        "ok": True,
-        "command": "scicomap docs-llm",
-        "inputs": {"html_dir": str(html_root), "base_url": base_url},
         "data": {
-            "generated_pages": len(docs),
-            "markdown_dir": str(markdown_dir),
-            "llms_txt": str((html_root / "llms.txt").resolve()),
+            "artifacts": [
+                {"kind": "applied", "path": str(out_path), "map": "original"}
+            ]
         },
         "warnings": [],
         "errors": [],
@@ -891,482 +794,368 @@ def doctor(
         raise typer.Exit(code=1)
 
 
+def _run_workflow(
+    *,
+    command: str,
+    cmap: str,
+    ctype: str | None,
+    image: str | None,
+    out: Path | None,
+    mode: str,
+    fix: bool,
+    cvd: bool,
+    apply_output: bool,
+    lightness_rounding: float | None,
+    bitonic: bool,
+    diffuse: bool,
+    as_json: bool,
+    bundle: bool,
+    export: Path | None = None,
+) -> dict[str, Any]:
+    """Prepare a map once and run only the explicitly requested stages."""
+    if mode not in VALID_MODES:
+        raise ValueError(f"Invalid mode '{mode}'.")
+    if lightness_rounding is not None and not np.isfinite(lightness_rounding):
+        raise ValueError("--lightness-rounding must be finite.")
+    if apply_output and image is None:
+        raise ValueError("Apply stage requires --image.")
+    if apply_output and out is None and not bundle:
+        raise ValueError("Apply stage requires --out.")
+    if export is not None and not fix:
+        raise ValueError("--export requires --fix in wizard.")
+    renders = (
+        bundle
+        or (fix and export is None)
+        or cvd
+        or apply_output
+        or out is not None
+    )
+    if renders:
+        _validate_render_output(out, as_json, directory=bundle)
+    resolved_type, cmap_obj = _resolve_cmap(cmap, ctype)
+    config = {
+        "fix": fix,
+        "cvd": cvd,
+        "apply": apply_output,
+        "lightness_rounding": lightness_rounding,
+        "bitonic": bitonic,
+        "diffuse": diffuse,
+    }
+    original, selected = _prepare_maps(resolved_type, cmap_obj, config)
+    selected_map = selected.cmap
+    mapped = None
+    if apply_output and image is not None and image not in BUILTIN_IMAGES:
+        mapped = _remap_image(Path(image), selected_map, mode)
+    report_dir = _report_output_dir(out) if bundle else None
+    if report_dir is not None and fix:
+        export = report_dir / "corrected-cmap.json"
+    _validate_output(export)
+    # Validate every destination before writing the first artifact.
+    outputs: list[tuple[str, Path | None, str]] = []
+    map_used = "transformed" if fix else "original"
+    if report_dir is not None:
+        outputs.append(("assessment", report_dir / "assess.png", "original"))
+        if fix:
+            outputs.append(
+                ("fixed_assessment", report_dir / "fixed-assess.png", map_used)
+            )
+    elif (fix and renders) or (out is not None and not apply_output):
+        assess_out = out
+        if apply_output and out is not None:
+            assess_out = out.with_name(out.stem + "-assess.png")
+        outputs.append(("assessment", assess_out, map_used))
+    if cvd:
+        cvd_out = (
+            report_dir / "cvd.png"
+            if report_dir is not None
+            else (
+                out.with_name(out.stem + "-cvd.png")
+                if out is not None
+                else None
+            )
+        )
+        outputs.append(("colorblind", cvd_out, map_used))
+    if apply_output:
+        outputs.append(
+            (
+                "applied",
+                report_dir / "applied.png" if report_dir is not None else out,
+                map_used,
+            )
+        )
+    for _, path, _ in outputs:
+        _validate_output(path)
+        if (
+            export is not None
+            and path is not None
+            and export.resolve() == path.resolve()
+        ):
+            raise ValueError("--export must differ from image artifact paths.")
+    if report_dir is not None:
+        for filename in ("report.json", "summary.txt"):
+            _validate_output(report_dir / filename)
+        report_dir.mkdir(parents=True, exist_ok=True)
+    artifacts = []
+    warnings = []
+    if export is not None:
+        artifacts.append(
+            {
+                "kind": "color_table",
+                "path": str(selected.export_cmap(export)),
+                "map": map_used,
+            }
+        )
+    for kind, path, used in outputs:
+        if kind in {"assessment", "fixed_assessment"}:
+            chart = original if used == "original" else selected
+            artifact = _save_figure(chart.assess_cmap(), path)
+        elif kind == "colorblind":
+            figure = plot_colorblind_vision(
+                ctype=resolved_type,
+                cmap_list=[selected_map],
+                n_colors=256,
+                uniformize=False,
+                symmetrize=False,
+            )
+            artifact = _save_figure(figure, path)
+        elif image in BUILTIN_IMAGES:
+            figure = compare_cmap(
+                image=image,
+                ctype=resolved_type,
+                cm_list=[selected_map],
+                ncols=1,
+                uniformize=False,
+                symmetrize=False,
+                title=False,
+                facecolor="white",
+            )
+            artifact = _save_figure(figure, path)
+            warnings.append(
+                "Builtin image apply uses rendered figure output rather than raw remap."
+            )
+        else:
+            assert path is not None and mapped is not None
+            path = path.resolve()
+            path.parent.mkdir(parents=True, exist_ok=True)
+            plt.imsave(path, mapped)
+            artifact = str(path)
+        artifacts.append({"kind": kind, "path": artifact, "map": used})
+    diagnostics = diagnose_cmap(selected_map, resolved_type)
+    payload = {
+        "ok": True,
+        "command": command,
+        "inputs": {
+            "cmap": cmap,
+            "type": resolved_type,
+            "image": (
+                image
+                if image is None or image in BUILTIN_IMAGES
+                else str(Path(image).resolve())
+            ),
+            "out": str(report_dir)
+            if report_dir is not None
+            else (str(out.resolve()) if out else None),
+            "mode": mode,
+            "export": str(export.resolve()) if export is not None else None,
+            **config,
+        },
+        "data": {
+            "cmap": cmap,
+            "type": resolved_type,
+            "status": diagnostics["status"],
+            "diagnostics": diagnostics,
+            "original_diagnostics": diagnose_cmap(cmap_obj, resolved_type),
+            "transformed_diagnostics": diagnostics if fix else None,
+            "cvd_simulation": {
+                "map": map_used,
+                "n_colors": 256,
+                "description": _CVD_DESCRIPTION,
+            }
+            if cvd
+            else None,
+            "map_used": map_used,
+            "actions": {
+                "fix_applied": fix,
+                "cvd_generated": cvd,
+                "image_applied": apply_output,
+            },
+            "artifacts": artifacts,
+            "next_step": "inspect the selected map with your data",
+        },
+        "warnings": warnings,
+        "errors": [],
+    }
+    if report_dir is not None:
+        report_json = report_dir / "report.json"
+        summary_path = report_dir / "summary.txt"
+        payload["data"].update(
+            report_dir=str(report_dir),
+            report_json=str(report_json),
+            summary_txt=str(summary_path),
+        )
+        artifacts.extend(
+            [
+                {"kind": "report", "path": str(report_json), "map": map_used},
+                {
+                    "kind": "summary",
+                    "path": str(summary_path),
+                    "map": map_used,
+                },
+            ]
+        )
+        report_json.write_text(
+            json.dumps(payload, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        _write_summary_txt(report_dir, payload)
+    return payload
+
+
 @app.command()
 def wizard(
-    profile: str | None = typer.Option(
-        None,
-        "--profile",
-        help=(
-            "Workflow profile: quick-look, publication, "
-            "presentation, cvd-safe, agent."
-        ),
-    ),
-    goal: str | None = typer.Option(
-        None,
-        "--goal",
-        help="Workflow goal: diagnose, improve, apply.",
-    ),
     ctype: str | None = typer.Option(None, "--type", help="Colormap family."),
     cmap: str | None = typer.Option(None, "--cmap", help="Colormap name."),
-    image: Path | None = typer.Option(
-        None, "--image", help="Image path for apply."
+    image: str | None = typer.Option(
+        None, "--image", help="Image path or builtin key for apply."
     ),
-    out: Path | None = typer.Option(
-        None, "--out", help="Optional output path."
+    out: Path | None = typer.Option(None, "--out", help="Output image path."),
+    export: Path | None = typer.Option(
+        None,
+        "--export",
+        help="Save corrected RGBA colors and parameters as JSON; requires --fix.",
     ),
     mode: str = typer.Option(
         "luminance",
         "--mode",
-        help="Image mode for apply: luminance, first-channel, gray-only.",
+        help="Image conversion: luminance, first-channel, gray-only.",
     ),
-    output_format: str | None = typer.Option(
-        None,
-        "--format",
-        help="Output format: text or json.",
-    ),
-    as_json: bool = typer.Option(False, "--json", help="Output JSON."),
     fix: bool | None = typer.Option(
-        None,
-        "--fix/--no-fix",
-        help="Apply colormap fix in improve workflows.",
+        None, "--fix/--no-fix", help="Correct the colormap."
     ),
     cvd: bool | None = typer.Option(
-        None,
-        "--cvd/--no-cvd",
-        help="Enable colorblind checks in diagnostics workflows.",
+        None, "--cvd/--no-cvd", help="Generate a CVD simulation."
     ),
     apply_output: bool | None = typer.Option(
-        None,
-        "--apply/--no-apply",
-        help="Enable image apply stage.",
+        None, "--apply/--no-apply", help="Apply the map to an image."
     ),
-    lift: float | None = typer.Option(
+    lightness_rounding: float | None = typer.Option(
         None,
-        "--lift",
+        "--lightness-rounding",
         min=0.0,
-        max=100.0,
-        help="Lift value for improve stage.",
+        help="Lower lightness rounding step in CAM02-UCS J' units.",
     ),
-    bitonic: bool | None = typer.Option(
-        None,
-        "--bitonic/--no-bitonic",
-        help="Bitonic symmetrization for improve stage.",
+    bitonic: bool = typer.Option(
+        True, "--bitonic/--no-bitonic", help="Bitonic symmetrization."
     ),
-    diffuse: bool | None = typer.Option(
-        None,
-        "--diffuse/--no-diffuse",
-        help="Diffuse symmetrization for improve stage.",
+    diffuse: bool = typer.Option(
+        True, "--diffuse/--no-diffuse", help="Diffuse symmetrization."
     ),
     interactive: bool = typer.Option(
         True,
         "--interactive/--no-interactive",
-        help="Prompt for missing values.",
+        help="Prompt for missing choices in text mode.",
+    ),
+    as_json: bool = typer.Option(
+        False,
+        "--json",
+        help="Output JSON without prompting or displaying figures.",
     ),
 ) -> None:
-    """Run a guided workflow for diagnose, improve, or apply.
-
-    Examples
-    --------
-    scicomap wizard
-    scicomap wizard --goal diagnose --cmap thermal --type sequential \
-        --no-interactive --json
-    """
-    explicit_format = output_format
-    if as_json:
-        explicit_format = "json"
-
-    try:
-        effective, profile_warnings = _resolve_profile_config(
-            profile=profile,
-            goal=goal,
-            has_image=image is not None,
-            fix=fix,
-            cvd=cvd,
-            apply_output=apply_output,
-            output_format=explicit_format,
-            lift=lift,
-            bitonic=bitonic,
-            diffuse=diffuse,
-            interactive=interactive,
-        )
-    except ValueError as exc:
-        _fail(
-            "scicomap wizard",
-            str(exc),
-            as_json
-            or explicit_format == "json"
-            or profile == "agent"
-            or (profile == "cvd-safe" and explicit_format is None),
-        )
-
-    as_json = effective["format"] == "json"
-    selected_goal = effective["goal"]
-    selected_type = ctype
-    selected_cmap = cmap
-    selected_image = image
-    selected_interactive = effective["interactive"]
-
-    if selected_interactive:
-        if selected_type is None:
-            selected_type = typer.prompt("Colormap type", default=DEFAULT_TYPE)
-        if selected_cmap is None:
-            selected_cmap = typer.prompt("Colormap name", default=DEFAULT_CMAP)
-        if effective["apply"] and selected_image is None:
-            selected_image = Path(typer.prompt("Image path"))
-        if out is None and typer.confirm(
-            "Save output to file?", default=False
-        ):
-            out = Path(typer.prompt("Output path"))
-
-    if selected_cmap is None:
-        _fail("scicomap wizard", "Missing --cmap value.", as_json)
-    if mode not in VALID_MODES:
-        _fail("scicomap wizard", f"Invalid mode '{mode}'.", as_json)
-
-    _validate_apply(effective, selected_image)
-    _validate_output(out)
-
-    try:
-        resolved_type, cmap_obj = _resolve_cmap(selected_cmap, selected_type)
-    except ValueError as exc:
-        _fail("scicomap wizard", str(exc), as_json)
-
-    result: dict[str, Any] = {
-        "goal": selected_goal,
-        "cmap": selected_cmap,
-        "type": resolved_type,
-    }
-    warnings = list(profile_warnings)
-    _, chart = _prepare_maps(resolved_type, cmap_obj, effective)
-    selected_map = chart.get_mpl_color_map()
-    result["diagnostics"] = _diagnose_cmap(selected_map, resolved_type)
-    result["original_diagnostics"] = _diagnose_cmap(cmap_obj, resolved_type)
-    result["map_used"] = "transformed" if effective["fix"] else "original"
-    artifacts = []
-    mapped = None
-    if effective["apply"]:
-        mapped = _remap_image(selected_image, selected_map, mode)
+    """Inspect a map, with optional guided correction, simulation, and apply."""
+    if interactive and not as_json:
+        if ctype is None:
+            ctype = typer.prompt("Colormap type", default=DEFAULT_TYPE)
+        if cmap is None:
+            cmap = typer.prompt("Colormap name", default=DEFAULT_CMAP)
+        if fix is None:
+            fix = typer.confirm("Correct the colormap?", default=False)
+        if cvd is None:
+            cvd = typer.confirm("Generate a CVD simulation?", default=False)
+        if apply_output is None:
+            apply_output = typer.confirm("Apply to an image?", default=False)
+        if apply_output and image is None:
+            image = typer.prompt("Image path or builtin key")
         if out is None:
-            warnings.append(
-                "No --out provided; writing 'scicomap-applied.png' in cwd."
-            )
-            out = Path("scicomap-applied.png")
-        _validate_output(out)
-
-    assess_out = out
-    if effective["apply"]:
-        assess_out = out.with_name(out.stem + "-assess.png")
-    cvd_out = None if out is None else out.with_name(out.stem + "-cvd.png")
-    if selected_goal == "improve" or effective["fix"]:
-        _validate_output(assess_out)
-    if effective["cvd"]:
-        _validate_output(cvd_out)
-
-    if selected_goal == "improve" or effective["fix"]:
-        result["artifact"] = _save_figure(chart.assess_cmap(), assess_out)
-        artifacts.append({"kind": "assessment", "path": result["artifact"]})
-    if effective["cvd"]:
-        figure = plot_colorblind_vision(
-            ctype=resolved_type,
-            cmap_list=[selected_map],
-            n_colors=256,
-            uniformize=False,
-            symmetrize=False,
-        )
-        artifact = _save_figure(figure, cvd_out)
-        artifacts.append({"kind": "colorblind", "path": artifact})
-    if effective["apply"]:
-        out_path = out.resolve()
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        plt.imsave(out_path, mapped)
-        result["artifact"] = str(out_path)
-        artifacts.append({"kind": "applied", "path": str(out_path)})
-    result["artifacts"] = artifacts
-    for artifact in artifacts:
-        artifact["map"] = result["map_used"]
-    result["actions"] = {
-        "fix_applied": effective["fix"],
-        "cvd_generated": effective["cvd"],
-        "image_applied": effective["apply"],
-    }
-    result["next_step"] = "inspect the selected map with your data"
-
-    payload = {
-        "ok": True,
-        "command": "scicomap wizard",
-        "inputs": {
-            "goal": selected_goal,
-            "type": resolved_type,
-            "cmap": selected_cmap,
-            "image": (
-                None
-                if selected_image is None
-                else str(selected_image.resolve())
-            ),
-            "out": None if out is None else str(out.resolve()),
-            "mode": mode,
-            "interactive": selected_interactive,
-            "profile": effective["profile"],
-            "format": effective["format"],
-        },
-        "data": {**result, "effective_config": effective},
-        "warnings": warnings,
-        "errors": [],
-    }
-    _emit(payload, as_json=as_json)
+            if apply_output or typer.confirm(
+                "Save an assessment?", default=False
+            ):
+                out = Path(typer.prompt("Output path"))
+    payload = _run_workflow(
+        command="scicomap wizard",
+        cmap=cmap or DEFAULT_CMAP,
+        ctype=ctype,
+        image=image,
+        out=out,
+        mode=mode,
+        fix=bool(fix),
+        cvd=bool(cvd),
+        apply_output=bool(apply_output),
+        lightness_rounding=lightness_rounding,
+        bitonic=bitonic,
+        diffuse=diffuse,
+        as_json=as_json,
+        bundle=False,
+        export=export,
+    )
+    _emit(payload, as_json)
 
 
 @app.command()
 def report(
     cmap: str = typer.Option(DEFAULT_CMAP, "--cmap", help="Colormap name."),
     ctype: str | None = typer.Option(None, "--type", help="Colormap family."),
-    profile: str | None = typer.Option(
-        None,
-        "--profile",
-        help=(
-            "Workflow profile: quick-look, publication, "
-            "presentation, cvd-safe, agent."
-        ),
-    ),
     image: str | None = typer.Option(
-        None, "--image", help="Input image path or builtin key."
+        None, "--image", help="Image path or builtin key for apply."
     ),
-    goal: str | None = typer.Option(
-        None,
-        "--goal",
-        help="Workflow goal: diagnose, improve, apply.",
-    ),
-    fix: bool | None = typer.Option(
-        None,
-        "--fix/--no-fix",
-        help="Apply colormap fix stage.",
-    ),
-    cvd: bool | None = typer.Option(
-        None,
-        "--cvd/--no-cvd",
-        help="Generate colorblind simulation artifact.",
-    ),
-    apply_output: bool | None = typer.Option(
-        None,
-        "--apply/--no-apply",
-        help="Generate colormap-applied image.",
+    out: Path | None = typer.Option(
+        None, "--out", help="Output report directory; required with --json."
     ),
     mode: str = typer.Option(
         "luminance",
         "--mode",
-        help="Image mode for apply: luminance, first-channel, gray-only.",
+        help="Image conversion: luminance, first-channel, gray-only.",
     ),
-    lift: float | None = typer.Option(
+    fix: bool = typer.Option(
+        False, "--fix/--no-fix", help="Correct the colormap."
+    ),
+    cvd: bool = typer.Option(
+        False, "--cvd/--no-cvd", help="Generate a CVD simulation."
+    ),
+    apply_output: bool = typer.Option(
+        False, "--apply/--no-apply", help="Apply the map to an image."
+    ),
+    lightness_rounding: float | None = typer.Option(
         None,
-        "--lift",
+        "--lightness-rounding",
         min=0.0,
-        max=100.0,
-        help="Lift value for fix stage.",
+        help="Lower lightness rounding step in CAM02-UCS J' units.",
     ),
-    bitonic: bool | None = typer.Option(
-        None,
-        "--bitonic/--no-bitonic",
-        help="Bitonic symmetrization for fix stage.",
+    bitonic: bool = typer.Option(
+        True, "--bitonic/--no-bitonic", help="Bitonic symmetrization."
     ),
-    diffuse: bool | None = typer.Option(
-        None,
-        "--diffuse/--no-diffuse",
-        help="Diffuse symmetrization for fix stage.",
+    diffuse: bool = typer.Option(
+        True, "--diffuse/--no-diffuse", help="Diffuse symmetrization."
     ),
-    out: Path | None = typer.Option(
-        None, "--out", help="Output report directory."
-    ),
-    output_format: str = typer.Option(
-        "text",
-        "--format",
-        help="Output format: text or json.",
-    ),
+    as_json: bool = typer.Option(False, "--json", help="Output JSON."),
 ) -> None:
-    """Generate a full report bundle for one colormap workflow.
-
-    Examples
-    --------
-    scicomap report --cmap hawaii --type sequential --out reports/hawaii
-    scicomap report --cmap thermal --image input.png --apply --format json
-    """
-    try:
-        effective, profile_warnings = _resolve_profile_config(
-            profile=profile,
-            goal=goal,
-            has_image=image is not None,
-            fix=fix,
-            cvd=cvd,
-            apply_output=apply_output,
-            output_format=output_format,
-            lift=lift,
-            bitonic=bitonic,
-            diffuse=diffuse,
-            interactive=None,
-        )
-    except ValueError as exc:
-        _fail(
-            "scicomap report",
-            str(exc),
-            output_format == "json" or profile == "agent",
-        )
-
-    as_json = effective["format"] == "json"
-    resolved_goal = effective["goal"]
-    if mode not in VALID_MODES:
-        _fail("scicomap report", f"Invalid mode '{mode}'.", as_json)
-
-    run_fix = effective["fix"]
-    run_cvd = effective["cvd"]
-    run_apply = effective["apply"]
-    _validate_apply(effective, image)
-    _validate_output(out, directory=True)
-
-    try:
-        resolved_type, cmap_obj = _resolve_cmap(cmap, ctype)
-    except ValueError as exc:
-        _fail("scicomap report", str(exc), as_json)
-
-    original_chart, selected_chart = _prepare_maps(
-        resolved_type, cmap_obj, effective
+    """Write an inspection report; enable correction, CVD, and apply explicitly."""
+    payload = _run_workflow(
+        command="scicomap report",
+        cmap=cmap,
+        ctype=ctype,
+        image=image,
+        out=out,
+        mode=mode,
+        fix=fix,
+        cvd=cvd,
+        apply_output=apply_output,
+        lightness_rounding=lightness_rounding,
+        bitonic=bitonic,
+        diffuse=diffuse,
+        as_json=as_json,
+        bundle=True,
     )
-    selected_map = selected_chart.get_mpl_color_map()
-    diagnostics = _diagnose_cmap(selected_map, resolved_type)
-    original_diagnostics = _diagnose_cmap(cmap_obj, resolved_type)
-    mapped = None
-    if run_apply and image not in BUILTIN_IMAGES:
-        mapped = _remap_image(Path(image), selected_map, mode)
-    report_dir = _report_output_dir(out)
-    filenames = ["report.json", "summary.txt"]
-    if resolved_goal in {"diagnose", "improve"}:
-        filenames.append("assess.png")
-    if run_fix:
-        filenames.append("fixed-assess.png")
-    if run_cvd:
-        filenames.append("cvd.png")
-    if run_apply:
-        filenames.append("applied.png")
-    for filename in filenames:
-        _validate_output(report_dir / filename)
-    report_dir.mkdir(parents=True, exist_ok=True)
-    artifacts: list[dict[str, str]] = []
-    warnings = list(profile_warnings)
-
-    if resolved_goal in {"diagnose", "improve"}:
-        assess_path = report_dir / "assess.png"
-        artifact = _save_figure(original_chart.assess_cmap(), assess_path)
-        artifacts.append(
-            {"kind": "assessment", "path": artifact, "format": "png"}
-        )
-
-    if run_fix:
-        fixed_path = report_dir / "fixed-assess.png"
-        artifact = _save_figure(selected_chart.assess_cmap(), fixed_path)
-        artifacts.append(
-            {"kind": "fixed_assessment", "path": artifact, "format": "png"}
-        )
-
-    if run_cvd:
-        cvd_path = report_dir / "cvd.png"
-        cvd_fig = plot_colorblind_vision(
-            ctype=resolved_type,
-            cmap_list=[selected_map],
-            n_colors=256,
-            uniformize=False,
-            symmetrize=False,
-        )
-        artifact = _save_figure(cvd_fig, cvd_path)
-        artifacts.append(
-            {"kind": "colorblind", "path": artifact, "format": "png"}
-        )
-
-    if run_apply:
-        applied_path = report_dir / "applied.png"
-        if image in BUILTIN_IMAGES:
-            apply_fig = compare_cmap(
-                image=image,
-                ctype=resolved_type,
-                cm_list=[selected_map],
-                ncols=1,
-                uniformize=False,
-                title=False,
-                symmetrize=False,
-                facecolor="white",
-            )
-            artifact = _save_figure(apply_fig, applied_path)
-            warnings.append(
-                "Builtin image apply uses rendered figure output "
-                "rather than raw remap."
-            )
-        else:
-            plt.imsave(applied_path, mapped)
-            artifact = str(applied_path.resolve())
-        artifacts.append(
-            {"kind": "applied", "path": artifact, "format": "png"}
-        )
-
-    for artifact in artifacts:
-        artifact["map"] = (
-            "original"
-            if artifact["kind"] == "assessment" or not run_fix
-            else "transformed"
-        )
-
-    next_step = "inspect this colormap with your data"
-    if diagnostics["status"] == "fix-recommended":
-        next_step = "run 'scicomap report --fix' to inspect a correction"
-
-    payload = {
-        "ok": True,
-        "command": "scicomap report",
-        "inputs": {
-            "cmap": cmap,
-            "type": resolved_type,
-            "image": image,
-            "goal": resolved_goal,
-            "fix": run_fix,
-            "cvd": run_cvd,
-            "apply": run_apply,
-            "mode": mode,
-            "lift": effective["lift"],
-            "bitonic": effective["bitonic"],
-            "diffuse": effective["diffuse"],
-            "out": str(report_dir),
-            "format": effective["format"],
-            "profile": effective["profile"],
-        },
-        "data": {
-            "status": diagnostics["status"],
-            "goal": resolved_goal,
-            "cmap": cmap,
-            "type": resolved_type,
-            "profile": effective["profile"],
-            "diagnostics": diagnostics,
-            "original_diagnostics": original_diagnostics,
-            "map_used": "transformed" if run_fix else "original",
-            "actions": {
-                "fix_applied": run_fix,
-                "cvd_generated": run_cvd,
-                "image_applied": run_apply,
-            },
-            "artifacts": artifacts,
-            "next_step": next_step,
-            "report_dir": str(report_dir),
-            "effective_config": effective,
-        },
-        "warnings": warnings,
-        "errors": [],
-    }
-
-    report_json = report_dir / "report.json"
-    report_json.write_text(
-        json.dumps(payload, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
-    summary_path = _write_summary_txt(report_dir, payload)
-    payload["data"]["report_json"] = str(report_json.resolve())
-    payload["data"]["summary_txt"] = str(summary_path.resolve())
-
-    _emit(payload, as_json=as_json)
+    _emit(payload, as_json)
 
 
 @app.command()
@@ -1385,154 +1174,6 @@ def version(
         "errors": [],
     }
     _emit(payload, as_json=as_json)
-
-
-@cmap_app.command(name="families")
-def cmap_families_alias(
-    as_json: bool = typer.Option(False, "--json", help="Output JSON."),
-) -> None:
-    """Alias for `scicomap list`."""
-    list_command(family=None, as_json=as_json)
-
-
-@cmap_app.command(name="list")
-def cmap_list_alias(
-    ctype: str = typer.Option(DEFAULT_TYPE, "--type", help="Colormap family."),
-    as_json: bool = typer.Option(False, "--json", help="Output JSON."),
-) -> None:
-    """Alias for `scicomap list <family>`."""
-    list_command(family=ctype, as_json=as_json)
-
-
-@cmap_app.command(name="assess")
-def cmap_assess_alias(
-    cmap: str = typer.Option(DEFAULT_CMAP, "--cmap", help="Colormap name."),
-    ctype: str | None = typer.Option(None, "--type", help="Colormap family."),
-    out: Path | None = typer.Option(
-        None, "--out", help="Optional output file path."
-    ),
-    as_json: bool = typer.Option(False, "--json", help="Output JSON."),
-) -> None:
-    """Alias for `scicomap preview`."""
-    preview(cmap=cmap, ctype=ctype, out=out, as_json=as_json)
-
-
-@cmap_app.command(name="compare")
-def cmap_compare_alias(
-    cmaps: list[str] = typer.Option(..., "--cmaps", help="Colormap names."),
-    ctype: str = typer.Option(DEFAULT_TYPE, "--type", help="Colormap family."),
-    image: str = typer.Option(
-        "scan", "--image", help="Builtin key or image path."
-    ),
-    out: Path | None = typer.Option(
-        None, "--out", help="Optional output file path."
-    ),
-    ncols: int = typer.Option(3, "--ncols", help="Number of subplot columns."),
-    as_json: bool = typer.Option(False, "--json", help="Output JSON."),
-) -> None:
-    """Alias for `scicomap compare`."""
-    compare(
-        cmaps=cmaps,
-        ctype=ctype,
-        image=image,
-        out=out,
-        ncols=ncols,
-        as_json=as_json,
-    )
-
-
-@cmap_app.command(name="fix")
-def cmap_fix_alias(
-    cmap: str = typer.Option(DEFAULT_CMAP, "--cmap", help="Colormap name."),
-    ctype: str | None = typer.Option(None, "--type", help="Colormap family."),
-    lift: float | None = typer.Option(
-        None, "--lift", min=0.0, max=100.0, help="Lift value."
-    ),
-    bitonic: bool = typer.Option(
-        True, "--bitonic/--no-bitonic", help="Bitonic symmetrization."
-    ),
-    diffuse: bool = typer.Option(
-        True, "--diffuse/--no-diffuse", help="Diffuse symmetrization."
-    ),
-    out: Path | None = typer.Option(
-        None, "--out", help="Optional output file path."
-    ),
-    as_json: bool = typer.Option(False, "--json", help="Output JSON."),
-) -> None:
-    """Alias for `scicomap fix`."""
-    fix(
-        cmap=cmap,
-        ctype=ctype,
-        lift=lift,
-        bitonic=bitonic,
-        diffuse=diffuse,
-        out=out,
-        as_json=as_json,
-    )
-
-
-@cmap_app.command(name="colorblind")
-def cmap_colorblind_alias(
-    cmap: str = typer.Option(DEFAULT_CMAP, "--cmap", help="Colormap name."),
-    ctype: str | None = typer.Option(None, "--type", help="Colormap family."),
-    out: Path | None = typer.Option(
-        None, "--out", help="Optional output file path."
-    ),
-    n_colors: int = typer.Option(
-        256, "--n-colors", help="Number of color bins."
-    ),
-    as_json: bool = typer.Option(False, "--json", help="Output JSON."),
-) -> None:
-    """Alias for `scicomap cvd`."""
-    cvd_command(
-        cmap=cmap,
-        ctype=ctype,
-        out=out,
-        n_colors=n_colors,
-        as_json=as_json,
-    )
-
-
-@cmap_app.command(name="apply")
-def cmap_apply_alias(
-    cmap: str = typer.Option(DEFAULT_CMAP, "--cmap", help="Colormap name."),
-    image: Path = typer.Option(
-        ..., "--image", exists=True, readable=True, help="User image path."
-    ),
-    ctype: str | None = typer.Option(None, "--type", help="Colormap family."),
-    mode: str = typer.Option(
-        "luminance",
-        "--mode",
-        help="Image conversion mode: luminance, first-channel, or gray-only.",
-    ),
-    out: Path = typer.Option(..., "--out", help="Output image path."),
-    as_json: bool = typer.Option(False, "--json", help="Output JSON."),
-) -> None:
-    """Alias for `scicomap apply`."""
-    apply(
-        cmap=cmap,
-        image=image,
-        ctype=ctype,
-        mode=mode,
-        out=out,
-        as_json=as_json,
-    )
-
-
-@docs_app.command(name="llm-assets")
-def docs_llm_assets_alias(
-    html_dir: Path = typer.Option(
-        Path("docs/build/html"), "--html-dir", help="Built docs directory."
-    ),
-    base_url: str = typer.Option(
-        "https://thomasbury.github.io/scicomap",
-        "--base-url",
-        help="Canonical docs base URL.",
-    ),
-    as_json: bool = typer.Option(False, "--json", help="Output JSON."),
-) -> None:
-    """Alias for `scicomap docs-llm`."""
-    docs_llm(html_dir=html_dir, base_url=base_url, as_json=as_json)
 
 
 def main() -> None:

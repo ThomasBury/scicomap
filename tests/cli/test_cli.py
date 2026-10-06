@@ -11,7 +11,7 @@ from matplotlib import pyplot as plt
 from typer.testing import CliRunner
 
 from scicomap.cblind import colorblind_vision
-from scicomap.cli import app, _resolve_profile_config, _validate_apply
+from scicomap.cli import app
 
 
 def test_list_families_json() -> None:
@@ -20,7 +20,8 @@ def test_list_families_json() -> None:
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
     assert payload["ok"] is True
-    assert "families" in payload["data"]
+    assert isinstance(payload["data"]["families"], list)
+    assert set(payload["data"]["families"]) == set(payload["data"]["counts"])
 
 
 def test_check_thermal_json() -> None:
@@ -47,11 +48,9 @@ def test_check_thermal_json() -> None:
     }
 
 
-def test_long_form_alias_list_json() -> None:
+def test_list_names_json() -> None:
     runner = CliRunner()
-    result = runner.invoke(
-        app, ["cmap", "list", "--type", "sequential", "--json"]
-    )
+    result = runner.invoke(app, ["list", "sequential", "--json"])
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
     assert payload["ok"] is True
@@ -80,8 +79,6 @@ def test_wizard_noninteractive_diagnose_json() -> None:
         app,
         [
             "wizard",
-            "--goal",
-            "diagnose",
             "--type",
             "sequential",
             "--cmap",
@@ -93,7 +90,7 @@ def test_wizard_noninteractive_diagnose_json() -> None:
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
     assert payload["ok"] is True
-    assert payload["data"]["goal"] == "diagnose"
+    assert payload["data"]["map_used"] == "original"
     assert "diagnostics" in payload["data"]
 
 
@@ -110,8 +107,7 @@ def test_report_diagnose_writes_bundle(tmp_path: Path) -> None:
             "sequential",
             "--out",
             str(out_dir),
-            "--format",
-            "json",
+            "--json",
         ],
     )
     assert result.exit_code == 0
@@ -137,14 +133,12 @@ def test_report_apply_writes_image(tmp_path: Path) -> None:
             "thermal",
             "--type",
             "sequential",
-            "--goal",
-            "apply",
+            "--apply",
             "--image",
             str(image_path),
             "--out",
             str(out_dir),
-            "--format",
-            "json",
+            "--json",
         ],
     )
     assert result.exit_code == 0
@@ -165,288 +159,18 @@ def test_report_apply_builtin_image_writes_image(tmp_path: Path) -> None:
             "thermal",
             "--type",
             "sequential",
-            "--goal",
-            "apply",
+            "--apply",
             "--image",
             "grmhd",
             "--out",
             str(out_dir),
-            "--format",
-            "json",
+            "--json",
         ],
     )
     assert result.exit_code == 0
     payload = json.loads(result.stdout)
     assert payload["ok"] is True
     assert (out_dir / "applied.png").exists()
-
-
-@pytest.mark.parametrize(
-    ("kwargs", "expected"),
-    [
-        (
-            {
-                "profile": "quick-look",
-                "goal": None,
-                "has_image": False,
-            },
-            {
-                "goal": "diagnose",
-                "fix": False,
-                "cvd": False,
-                "apply": False,
-                "format": "text",
-            },
-        ),
-        (
-            {
-                "profile": "quick-look",
-                "goal": None,
-                "has_image": True,
-                "apply_output": True,
-            },
-            {
-                "goal": "diagnose",
-                "fix": False,
-                "cvd": False,
-                "apply": True,
-                "format": "text",
-            },
-        ),
-        (
-            {
-                "profile": "publication",
-                "goal": None,
-                "has_image": False,
-            },
-            {
-                "goal": "improve",
-                "fix": True,
-                "cvd": True,
-                "apply": False,
-                "format": "text",
-            },
-        ),
-        (
-            {
-                "profile": "publication",
-                "goal": None,
-                "has_image": True,
-                "apply_output": True,
-            },
-            {
-                "goal": "improve",
-                "fix": True,
-                "cvd": True,
-                "apply": True,
-                "format": "text",
-            },
-        ),
-        (
-            {
-                "profile": "presentation",
-                "goal": None,
-                "has_image": False,
-            },
-            {
-                "goal": "improve",
-                "fix": True,
-                "cvd": True,
-                "apply": False,
-                "lift": 10.0,
-                "format": "text",
-            },
-        ),
-        (
-            {
-                "profile": "presentation",
-                "goal": "diagnose",
-                "has_image": False,
-            },
-            {
-                "goal": "diagnose",
-                "fix": True,
-                "cvd": True,
-                "apply": False,
-                "format": "text",
-            },
-        ),
-        (
-            {
-                "profile": "cvd-safe",
-                "goal": None,
-                "has_image": False,
-            },
-            {
-                "goal": "diagnose",
-                "fix": True,
-                "cvd": True,
-                "apply": False,
-                "format": "json",
-            },
-        ),
-        (
-            {
-                "profile": "cvd-safe",
-                "goal": None,
-                "has_image": False,
-                "cvd": False,
-            },
-            {
-                "goal": "diagnose",
-                "fix": True,
-                "cvd": True,
-                "apply": False,
-                "format": "json",
-            },
-        ),
-        (
-            {
-                "profile": "agent",
-                "goal": None,
-                "has_image": False,
-            },
-            {
-                "goal": "diagnose",
-                "fix": False,
-                "cvd": False,
-                "apply": False,
-                "format": "json",
-                "interactive": False,
-            },
-        ),
-        (
-            {
-                "profile": "agent",
-                "goal": "apply",
-                "has_image": True,
-                "apply_output": True,
-            },
-            {
-                "goal": "apply",
-                "fix": False,
-                "cvd": False,
-                "apply": True,
-                "format": "json",
-                "interactive": False,
-            },
-        ),
-        (
-            {
-                "profile": "agent",
-                "goal": None,
-                "has_image": False,
-                "output_format": "text",
-            },
-            {
-                "goal": "diagnose",
-                "fix": False,
-                "cvd": False,
-                "apply": False,
-                "format": "json",
-            },
-        ),
-        (
-            {
-                "profile": "quick-look",
-                "goal": "apply",
-                "has_image": True,
-                "apply_output": True,
-            },
-            {
-                "goal": "apply",
-                "fix": False,
-                "cvd": False,
-                "apply": True,
-                "format": "text",
-            },
-        ),
-    ],
-)
-def test_profile_resolution_matrix(
-    kwargs: dict[str, object], expected: dict[str, object]
-) -> None:
-    config, _warnings = _resolve_profile_config(
-        profile=kwargs.get("profile"),
-        goal=kwargs.get("goal"),
-        has_image=bool(kwargs.get("has_image", False)),
-        fix=kwargs.get("fix"),
-        cvd=kwargs.get("cvd"),
-        apply_output=kwargs.get("apply_output"),
-        output_format=kwargs.get("output_format"),
-        lift=kwargs.get("lift"),
-        bitonic=kwargs.get("bitonic"),
-        diffuse=kwargs.get("diffuse"),
-        interactive=kwargs.get("interactive"),
-    )
-    for key, value in expected.items():
-        assert config[key] == value
-
-
-def test_profile_resolution_apply_without_image_fails() -> None:
-    config, _ = _resolve_profile_config(
-        profile="quick-look",
-        goal="apply",
-        has_image=False,
-        fix=None,
-        cvd=None,
-        apply_output=True,
-        output_format=None,
-        lift=None,
-        bitonic=None,
-        diffuse=None,
-        interactive=None,
-    )
-    with pytest.raises(ValueError, match="requires --image"):
-        _validate_apply(config, None)
-
-
-def test_report_cvd_safe_enforces_cvd(tmp_path: Path) -> None:
-    runner = CliRunner()
-    out_dir = tmp_path / "cvd-safe"
-    result = runner.invoke(
-        app,
-        [
-            "report",
-            "--profile",
-            "cvd-safe",
-            "--cmap",
-            "thermal",
-            "--type",
-            "sequential",
-            "--no-cvd",
-            "--out",
-            str(out_dir),
-            "--format",
-            "json",
-        ],
-    )
-    assert result.exit_code == 0
-    payload = json.loads(result.stdout)
-    assert payload["data"]["actions"]["cvd_generated"] is True
-    assert payload["warnings"]
-
-
-def test_wizard_agent_profile_forces_json_and_noninteractive() -> None:
-    runner = CliRunner()
-    result = runner.invoke(
-        app,
-        [
-            "wizard",
-            "--profile",
-            "agent",
-            "--goal",
-            "diagnose",
-            "--type",
-            "sequential",
-            "--cmap",
-            "thermal",
-        ],
-    )
-    assert result.exit_code == 0
-    payload = json.loads(result.stdout)
-    assert payload["inputs"]["interactive"] is False
-    assert payload["inputs"]["format"] == "json"
 
 
 def test_apply_grayscale_image(tmp_path: Path) -> None:
@@ -482,3 +206,188 @@ def test_colorblind_vision_default_figsize_is_readable() -> None:
         assert fig.get_size_inches()[1] >= 5.5
     finally:
         plt.close(fig)
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["preview"],
+        ["compare", "hawaii", "viridis"],
+        ["fix"],
+        ["cvd"],
+        ["report"],
+        ["wizard", "--fix"],
+        ["wizard", "--cvd"],
+    ],
+)
+def test_machine_rendering_requires_destination(
+    args, tmp_path, monkeypatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(plt, "show", lambda: pytest.fail("Opened a window"))
+    result = CliRunner().invoke(app, [*args, "--json"])
+    assert result.exit_code == 2
+    payload = json.loads(result.stdout)
+    assert "requires --out" in payload["errors"][0]
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_machine_inspection_never_prompts_or_transforms(
+    tmp_path, monkeypatch
+) -> None:
+    import typer
+    from scicomap import SciCoMap
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("Inspection prompted, rendered, or transformed")
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(typer, "prompt", forbidden)
+    monkeypatch.setattr(typer, "confirm", forbidden)
+    monkeypatch.setattr(plt, "show", forbidden)
+    monkeypatch.setattr(SciCoMap, "unif_sym_cmap", forbidden)
+    monkeypatch.setattr(SciCoMap, "assess_cmap", forbidden)
+    result = CliRunner().invoke(
+        app, ["wizard", "--lightness-rounding", "10", "--json"]
+    )
+    assert result.exit_code == 0, result.output
+    data = json.loads(result.stdout)["data"]
+    assert data["map_used"] == "original"
+    assert data["artifacts"] == []
+    assert not any(data["actions"].values())
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_canonical_command_help() -> None:
+    from typer.main import get_command
+
+    command = get_command(app)
+    assert set(command.commands) == {
+        "list",
+        "check",
+        "preview",
+        "compare",
+        "fix",
+        "cvd",
+        "apply",
+        "doctor",
+        "wizard",
+        "report",
+        "version",
+    }
+    runner = CliRunner()
+    for name in [None, *command.commands]:
+        result = runner.invoke(app, ([name] if name else []) + ["--help"])
+        assert result.exit_code == 0, result.output
+        assert "Usage:" in result.stdout
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "list",
+        "check",
+        "preview",
+        "compare",
+        "fix",
+        "cvd",
+        "apply",
+        "doctor",
+        "wizard",
+        "report",
+        "version",
+    ],
+)
+def test_human_and_json_run_same_operations(
+    command, tmp_path, monkeypatch
+) -> None:
+    import scicomap.cli as cli
+    from scicomap import SciCoMap
+
+    monkeypatch.setattr(plt, "show", lambda: pytest.fail("Opened a window"))
+    monkeypatch.setattr(SciCoMap, "assess_cmap", lambda self: plt.figure())
+    monkeypatch.setattr(
+        cli, "plot_colorblind_vision", lambda **kwargs: plt.figure()
+    )
+
+    def compare(**kwargs):
+        assert kwargs["uniformize"] is False
+        assert kwargs["symmetrize"] is False
+        return plt.figure()
+
+    monkeypatch.setattr(cli, "compare_cmap", compare)
+    image = tmp_path / "input.png"
+    plt.imsave(image, np.arange(4).reshape(2, 2), cmap="gray")
+    args = [command]
+    if command == "compare":
+        args += ["thermal", "viridis"]
+    if command == "apply":
+        args += ["--image", str(image)]
+    if command in {"preview", "compare", "fix", "cvd", "apply", "wizard"}:
+        args += ["--out", str(tmp_path / "out.png")]
+    if command in {"wizard", "report"}:
+        args += [
+            "--cmap",
+            "thermal",
+            "--fix",
+            "--cvd",
+            "--apply",
+            "--image",
+            str(image),
+        ]
+    if command == "wizard":
+        args += ["--no-interactive"]
+    if command == "report":
+        args += ["--out", str(tmp_path / "report")]
+    if command == "doctor":
+        args += ["--out-dir", str(tmp_path)]
+    emitted = []
+    original_emit = cli._emit
+
+    def capture(payload, as_json):
+        emitted.append(payload)
+        original_emit(payload, as_json)
+
+    monkeypatch.setattr(cli, "_emit", capture)
+    runner = CliRunner()
+    human = runner.invoke(app, args)
+    machine = runner.invoke(app, [*args, "--json"])
+    assert human.exit_code == machine.exit_code == 0, (
+        human.output,
+        machine.output,
+    )
+    assert emitted[0] == emitted[1] == json.loads(machine.stdout)
+    assert set(emitted[1]) == {
+        "ok",
+        "command",
+        "inputs",
+        "data",
+        "warnings",
+        "errors",
+    }
+    for artifact in emitted[1]["data"].get("artifacts", []):
+        assert set(artifact) == {"kind", "path", "map"}
+        assert Path(artifact["path"]).is_absolute()
+        assert Path(artifact["path"]).is_file()
+    if command == "report":
+        assert (
+            json.loads((tmp_path / "report/report.json").read_text())
+            == emitted[1]
+        )
+
+
+def test_json_rendering_uses_headless_backend(tmp_path, monkeypatch) -> None:
+    from scicomap import SciCoMap
+
+    original_backend = plt.get_backend()
+    try:
+        plt.switch_backend("svg")
+        monkeypatch.setattr(SciCoMap, "assess_cmap", lambda self: plt.figure())
+        result = CliRunner().invoke(
+            app, ["preview", "--out", str(tmp_path / "preview.png"), "--json"]
+        )
+        assert result.exit_code == 0, result.output
+        assert plt.get_backend().lower() == "agg"
+        assert (tmp_path / "preview.png").is_file()
+    finally:
+        plt.switch_backend(original_backend)

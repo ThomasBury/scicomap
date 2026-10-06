@@ -2,27 +2,17 @@
 
 from __future__ import annotations
 
-import importlib.util
 import json
 from pathlib import Path
 
+import pytest
+from typer.testing import CliRunner
 
-def _load_module():
-    module_path = (
-        Path(__file__).resolve().parents[2] / "scripts" / "build_llm_assets.py"
-    )
-    spec = importlib.util.spec_from_file_location(
-        "build_llm_assets", module_path
-    )
-    assert spec is not None
-    assert spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+from scicomap import _llm_assets as module
+from scicomap.cli import app
 
 
 def test_sidebar_skip_is_balanced_for_div_wrappers() -> None:
-    module = _load_module()
     parser = module.HtmlToMarkdownParser()
     parser.feed(
         """
@@ -48,7 +38,6 @@ def test_sidebar_skip_is_balanced_for_div_wrappers() -> None:
 
 
 def test_nested_skipped_regions_resume_after_close() -> None:
-    module = _load_module()
     parser = module.HtmlToMarkdownParser()
     parser.feed(
         """
@@ -71,7 +60,6 @@ def test_nested_skipped_regions_resume_after_close() -> None:
 
 
 def test_to_markdown_does_not_duplicate_h1(tmp_path: Path) -> None:
-    module = _load_module()
     html = tmp_path / "getting-started.html"
     html.write_text(
         """
@@ -99,7 +87,6 @@ def test_to_markdown_does_not_duplicate_h1(tmp_path: Path) -> None:
 
 
 def test_parser_supports_role_main_without_main_tag() -> None:
-    module = _load_module()
     parser = module.HtmlToMarkdownParser()
     parser.feed(
         """
@@ -142,3 +129,67 @@ def test_tutorial_notebook_image_references_exist() -> None:
     for ref in refs:
         target = (doc_source / "notebooks" / ref).resolve()
         assert target.exists(), f"Missing tutorial image reference: {ref}"
+
+
+def test_highlighted_code_preserves_whitespace_and_inline_tokens() -> None:
+    parser = module.HtmlToMarkdownParser()
+    parser.feed(
+        '<main><div><div class="highlight-python"><div class="highlight">'
+        '<pre><span></span><span class="k">def</span> <span>demo</span>():\n'
+        "\tvalue = &quot;a  b&quot;\n\n"
+        "\treturn value &lt; &quot;c&quot;\n</pre></div></div></div>"
+        "<p>Use <code><span>demo</span>()</code> here.</p></main>"
+    )
+    assert parser.blocks == [
+        '```python\ndef demo():\n\tvalue = "a  b"\n\n'
+        '\treturn value < "c"\n```',
+        "Use `demo()` here.",
+    ]
+    compile(
+        parser.blocks[0].split("\n", 1)[1].rsplit("\n", 1)[0],
+        "example",
+        "exec",
+    )
+
+
+def test_table_keeps_cells_rows_and_inline_code() -> None:
+    parser = module.HtmlToMarkdownParser()
+    parser.feed(
+        "<main><table><thead><tr><th><p>Command</p></th><th>Purpose</th>"
+        "</tr></thead><tbody><tr><td><p><code>scicomap list</code></p></td>"
+        "<td><p>List families</p><p>or names | aliases.</p></td></tr>"
+        "</tbody></table><p>After table.</p></main>"
+    )
+    assert parser.blocks == [
+        "| Command | Purpose |\n| --- | --- |\n"
+        "| `scicomap list` | List families or names \\| aliases. |",
+        "After table.",
+    ]
+
+
+@pytest.mark.parametrize("command", [["docs-llm"], ["docs", "llm-assets"]])
+def test_docs_commands_generate_assets(command, tmp_path: Path) -> None:
+    html = tmp_path / "index.html"
+    html.write_text("<main><h1>Example</h1><p>Content.</p></main>")
+    result = CliRunner().invoke(
+        app, [*command, "--html-dir", str(tmp_path), "--json"]
+    )
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.stdout)
+    assert payload["data"]["generated_pages"] == 1
+    assert (
+        tmp_path / "llm/index.md"
+    ).read_text() == "# Index\n\n# Example\n\nContent.\n"
+    assert (tmp_path / "llms.txt").exists()
+
+
+def test_docs_command_missing_directory_does_not_create_it(
+    tmp_path: Path,
+) -> None:
+    missing = tmp_path / "missing"
+    result = CliRunner().invoke(
+        app, ["docs-llm", "--html-dir", str(missing), "--json"]
+    )
+    assert result.exit_code == 2
+    assert json.loads(result.stdout)["ok"] is False
+    assert not missing.exists()

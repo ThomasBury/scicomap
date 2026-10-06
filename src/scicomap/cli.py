@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import importlib.util
 import json
 from datetime import datetime
 from importlib.util import find_spec
@@ -20,6 +19,7 @@ from rich.table import Table
 from typer.core import TyperGroup
 
 from scicomap._diagnostics import _diagnose_cmap
+from scicomap._llm_assets import build_markdown_mirror, write_llms_txt
 from scicomap.scicomap import SciCoMap, compare_cmap, plot_colorblind_vision
 
 DEFAULT_TYPE = "sequential"
@@ -777,28 +777,15 @@ def docs_llm(
     as_json: bool = typer.Option(False, "--json", help="Output JSON."),
 ) -> None:
     """Generate markdown mirrors and llms.txt from Sphinx HTML."""
-    script_path = (
-        Path(__file__).resolve().parents[2] / "scripts" / "build_llm_assets.py"
-    )
-    if not script_path.exists():
-        _fail("scicomap docs-llm", f"Missing script: {script_path}", as_json)
-
-    spec = importlib.util.spec_from_file_location(
-        "build_llm_assets", script_path
-    )
-    if spec is None or spec.loader is None:
-        _fail(
-            "scicomap docs-llm", "Unable to load build_llm_assets.py", as_json
-        )
-
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-
     html_root = html_dir.resolve()
+    if not html_root.is_dir():
+        _fail(
+            "scicomap docs-llm",
+            f"Missing HTML directory: {html_root}",
+            as_json,
+        )
     markdown_dir = html_root / "llm"
-    docs = module.build_markdown_mirror(
-        html_dir=html_root, markdown_dir=markdown_dir
-    )
+    docs = build_markdown_mirror(html_dir=html_root, markdown_dir=markdown_dir)
     if not docs:
         _fail(
             "scicomap docs-llm",
@@ -806,7 +793,7 @@ def docs_llm(
             as_json,
             code=1,
         )
-    module.write_llms_txt(html_dir=html_root, base_url=base_url, docs=docs)
+    write_llms_txt(html_dir=html_root, base_url=base_url, docs=docs)
 
     payload = {
         "ok": True,

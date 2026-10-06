@@ -24,9 +24,12 @@ docs: sync-docs
 marimo: sync-docs
   UV_PROJECT_ENVIRONMENT={{venv}} uv run marimo check docs/marimo/tutorial_app.py docs/marimo/tutorial_app_lite.py
   UV_PROJECT_ENVIRONMENT={{venv}} uv run marimo export html-wasm docs/marimo/tutorial_app_lite.py -o docs/build/html/marimo --mode run
+  mkdir -p docs/build/html/marimo/public
+  cp src/scicomap/_diagnostics.py docs/build/html/marimo/public/_diagnostics.py
   touch docs/build/html/.nojekyll
 
 validate-doc-artifacts:
+  cmp src/scicomap/_diagnostics.py docs/build/html/marimo/public/_diagnostics.py
   test -f docs/build/html/marimo/index.html
   test -f docs/build/html/.nojekyll
   test -f docs/build/html/marimo/.nojekyll

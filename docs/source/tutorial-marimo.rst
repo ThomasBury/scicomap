@@ -2,7 +2,12 @@ Interactive Marimo Tutorial
 ===========================
 
 Use the Marimo tutorial when you want a guided, reactive experience for
-colormap selection, diagnostics, and accessibility checks.
+colormap selection, lightness diagnostics, and color-vision simulations.
+
+The tutorials and CLI share family-aware diagnostic heuristics. Their statuses
+and CVD simulations do not certify accessibility. In the full tutorial,
+diagnostics, assessment, simulations, and sample images use the same selected
+map, including the correction when enabled.
 
 Prefer a linear, narrative walkthrough? See :doc:`notebooks/tutorial`.
 
@@ -36,6 +41,8 @@ Known WASM constraints
 - WASM mode supports many, but not all, Python features and packages.
 - Browser memory and startup cost can be higher than local mode.
 - Use local mode for heavy workflows or if a package limitation appears.
+- The export ships the shared diagnostic module in ``marimo/public`` and loads
+  it after installing the runtime dependencies. Build it with ``just marimo``.
 
 WASM local serving note
 -----------------------

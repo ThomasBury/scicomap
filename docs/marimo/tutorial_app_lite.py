@@ -6,8 +6,17 @@ app = marimo.App(width="full")
 @app.cell
 async def _():
     import micropip
+    import marimo as _mo
+    from pyodide.http import pyfetch
 
     await micropip.install("scicomap>=1.1.0")
+    response = await pyfetch(
+        str(_mo.notebook_location() / "public" / "_diagnostics.py")
+    )
+    if not response.ok:
+        raise OSError("Cannot load the shared diagnostic module.")
+    with open("_scicomap_diagnostics.py", "w", encoding="utf-8") as module:
+        module.write(await response.string())
     wasm_deps_ready = True
     return (wasm_deps_ready,)
 
@@ -32,47 +41,9 @@ def _(wasm_deps_ready):
             default_cmap = "thermal"
         return cmap_names, default_cmap
 
-    def compute_diagnostics(
-        jpapbp, classify_fn, extrema_fn, include_reasons=False
-    ):
-        j_values = jpapbp[:, 0]
-        is_monotonic = bool(
-            (j_values[1:] >= j_values[:-1]).all()
-            or (j_values[1:] <= j_values[:-1]).all()
-        )
-        cmap_class = classify_fn(jpapbp)
-        n_extrema = int(len(extrema_fn(j_values)))
-
-        status = "good"
-        reasons = []
-        if not is_monotonic:
-            status = "fix-recommended" if include_reasons else "caution"
-            reasons.append("Lightness is not monotonic.")
-        elif cmap_class in {"asym_div", "unknown"}:
-            status = "caution"
-            reasons.append(f"Classification is '{cmap_class}'.")
-
-        if n_extrema > 2:
-            if status == "good":
-                status = "caution"
-            reasons.append("Lightness has multiple extrema.")
-
-        diagnostics = {
-            "status": status,
-            "classification": cmap_class,
-            "monotonic_lightness": is_monotonic,
-            "extrema_count": n_extrema,
-        }
-        if include_reasons:
-            diagnostics["reasons"] = reasons
-        return diagnostics
-
     import marimo as mo
 
-    from scicomap.cmath import classify
-    from scicomap.cmath import extrema
-    from scicomap.cmath import get_ctab
-    from scicomap.cmath import transform
+    from _scicomap_diagnostics import _diagnose_cmap as diagnose_cmap
     from scicomap.scicomap import SciCoMap
     from scicomap.scicomap import plot_colorblind_vision
 
@@ -80,13 +51,9 @@ def _(wasm_deps_ready):
         COLORMAP_FAMILIES,
         SciCoMap,
         build_cmap_options,
-        classify,
-        compute_diagnostics,
-        extrema,
-        get_ctab,
+        diagnose_cmap,
         mo,
         plot_colorblind_vision,
-        transform,
     )
 
 
@@ -177,20 +144,15 @@ def _(cmap, ctype, mo, n_colors):
 
 
 @app.cell
-def _(
-    SciCoMap,
-    classify,
-    cmap,
-    compute_diagnostics,
-    ctype,
-    extrema,
-    get_ctab,
-    transform,
-):
-    cmap_obj = SciCoMap.get_color_map_dic()[ctype.value][cmap.value]
-    ctab = get_ctab(cmap_obj)
-    jpapbp = transform(ctab)
-    diagnostics = compute_diagnostics(jpapbp, classify, extrema)
+def _(SciCoMap, cmap, ctype):
+    chart = SciCoMap(ctype=ctype.value, cmap=cmap.value)
+    selected_map = chart.get_mpl_color_map()
+    return chart, selected_map
+
+
+@app.cell
+def _(diagnose_cmap, ctype, selected_map):
+    diagnostics = diagnose_cmap(selected_map, ctype.value)
     return (diagnostics,)
 
 
@@ -198,7 +160,9 @@ def _(
 def _(cmap, ctype, diagnostics, mo):
     diag_md = mo.md(
         f"""
-## Diagnostics
+## Diagnostics for the selected map
+
+Statuses are lightness heuristics. CVD simulations do not certify accessibility.
 
 - **Status:** `{diagnostics["status"]}`
 - **Class:** `{diagnostics["classification"]}`
@@ -214,18 +178,16 @@ scicomap check {cmap.value} --type {ctype.value}
 
 
 @app.cell
-def _(SciCoMap, cmap, ctype):
-    fig_preview = SciCoMap(ctype=ctype.value, cmap=cmap.value).assess_cmap(
-        figsize=(14, 5.5)
-    )
+def _(chart):
+    fig_preview = chart.assess_cmap(figsize=(14, 5.5))
     return (fig_preview,)
 
 
 @app.cell
-def _(cmap, ctype, n_colors, plot_colorblind_vision):
+def _(ctype, n_colors, plot_colorblind_vision, selected_map):
     fig_cvd = plot_colorblind_vision(
         ctype=ctype.value,
-        cmap_list=[cmap.value],
+        cmap_list=[selected_map],
         n_colors=int(n_colors.value),
         facecolor="white",
         uniformize=False,
@@ -235,14 +197,14 @@ def _(cmap, ctype, n_colors, plot_colorblind_vision):
 
 
 @app.cell
-def _(cmap, ctype, mo):
+def _(cmap, ctype, mo, n_colors):
     cli_md = mo.md(
         f"""
 ## Equivalent CLI
 
 ```bash
 scicomap check {cmap.value} --type {ctype.value}
-scicomap cvd {cmap.value} --type {ctype.value} --n-colors 128
+scicomap cvd {cmap.value} --type {ctype.value} --n-colors {int(n_colors.value)}
 ```
         """
     )

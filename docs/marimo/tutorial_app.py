@@ -21,48 +21,10 @@ def _():
             default_cmap = "thermal"
         return cmap_names, default_cmap
 
-    def compute_diagnostics(
-        jpapbp, classify_fn, extrema_fn, include_reasons=False
-    ):
-        j_values = jpapbp[:, 0]
-        is_monotonic = bool(
-            (j_values[1:] >= j_values[:-1]).all()
-            or (j_values[1:] <= j_values[:-1]).all()
-        )
-        cmap_class = classify_fn(jpapbp)
-        n_extrema = int(len(extrema_fn(j_values)))
-
-        status = "good"
-        reasons = []
-        if not is_monotonic:
-            status = "fix-recommended" if include_reasons else "caution"
-            reasons.append("Lightness is not monotonic.")
-        elif cmap_class in {"asym_div", "unknown"}:
-            status = "caution"
-            reasons.append(f"Classification is '{cmap_class}'.")
-
-        if n_extrema > 2:
-            if status == "good":
-                status = "caution"
-            reasons.append("Lightness has multiple extrema.")
-
-        diagnostics = {
-            "status": status,
-            "classification": cmap_class,
-            "monotonic_lightness": is_monotonic,
-            "extrema_count": n_extrema,
-        }
-        if include_reasons:
-            diagnostics["reasons"] = reasons
-        return diagnostics
-
     import marimo as mo
     import matplotlib.pyplot as plt
 
-    from scicomap.cmath import classify
-    from scicomap.cmath import extrema
-    from scicomap.cmath import get_ctab
-    from scicomap.cmath import transform
+    from scicomap._diagnostics import _diagnose_cmap as diagnose_cmap
     from scicomap.scicomap import SciCoMap
     from scicomap.scicomap import compare_cmap
     from scicomap.scicomap import plot_colorblind_vision
@@ -71,15 +33,11 @@ def _():
         COLORMAP_FAMILIES,
         SciCoMap,
         build_cmap_options,
-        classify,
         compare_cmap,
-        compute_diagnostics,
-        extrema,
-        get_ctab,
+        diagnose_cmap,
         mo,
         plot_colorblind_vision,
         plt,
-        transform,
     )
 
 
@@ -89,7 +47,7 @@ def _(mo):
         """
 # scicomap interactive tutorial
 
-Explore colormaps, diagnose artifacts, test accessibility, and map the
+Explore colormaps, diagnose artifacts, simulate color-vision deficiencies, and map the
 same decisions to CLI commands.
         """
     )
@@ -203,22 +161,23 @@ def _(bitonic, ctype, diffuse, fix, lift, mo, n_colors, profile, sample_image):
 
 
 @app.cell
-def _(
-    SciCoMap,
-    classify,
-    cmap,
-    compute_diagnostics,
-    ctype,
-    extrema,
-    get_ctab,
-    transform,
-):
-    cmap_obj = SciCoMap.get_color_map_dic()[ctype.value][cmap.value]
-    ctab = get_ctab(cmap_obj)
-    jpapbp = transform(ctab)
-    diagnostics = compute_diagnostics(
-        jpapbp, classify, extrema, include_reasons=True
-    )
+def _(SciCoMap, bitonic, cmap, ctype, diffuse, fix, lift):
+    original_chart = SciCoMap(ctype=ctype.value, cmap=cmap.value)
+    chart = original_chart
+    if fix.value:
+        chart = SciCoMap(ctype=ctype.value, cmap=cmap.value)
+        chart.unif_sym_cmap(
+            lift=float(lift.value),
+            bitonic=bitonic.value,
+            diffuse=diffuse.value,
+        )
+    selected_map = chart.get_mpl_color_map()
+    return chart, selected_map
+
+
+@app.cell
+def _(diagnose_cmap, ctype, selected_map):
+    diagnostics = diagnose_cmap(selected_map, ctype.value)
     return (diagnostics,)
 
 
@@ -230,7 +189,9 @@ def _(diagnostics, mo):
 
     diag_md = mo.md(
         f"""
-## Diagnostics
+## Diagnostics for the selected map
+
+Statuses are lightness heuristics. CVD simulations do not certify accessibility.
 
 - **Status:** `{diagnostics["status"]}`
 - **Class:** `{diagnostics["classification"]}`
@@ -245,23 +206,16 @@ def _(diagnostics, mo):
 
 
 @app.cell
-def _(SciCoMap, bitonic, cmap, ctype, diffuse, fix, lift):
-    chart = SciCoMap(ctype=ctype.value, cmap=cmap.value)
-    if fix.value:
-        chart.unif_sym_cmap(
-            lift=float(lift.value),
-            bitonic=bitonic.value,
-            diffuse=diffuse.value,
-        )
+def _(chart):
     fig_preview = chart.assess_cmap(figsize=(14, 5.5))
     return (fig_preview,)
 
 
 @app.cell
-def _(cmap, ctype, n_colors, plot_colorblind_vision):
+def _(ctype, n_colors, plot_colorblind_vision, selected_map):
     fig_cvd = plot_colorblind_vision(
         ctype=ctype.value,
-        cmap_list=[cmap.value],
+        cmap_list=[selected_map],
         n_colors=int(n_colors.value),
         facecolor="white",
         uniformize=False,
@@ -271,17 +225,15 @@ def _(cmap, ctype, n_colors, plot_colorblind_vision):
 
 
 @app.cell
-def _(bitonic, cmap, compare_cmap, ctype, diffuse, fix, lift, sample_image):
+def _(compare_cmap, ctype, sample_image, selected_map):
     fig_apply = compare_cmap(
         image=sample_image.value,
         ctype=ctype.value,
-        cm_list=[cmap.value],
+        cm_list=[selected_map],
         ncols=1,
         title=False,
-        uniformize=fix.value,
-        symmetrize=fix.value,
-        unif_kwargs={"lift": float(lift.value)},
-        sym_kwargs={"bitonic": bitonic.value, "diffuse": diffuse.value},
+        uniformize=False,
+        symmetrize=False,
         facecolor="white",
         figsize=(6.5, 4.5),
     )
@@ -289,32 +241,25 @@ def _(bitonic, cmap, compare_cmap, ctype, diffuse, fix, lift, sample_image):
 
 
 @app.cell
-def _(bitonic, cmap, ctype, diffuse, fix, lift, mo, sample_image):
-    cmd_check = f"scicomap check {cmap.value} --type {ctype.value}"
-    cmd_fix = (
-        "scicomap fix "
-        f"{cmap.value} --type {ctype.value} --lift {float(lift.value):.0f} "
+def _(bitonic, cmap, ctype, diffuse, fix, lift, mo, profile, sample_image):
+    cmd_report = (
+        f"scicomap report --cmap {cmap.value} --type {ctype.value} "
+        f"--profile {profile.value} --goal diagnose "
+        f"{'--fix' if fix.value else '--no-fix'} --cvd --apply "
+        f"--lift {float(lift.value):.0f} "
         f"{'--bitonic' if bitonic.value else '--no-bitonic'} "
-        f"{'--diffuse' if diffuse.value else '--no-diffuse'}"
+        f"{'--diffuse' if diffuse.value else '--no-diffuse'} "
+        f"--image {sample_image.value} --out tutorial-report"
     )
-    cmd_cvd = f"scicomap cvd {cmap.value} --type {ctype.value} --n-colors 256"
-    cmd_apply = (
-        f"scicomap compare {cmap.value} viridis --type {ctype.value} "
-        f"--image {sample_image.value}"
-    )
-
-    if not fix.value:
-        cmd_fix = f"# fix disabled\n{cmd_fix}"
-
     cli_md = mo.md(
         f"""
-## Equivalent CLI
+## Matching map and stages in the CLI
+
+The report uses the same correction and stage choices. Its CVD simulation
+uses 256 color bins.
 
 ```bash
-{cmd_check}
-{cmd_fix}
-{cmd_cvd}
-{cmd_apply}
+{cmd_report}
 ```
         """
     )

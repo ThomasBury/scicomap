@@ -11,7 +11,7 @@ from matplotlib import pyplot as plt
 from typer.testing import CliRunner
 
 from scicomap.cblind import colorblind_vision
-from scicomap.cli import app, _resolve_profile_config
+from scicomap.cli import app, _resolve_profile_config, _validate_apply
 
 
 def test_list_families_json() -> None:
@@ -384,20 +384,21 @@ def test_profile_resolution_matrix(
 
 
 def test_profile_resolution_apply_without_image_fails() -> None:
+    config, _ = _resolve_profile_config(
+        profile="quick-look",
+        goal="apply",
+        has_image=False,
+        fix=None,
+        cvd=None,
+        apply_output=True,
+        output_format=None,
+        lift=None,
+        bitonic=None,
+        diffuse=None,
+        interactive=None,
+    )
     with pytest.raises(ValueError, match="requires --image"):
-        _resolve_profile_config(
-            profile="quick-look",
-            goal="apply",
-            has_image=False,
-            fix=None,
-            cvd=None,
-            apply_output=True,
-            output_format=None,
-            lift=None,
-            bitonic=None,
-            diffuse=None,
-            interactive=None,
-        )
+        _validate_apply(config, None)
 
 
 def test_report_cvd_safe_enforces_cvd(tmp_path: Path) -> None:

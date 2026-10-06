@@ -80,19 +80,78 @@ and ``jch_plot`` also return Figures without display. The first three retain
 their explicit ``uniformize`` and ``symmetrize`` options; set both to false to
 inspect an unchanged map.
 
-Public exports and removed interfaces
--------------------------------------
+Generated public API
+--------------------
 
-The package explicitly exports the classes, catalog discovery, diagnostics,
-colormap transformations, plotting functions above, and the ``datasets``,
-``cmath``, and ``cblind`` modules. Dataset loaders, numerical array utilities,
-and CVD transforms are accessed through those modules. Imported dependencies
-such as NumPy, pyplot, and palette providers are not package exports.
+Signatures and parameter descriptions below come from the installed source
+and NumPy-style docstrings. Shared methods are documented once on ``SciCoMap``;
+family classes document only construction. See :doc:`migrating-v2` for changes
+from v1.
 
-M5 removes ``get_available_ctype``, ``get_ctype``, ``get_color_map_dic``, and
-``get_color_map_names``. Use the catalog mapping instead. It also removes the
-Python ``lift`` keyword, caller-controlled ``uniformized`` keyword, tuple
-transformation returns, and the ``uniformized`` object attribute. There are no
-forwarding aliases. The CLI uses ``--lightness-rounding`` for the same operation.
+.. autoclass:: scicomap.SciCoMap
+   :members:
+   :member-order: bysource
 
-For runnable workflows, see :doc:`user-guide` and :doc:`notebooks/tutorial`.
+Family constructors
+~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: scicomap.ScicoSequential
+
+.. autoclass:: scicomap.ScicoMultiSequential
+
+.. autoclass:: scicomap.ScicoDiverging
+
+.. autoclass:: scicomap.ScicoCircular
+
+.. autoclass:: scicomap.ScicoMiscellaneous
+
+.. autoclass:: scicomap.ScicoQualitative
+
+Discovery and diagnostics
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: scicomap.get_cmap_dict
+
+.. autofunction:: scicomap.diagnose_cmap
+
+Colormap transformations
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: scicomap.uniformize_cmap
+
+.. autofunction:: scicomap.symmetrize_cmap
+
+.. autofunction:: scicomap.unif_sym_cmap
+
+Standalone plots
+~~~~~~~~~~~~~~~~
+
+.. autofunction:: scicomap.plot_colormap
+
+.. autofunction:: scicomap.plot_colorblind_vision
+
+.. autofunction:: scicomap.compare_cmap
+
+.. autofunction:: scicomap.jch_plot
+
+Dataset loaders
+~~~~~~~~~~~~~~~
+
+.. automodule:: scicomap.datasets
+   :members:
+   :member-order: bysource
+
+Numerical color utilities
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: scicomap.cmath
+   :members:
+   :exclude-members: uniformize_cmap, symmetrize_cmap, unif_sym_cmap
+   :member-order: bysource
+
+Color-vision simulation utilities
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: scicomap.cblind
+   :members:
+   :member-order: bysource

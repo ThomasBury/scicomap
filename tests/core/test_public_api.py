@@ -1,6 +1,7 @@
 """Public Python API contracts for M5."""
 
 import inspect
+from importlib.metadata import version
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -23,6 +24,7 @@ FAMILIES = [
 
 
 def test_exports_and_single_discovery_api() -> None:
+    assert version("scicomap") == sc.__version__
     namespace = {}
     exec("from scicomap import *", namespace)
     assert set(namespace) - {"__builtins__"} == set(sc.__all__)

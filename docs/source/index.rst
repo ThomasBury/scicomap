@@ -30,28 +30,9 @@ Who this is for
 Quick start
 -----------
 
-Same workflow in both interfaces:
-
-.. tabs::
-
-   .. tab:: Python API
-
-      .. code-block:: python
-
-         import scicomap as sc
-
-         cmap = sc.ScicoSequential(cmap="hawaii")
-         cmap.assess_cmap(figsize=(14, 6))
-         cmap.unif_sym_cmap(lightness_rounding=None, bitonic=False, diffuse=True)
-         cmap.draw_example()
-
-   .. tab:: CLI
-
-      .. code-block:: shell
-
-         scicomap check hawaii --type sequential
-         scicomap report --cmap hawaii --type sequential --out reports/hawaii
-         scicomap cvd hawaii --type sequential --out hawaii-cvd.png
+Start with :doc:`getting-started` for matching Python and CLI inspection,
+correction, and export workflows. Inspection preserves the original map;
+correction is an explicit choice.
 
 Choose your path
 ----------------
@@ -77,8 +58,7 @@ Advanced and automation
 
 - One-command workflow reports with `status`, artifacts, and recommendations:
   ``scicomap report ...``.
-- Profile-driven defaults for quick decisions:
-  ``quick-look``, ``publication``, ``presentation``, ``cvd-safe``, ``agent``.
+- Explicit correction and simulation stages, with prompting only in ``wizard``.
 - Machine-friendly docs and JSON outputs for tooling/LLMs:
   :doc:`llm-access`.
 
@@ -110,6 +90,7 @@ Documentation last change: |today|
    :caption: Reference and Support
 
    api-reference
+   migrating-v2
    cli-reference
    faq
    troubleshooting

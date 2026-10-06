@@ -1,6 +1,7 @@
 """Check installed resources and canonical commands outside the checkout."""
 
 import json
+from importlib.metadata import version
 import os
 from pathlib import Path
 import subprocess
@@ -17,6 +18,7 @@ from scicomap.datasets import load_hill_topography, load_pic, load_scan_image
 def main() -> None:
     """Verify the wheel's data loaders, console entry point, and artifacts."""
     root = Path(__file__).resolve().parents[1]
+    assert version("scicomap") == scicomap.__version__
     assert not Path(scicomap.__file__).resolve().is_relative_to(root)
     images = [load_hill_topography(), load_scan_image()]
     images.extend(load_pic(name) for name in ("grmhd", "vortex", "tng"))

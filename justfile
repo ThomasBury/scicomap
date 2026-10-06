@@ -20,18 +20,18 @@ check-docs: sync-docs
 
 docs: sync-docs
   rm -rf docs/build/html
-  uv run --locked sphinx-build -n -b html docs/source docs/build/html
+  uv run --locked sphinx-build -n -W -b html docs/source docs/build/html
   uv run --locked python scripts/build_llm_assets.py
 
 marimo: sync-docs
   uv run --locked marimo check docs/marimo/tutorial_app.py docs/marimo/tutorial_app_lite.py
   uv run --locked marimo export html-wasm docs/marimo/tutorial_app_lite.py -o docs/build/html/marimo --mode run
   mkdir -p docs/build/html/marimo/public
-  cp src/scicomap/_diagnostics.py docs/build/html/marimo/public/_diagnostics.py
+  uv build --wheel --out-dir docs/build/html/marimo/public
   touch docs/build/html/.nojekyll
 
 validate-doc-artifacts:
-  cmp src/scicomap/_diagnostics.py docs/build/html/marimo/public/_diagnostics.py
+  test -f docs/build/html/marimo/public/scicomap-2.0.0-py3-none-any.whl
   test -f docs/build/html/marimo/index.html
   test -f docs/build/html/.nojekyll
   test -f docs/build/html/marimo/.nojekyll
@@ -47,6 +47,7 @@ build: sync
   uv run --locked --with twine python -m twine check dist/*
 
 release-check: check docs check-docs marimo validate-doc-artifacts build
+  uv run --isolated --no-project --with ./dist/scicomap-2.0.0-py3-none-any.whl python scripts/smoke_wheel.py
 
 smoke-testpypi version:
   rm -rf .venv.testpypi

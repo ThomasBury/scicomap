@@ -53,9 +53,10 @@ Use SemVer: patch for fixes, minor for additive features, major for breaking
 changes.
 
 1. Bump `src/scicomap/__init__.py` version.
-2. Run release validation with `just release-check`.
+2. Run release validation with `just release-check`, including installed-wheel checks.
+   Serve `docs/build/html` over HTTP and verify the candidate wheel in the browser tutorial.
 3. Publish a release candidate to TestPyPI by tagging `*rc*` (for example,
-   `1.1.0rc1`) and run `just smoke-testpypi <version>`.
+   `2.0.0rc1`) and run `just smoke-testpypi <version>`.
 4. Tag and push (`just tag <version>` then `just push-tag <version>`).
 5. The `Publish to PyPI` workflow builds and publishes on tag pushes using
    Trusted Publishing.

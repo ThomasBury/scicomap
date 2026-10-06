@@ -10,6 +10,7 @@ import sys
 import matplotlib.pyplot as plt
 import pytest
 
+import scicomap as sc
 from scicomap import cmath, datasets, scicomap
 from scicomap._llm_assets import iter_html_pages, to_markdown
 
@@ -44,6 +45,18 @@ def test_generated_documentation_examples(tmp_path: Path) -> None:
         capture_output=True,
         text=True,
     )
+    api = (html_dir / "api-reference.html").read_text()
+    public_names = [
+        name
+        for name in sc.__all__
+        if name not in {"cmath", "cblind", "datasets"}
+    ]
+    for name in public_names:
+        assert api.count(f'id="scicomap.{name}"') == 1, name
+    assert 'id="scicomap.SciCoMap.unif_sym_cmap"' in api
+    assert 'id="scicomap.ScicoSequential.assess_cmap"' not in api
+    assert 'id="scicomap.cmath._as_color_table"' not in api
+    assert "lightness_rounding" in api and "Parameters" in api
     code_pattern = r"^```(?:python|ipython3)\n(.*?)^```$"
     count = 0
     for page in iter_html_pages(html_dir):

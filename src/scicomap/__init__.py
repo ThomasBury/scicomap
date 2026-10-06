@@ -18,7 +18,7 @@ from scicomap.scicomap import (
     plot_colormap,
 )
 
-__version__ = "1.1.1"
+__version__ = "2.0.0"
 __author__ = "Thomas Bury"
 __all__ = [
     "SciCoMap",

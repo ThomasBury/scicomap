@@ -44,7 +44,7 @@ Replace the wheel filename below if the package version changes.
 
 .. code-block:: shell
 
-   uv run --isolated --no-project --with ./dist/scicomap-1.1.1-py3-none-any.whl python scripts/smoke_wheel.py
+   uv run --isolated --no-project --with ./dist/scicomap-2.0.0-py3-none-any.whl python scripts/smoke_wheel.py
 
 Pull request checklist
 ----------------------

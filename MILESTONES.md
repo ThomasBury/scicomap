@@ -407,7 +407,7 @@ git diff --check
 
 M9 remains unstarted; the release version is unchanged.
 
-### [ ] M9 — Documentation, browser tutorial, and 2.0 release readiness
+### [x] M9 — Documentation, browser tutorial, and 2.0 release readiness
 
 **Outcome:** the new version is understandable and verified as an installed
 product.
@@ -427,3 +427,54 @@ product.
 verification, installed-wheel smoke checks, and `just release-check` pass. CI
 covers the declared minimum Python version and a recent supported version.
 Publishing remains a separate authorized action.
+
+
+**Completed:** onboarding pairs the same discovery, original-map inspection,
+explicit correction, and table-reuse operations in Python and the CLI.
+Sphinx generates public signatures and NumPy-style parameter documentation;
+shared methods appear once on ``SciCoMap`` and family constructors are separate.
+Current guidance drops the removed profiles and command aliases. The v2
+migration guide supplies concise before/after examples, and ``CHANGELOG.md``
+records the breaking changes. The candidate version is ``2.0.0``.
+
+The notebook and both Marimo apps use the public shared diagnostics and the
+same selected map for assessment, simulations, and examples. Both apps expose
+the previously missing colormap selector. The browser app installs the wheel
+built from this checkout in ``marimo/public`` before importing public APIs;
+it no longer installs a floating v1 package or a copied diagnostic module.
+Live Chrome verification confirmed the 2.0.0 heading, sequential correction,
+diverging map selection, qualitative family heuristics, rendered assessment
+and CVD panels, and matching CLI stages, with no browser errors. The exported
+wheel's Python sources match the candidate source files exactly.
+
+A real stale editable-version failure led to adding the dynamic version file
+to uv's native cache keys. Existing API and wheel checks now assert agreement
+between distribution metadata and the runtime version. CI explicitly selects
+Python 3.10 and 3.14 for runtime checks and runs the full release gate for docs.
+Local ``just check`` passed 280 ordinary tests, Ruff, and ty on Python 3.10.18
+and 3.14.7. The original single-project Python 3.13 environment was restored.
+
+The final ``just release-check`` passed all 282 tests (280 ordinary plus two
+documentation tests), Ruff, ty, strict Sphinx, generated Python examples,
+14 Markdown mirrors and ``llms.txt``, Marimo export, artifact validation,
+sdist/wheel builds, Twine, and an isolated installed-wheel check. The wheel
+check verified five data resources, eleven canonical commands, version
+metadata, table reuse, and corrected reports outside the checkout. The final
+local tutorial HTML execution also passed. The lockfile stayed unchanged.
+Existing Marimo formatting, setuptools license-metadata, and upstream
+Colorspacious syntax warnings remain. Validation used:
+
+```bash
+just release-check
+uv run --locked marimo export html docs/marimo/tutorial_app.py -o /tmp/scicomap-m9-local-final.html
+uv sync --locked --python 3.10 --extra lint --extra test
+UV_PYTHON=3.10 just check
+uv sync --locked --python 3.14 --extra lint --extra test
+UV_PYTHON=3.14 just check
+uv sync --locked --python 3.13 --extra lint --extra test --extra docs
+UV_PYTHON=3.13 just release-check
+uv lock --check
+git diff --check
+```
+
+M9 is complete. Publication and release tags remain separate authorized actions.

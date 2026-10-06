@@ -2,6 +2,10 @@
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
+# Version metadata also depends on the package version file.
+[tool.uv]
+cache-keys = [{file = "pyproject.toml"}, {file = "src/scicomap/__init__.py"}]
+
 [tool.setuptools.dynamic]
 version = {attr = "scicomap.__version__"}
 

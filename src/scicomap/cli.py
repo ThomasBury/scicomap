@@ -134,6 +134,8 @@ class _WorkflowGroup(TyperGroup):
         try:
             return super().parse_args(ctx, args)
         except ClickException as exc:
+            if not ctx.meta["json_output"]:
+                raise
             _fail(
                 ctx.meta["command"],
                 exc.format_message(),
@@ -147,6 +149,8 @@ class _WorkflowGroup(TyperGroup):
         except typer.Exit:
             raise
         except ClickException as exc:
+            if not ctx.meta["json_output"]:
+                raise
             _fail(
                 ctx.meta["command"],
                 exc.format_message(),

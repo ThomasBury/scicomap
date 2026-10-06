@@ -97,11 +97,12 @@ map.
 agent apply, original versus transformed artifacts, invalid counts, and parseable
 JSON failures. Existing public interfaces remain available.
 
-**Completed:** `just check` passed (204 tests, Ruff lint and formatting).
+**Completed:** `just check` passed (207 tests, Ruff lint and formatting).
 Family-aware diagnostics are shared by the CLI and both tutorials. Workflow
 regressions cover disabled stages, interactive and agent apply, one-time map
 correction, original versus corrected assessments/simulations/applied images,
-invalid counts and paths, finite lift values, and parseable JSON failures.
+invalid counts and paths, finite lift values, parseable JSON failures, and
+preserved usage/help guidance for text errors.
 The v1 `cvd-safe` profile's documented CVD enforcement remains unchanged.
 `just docs`, strict Sphinx validation, LLM asset generation, full local
 tutorial execution, and `just marimo validate-doc-artifacts` passed.

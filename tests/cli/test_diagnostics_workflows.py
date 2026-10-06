@@ -295,6 +295,21 @@ def test_json_validation_failures(args) -> None:
     assert payload["errors"][0]
 
 
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["apply"],
+        ["check", "--jsno"],
+        ["--not-an-option"],
+    ],
+)
+def test_text_usage_errors_keep_help_guidance(args) -> None:
+    result = CliRunner().invoke(cli.app, args)
+    assert result.exit_code == 2
+    assert "Usage:" in result.output
+    assert "--help" in result.output
+
+
 @pytest.mark.parametrize("workflow", ["wizard", "report"])
 def test_invalid_image_creates_no_workflow_artifacts(
     tmp_path, workflow

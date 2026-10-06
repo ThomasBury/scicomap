@@ -7,13 +7,15 @@
 [![Python](https://img.shields.io/pypi/pyversions/scicomap.svg)](https://pypi.org/project/scicomap/)
 [![GitHub stars](https://img.shields.io/github/stars/ThomasBury/scicomap)](https://github.com/ThomasBury/scicomap/stargazers)
 
+[buy me caffeine](https://ko-fi.com/V7V72SOHX)
+
 # Scientific color maps
 
 Scicomap helps you choose, assess, and improve scientific colormaps so your
 figures remain readable and faithful to the underlying data.
 
-[Documentation](https://thomasbury.github.io/scicomap/)
-· [Marimo demo](https://thomasbury.github.io/scicomap/marimo/index.html)
+- [Documentation](https://thomasbury.github.io/scicomap/)
+- [Marimo demo](https://thomasbury.github.io/scicomap/marimo/index.html)
 
 ## Install
 
@@ -106,7 +108,7 @@ for color-space concepts and the [gallery](https://thomasbury.github.io/scicomap
 for the six map families. The longer write-up is the
 [Towards Data Science post](https://towardsdatascience.com/your-colour-map-is-bad-heres-how-to-fix-it-lessons-learnt-from-the-event-horizon-telescope-b82523f09469).
 
-[buy me caffeine](https://ko-fi.com/V7V72SOHX)
+
 
 ## Star history
 

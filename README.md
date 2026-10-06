@@ -1,4 +1,4 @@
-<img src="pics/logo.png" alt="drawing" width="200"/>
+<img src="pics/logo.png" alt="Scicomap logo" width="200"/>
 
 [![Docs](https://img.shields.io/website?url=https%3A%2F%2Fthomasbury.github.io%2Fscicomap%2F&label=docs)](https://thomasbury.github.io/scicomap/)
 [![Docs Quality](https://github.com/ThomasBury/scicomap/actions/workflows/docs.yml/badge.svg)](https://github.com/ThomasBury/scicomap/actions/workflows/docs.yml)
@@ -7,25 +7,22 @@
 [![Python](https://img.shields.io/pypi/pyversions/scicomap.svg)](https://pypi.org/project/scicomap/)
 [![GitHub stars](https://img.shields.io/github/stars/ThomasBury/scicomap)](https://github.com/ThomasBury/scicomap/stargazers)
 
-[buy me caffeine](https://ko-fi.com/V7V72SOHX)
-
 # Scientific color maps
 
 Scicomap helps you choose, assess, and improve scientific colormaps so your
 figures remain readable and faithful to the underlying data.
 
-## Blog post
+[Documentation](https://thomasbury.github.io/scicomap/)
+· [Marimo demo](https://thomasbury.github.io/scicomap/marimo/index.html)
 
-[Scicomap Medium blog post (free)](https://towardsdatascience.com/your-colour-map-is-bad-heres-how-to-fix-it-lessons-learnt-from-the-event-horizon-telescope-b82523f09469)
+## Install
 
-[Official Documentation](https://thomasbury.github.io/scicomap/)
+Python 3.10 or newer. v1 users should read the
+[migration guide](https://thomasbury.github.io/scicomap/migrating-v2.html).
 
-[Tutorial notebook](./docs/source/notebooks/tutorial.ipynb)
-
-## Install v2
-
-Python 3.10 or newer is required. This checkout is the 2.0.0 release candidate;
-install it locally with `pip install .`. After publication, use `pip install 'scicomap>=2,<3'`.
+```shell
+uv add 'scicomap>=2,<3'
+```
 
 ## Inspect the original map
 
@@ -70,18 +67,15 @@ Diagnostics are family-specific heuristics. CVD previews simulate selected
 color-vision conditions and do not certify accessibility. Review the actual
 figure, labels, contrast, and alternate encodings.
 
-See the [v2 migration guide](docs/source/migrating-v2.rst) for breaking changes
-and the [user guide](https://thomasbury.github.io/scicomap/user-guide.html)
-for scalar data, normalization, and report workflows.
+Scalar data, normalization, and reports are in the
+[user guide](https://thomasbury.github.io/scicomap/user-guide.html).
 
-## Documentation map
-
-- [Getting Started](https://thomasbury.github.io/scicomap/getting-started.html): install and first workflow
-- [User Guide](https://thomasbury.github.io/scicomap/user-guide.html): choosing, assessing, and correcting colormaps
-- [Interactive Marimo Tutorial](https://thomasbury.github.io/scicomap/marimo/index.html): browser-based reactive tutorial
-- [API Reference](https://thomasbury.github.io/scicomap/api-reference.html): module and class reference
-- [FAQ](https://thomasbury.github.io/scicomap/faq.html) and [Troubleshooting](https://thomasbury.github.io/scicomap/troubleshooting.html): practical answers for common issues
-- [LLM Access](https://thomasbury.github.io/scicomap/llm-access.html): `llms.txt` and markdown mirror policy
+- [Getting Started](https://thomasbury.github.io/scicomap/getting-started.html)
+- [User Guide](https://thomasbury.github.io/scicomap/user-guide.html)
+- [API Reference](https://thomasbury.github.io/scicomap/api-reference.html)
+- [CLI Reference](https://thomasbury.github.io/scicomap/cli-reference.html)
+- [FAQ](https://thomasbury.github.io/scicomap/faq.html) and [Troubleshooting](https://thomasbury.github.io/scicomap/troubleshooting.html)
+- [LLM Access](https://thomasbury.github.io/scicomap/llm-access.html)
 
 ## Development
 
@@ -99,10 +93,8 @@ just check-docs    # strict generated examples and browser bootstrap tests
 Run a focused test with `uv run --locked python -m pytest tests/core/test_cmath.py`.
 Tests marked `docs` need the docs extra and run separately through `just check-docs`.
 
-`Read the Docs` is kept as a temporary fallback during the Pages rollout.
-
-Contribution guidelines are available in `CONTRIBUTING.md`.
-Release notes are tracked in `CHANGELOG.md` and GitHub releases.
+Contribution guidelines are in `CONTRIBUTING.md`.
+Release notes are in `CHANGELOG.md` and GitHub releases.
 
 ## Background
 
@@ -111,4 +103,17 @@ colormaps. It builds on [ehtplot](https://github.com/liamedeiros/ehtplot) and
 palettes from cmcrameri, cmasher, palettable, colorcet, and cmocean.
 See the [introduction](https://thomasbury.github.io/scicomap/Introduction.html)
 for color-space concepts and the [gallery](https://thomasbury.github.io/scicomap/gallery.html)
-for the six map families.
+for the six map families. The longer write-up is the
+[Towards Data Science post](https://towardsdatascience.com/your-colour-map-is-bad-heres-how-to-fix-it-lessons-learnt-from-the-event-horizon-telescope-b82523f09469).
+
+[buy me caffeine](https://ko-fi.com/V7V72SOHX)
+
+## Star history
+
+<a href="https://www.star-history.com/?repos=ThomasBury%2Fscicomap&type=date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=ThomasBury/scicomap&type=date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=ThomasBury/scicomap&type=date" />
+   <img alt="Star history of ThomasBury/scicomap" src="https://api.star-history.com/chart?repos=ThomasBury/scicomap&type=date" />
+ </picture>
+</a>

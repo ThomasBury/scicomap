@@ -8,15 +8,13 @@ its rendering suggest a useful change. Python and CLI examples below select
 Install v2
 ----------
 
-Python 3.10 or newer is required. Before publication, install this candidate
-from the repository root:
+Python 3.10 or newer is required.
 
 .. code-block:: shell
 
-   pip install .
+   uv add 'scicomap>=2,<3'
 
-After 2.0.0 is published, install with ``pip install 'scicomap>=2,<3'`` or
-``uv add 'scicomap>=2,<3'``. Existing v1 users should read :doc:`migrating-v2`.
+Existing v1 users should read :doc:`migrating-v2`.
 
 Discover and inspect
 --------------------

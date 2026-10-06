@@ -2735,7 +2735,7 @@ requires-dist = [
     { name = "sphinx-copybutton", marker = "extra == 'docs'" },
     { name = "sphinx-tabs", marker = "extra == 'docs'" },
     { name = "sphinxawesome-theme", marker = "extra == 'docs'", specifier = "==5.0.0b5" },
-    { name = "typer", specifier = ">=0.12.0" },
+    { name = "typer", specifier = ">=0.12.0,<0.26" },
 ]
 provides-extras = ["docs", "lint", "test"]
 

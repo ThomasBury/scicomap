@@ -6,7 +6,7 @@ The main model of perceptual distance is the "CAM02-UCS" color-space
 This module uses Cartesian Lab and CIECAM02 color spaces and cylindrical
 CIELCh (hereafter LCh) and CIEJCh (hereafter JCh) color spaces which have coordinates L*, J*, C*, and h.
 The lightness coordinates L* and J* are identical to Lab and Jab. The chroma (relative saturation)
-C* and hue h (in degree h°) are simply C* = sqrt(a*^2 + b*^2) and h = atan2(b*, a*) according
+C* and hue h (in radians) are simply C* = sqrt(a*^2 + b*^2) and h = atan2(b*, a*) according
 to Redness-Greenness a and Yellowness-Blueness b in their own coordinates.
 
 https://github.com/liamedeiros/ehtplot/blob/7a0567496ba9ab72f4a541d5994352bbe4eac764/ehtplot/color/cmath.py
@@ -16,9 +16,23 @@ import numpy as np
 import warnings
 import matplotlib
 from colorspacious import cspace_convert
-from matplotlib.colors import Colormap, ListedColormap
+from matplotlib.colors import Colormap, ListedColormap, to_rgba_array
 from scipy.interpolate import CubicSpline
 from typing import List, Tuple, Union, Callable, Optional
+
+
+def _as_color_table(ctab: np.ndarray) -> np.ndarray:
+    """Copy a finite RGB(A) or perceptual table into floating point."""
+    out = np.array(ctab, dtype=float, copy=True)
+    if out.ndim != 2 or out.shape[0] == 0 or out.shape[1] not in (3, 4):
+        raise ValueError(
+            "Color tables must have shape (N, 3) or (N, 4), N >= 1."
+        )
+    if not np.all(np.isfinite(out)):
+        raise ValueError("Color tables must contain only finite values.")
+    if out.shape[1] == 4 and np.any((out[:, 3] < 0) | (out[:, 3] > 1)):
+        raise ValueError("Alpha values must be in the range [0, 1].")
+    return out
 
 
 def get_ctab(cmap: Union[Colormap, list]) -> np.ndarray:
@@ -29,17 +43,21 @@ def get_ctab(cmap: Union[Colormap, list]) -> np.ndarray:
     ----------
     cmap : matplotlib.colors.Colormap or list
         The colormap for which to retrieve the color table (ctab).
-        This can be a matplotlib Colormap or a list of color values.
+        This can be a matplotlib Colormap, a list of color names, or a
+        list of RGB(A) rows with values in [0, 1]. Lists must be nonempty.
 
     Returns
     -------
     np.ndarray
-        An array representing the color table (ctab) as a sequence of color values.
+        Floating-point color table of shape (N, 3) or (N, 4). Color-name
+        lists are converted to RGBA, with alpha defaulting to 1.
 
     Raises
     ------
     TypeError
         If `cmap` is neither a matplotlib Colormap nor a list of color values.
+    ValueError
+        If the table is empty, malformed, nonfinite, or outside [0, 1].
 
     Example
     -------
@@ -49,13 +67,20 @@ def get_ctab(cmap: Union[Colormap, list]) -> np.ndarray:
     >>> print(ctab)
     """
     if isinstance(cmap, Colormap):
-        return np.array([cmap(v) for v in np.linspace(0, 1, cmap.N)])
+        ctab = cmap(np.linspace(0, 1, cmap.N))
     elif isinstance(cmap, list):
-        return np.array(cmap)
+        if any(isinstance(color, str) for color in cmap):
+            ctab = to_rgba_array(cmap)
+        else:
+            ctab = cmap
     else:
         raise TypeError(
             "`cmap` is neither a matplotlib Colormap nor a list of str/uples"
         )
+    ctab = _as_color_table(ctab)
+    if np.any((ctab < 0) | (ctab > 1)):
+        raise ValueError("RGB and alpha values must be in the range [0, 1].")
+    return ctab
 
 
 def max_chroma(
@@ -74,7 +99,7 @@ def max_chroma(
     Jp : float or np.ndarray
         Lightness parameter (range: [0, 100]).
     hp : float or np.ndarray
-        Hue angle in degrees (range: [0, 360]). Scalar and array inputs are
+        Hue angle in radians (one turn is 2*pi). Scalar and array inputs are
         supported and broadcast against ``Jp``.
     Cpmin : float, optional (default=0.0)
         Minimum allowable chroma value (range: [0, Cpmax]).
@@ -102,7 +127,7 @@ def max_chroma(
     Example
     -------
     >>> Jp = 70
-    >>> hp = 30
+    >>> hp = np.pi / 6
     >>> Cp = max_chroma(Jp, hp)
     >>> print(Cp)
     """
@@ -144,7 +169,9 @@ def max_chroma(
         Cp[need_fix] = CpL[need_fix]
 
         Jpapbp = np.stack([Jp, Cp * np.cos(hp), Cp * np.sin(hp)], axis=-1)
-        sRGB = transform(Jpapbp, inverse=True)
+        sRGB = transform(Jpapbp.reshape(-1, 3), inverse=True).reshape(
+            Jpapbp.shape
+        )
         edge = 2.0 * np.amax(abs(sRGB - 0.5), -1)
 
         if 1.0 - eps <= np.min(edge) and np.max(edge) <= 1.0:
@@ -173,7 +200,8 @@ def transform(
     Parameters
     ----------
     ctab : np.ndarray
-        A color table in the source color space.
+        Finite color table of shape (N, 3) or (N, 4), N >= 1. RGB input
+        values must be in [0, 1]; alpha, if present, must be in [0, 1].
     src : str, optional (default="sRGB1")
         The source color space (e.g., "sRGB1", "CAM02-UCS").
     dst : str, optional (default="CAM02-UCS")
@@ -184,7 +212,13 @@ def transform(
     Returns
     -------
     np.ndarray
-        A color table in the destination color space.
+        Floating-point table of the same shape in the destination color
+        space. Alpha is preserved. Inverse RGB output is not clipped.
+
+    Raises
+    ------
+    ValueError
+        If the input shape or values are invalid.
 
     Example
     -------
@@ -193,7 +227,10 @@ def transform(
     >>> transformed_ctab = transform(ctab, src="sRGB1", dst="CAM02-UCS")
     >>> print(transformed_ctab)
     """
-    out = ctab.copy()
+    out = _as_color_table(ctab)
+    input_space = dst if inverse else src
+    if input_space == "sRGB1" and np.any((out[:, :3] < 0) | (out[:, :3] > 1)):
+        raise ValueError("RGB values must be in the range [0, 1].")
     if not inverse:
         out[:, :3] = cspace_convert(out[:, :3], src, dst)
     else:
@@ -313,18 +350,20 @@ def classify(Jpapbp: np.ndarray) -> str:
     'sequential'
     """
 
+    Jpapbp = _as_color_table(Jpapbp)
     N = Jpapbp.shape[0]
     large_diff_lum = Jpapbp[:, 0].max() - Jpapbp[:, 0].min() > 0.5
     first_and_last_simeq = (
-        sum(abs(np.floor(Jpapbp[0, ...]) - np.floor(Jpapbp[-1, ...]))) < 4
+        sum(abs(np.floor(Jpapbp[0, :3]) - np.floor(Jpapbp[-1, :3]))) < 4
     )
 
-    # some of the cmcrameri colormaps have kind of a small hook at the end of the array
-    # artifact increasing the number of extrema by +1. A rough fix is not considering the
-    # beginning  and the end of the cmap
-    x = extrema(Jpapbp[10:-10, 0])
-    x += 10
+    # ponytail: retain v1's 10-sample hook filter on long maps; replace if
+    # genuine extrema near the endpoints need to be distinguished from hooks.
+    trim = 10 if N > 20 else 0
+    x = extrema(Jpapbp[trim : N - trim, 0]) + trim
 
+    if large_diff_lum and len(extrema(Jpapbp[:, 0])) == 0:
+        return "sequential"
     if (len(x) == 1 or large_diff_lum) and first_and_last_simeq:
         return "circular-div"
     elif len(x) != 1 and first_and_last_simeq:
@@ -393,6 +432,7 @@ def uniformize(
            [50. , 12.5, 22.5],
            [60. , 15. , 25. ]])
     """
+    Jpapbp = _as_color_table(Jpapbp)
     if JpL is None:
         JpL = Jpapbp[0, 0]
     if JpR is None:
@@ -462,6 +502,9 @@ def factor(
     >>> print(factor_values)
     array([0.72727273, 0.5       , 0.27272727, 0.5       , 0.72727273])
     """
+    Cp = np.asarray(Cp, dtype=float)
+    if len(Cp) == 1:
+        return np.ones_like(Cp)
     S = Cp + softening
     s = S.copy()
 
@@ -529,7 +572,7 @@ def symmetrize(Jpapbp: np.ndarray, **kwargs) -> np.ndarray:
     array([[40.        , 20.        , 10.        ],
            [60.        , 30.        , 15.        ]])
     """
-    out = Jpapbp.copy()
+    out = _as_color_table(Jpapbp)
     Jp = out[:, 0]
     Cp = np.sqrt(out[:, 1] * out[:, 1] + out[:, 2] * out[:, 2])
 
@@ -551,7 +594,8 @@ def adjust_sequential(
         Array of Jpapbp values.
 
     roundup : float, optional
-        Value to round down the lower chroma bound to. If provided, the lower chroma bound will be rounded up to the nearest multiple of `roundup`. Default is None.
+        Round the lower lightness bound up to a multiple of this positive
+        step. None or 0 leaves the lower bound unchanged.
 
     bi_seq : bool, optional
         If True, create a bidirectional sequential colormap by adjusting two segments of the input colormap. Default is False.
@@ -563,7 +607,8 @@ def adjust_sequential(
 
     Notes
     -----
-    This function adjusts a sequential colormap in chroma C' by optionally rounding down the lower chroma bound and creating a bidirectional sequential colormap.
+    The lower lightness bound is rounded using ceil(Jplower / roundup)
+    * roundup. This is rounding to a step, rather than an additive lift.
 
     Example
     -------
@@ -577,25 +622,26 @@ def adjust_sequential(
            [59.9, 30. , 15. ]])
     """
 
+    Jpapbp = _as_color_table(Jpapbp)
     if bi_seq:
         x_boundary = extrema(Jpapbp[:, 0])[0]
         Jpapbp1 = Jpapbp[: x_boundary + 1, ...].copy()
         Jpapbp2 = Jpapbp[x_boundary + 1 :, ...].copy()
         Jp = Jpapbp1[:, 0]
         Jplower = min(Jp[0], Jp[-1])
-        if roundup is not None:
+        if roundup not in (None, 0):
             Jplower = np.ceil(Jplower / roundup) * roundup
         Jpapbp1 = uniformize(Jpapbp1, Jplower=Jplower)
         Jp = Jpapbp2[:, 0]
         Jplower = min(Jp[0], Jp[-1])
-        if roundup is not None:
+        if roundup not in (None, 0):
             Jplower = np.ceil(Jplower / roundup) * roundup
         Jpapbp2 = uniformize(Jpapbp2, Jplower=Jplower)
         return np.append(Jpapbp1, Jpapbp2, axis=0)
     else:
         Jp = Jpapbp[:, 0]
         Jplower = min(Jp[0], Jp[-1])
-        if roundup is not None:
+        if roundup not in (None, 0):
             Jplower = np.ceil(Jplower / roundup) * roundup
 
         return uniformize(Jpapbp, Jplower=Jplower)
@@ -628,7 +674,7 @@ def adjust_circular_flat(Jpapbp: np.ndarray) -> np.ndarray:
     array([[55., 20., 10.],
            [55., 30., 15.]])
     """
-    out = Jpapbp.copy()
+    out = _as_color_table(Jpapbp)
     Jp = out[:, 0].ravel()
     out[:, 0] = np.ones_like(Jp) * np.nanmean(Jp)
     return out
@@ -645,7 +691,8 @@ def adjust_circular(Jpapbp: np.ndarray, roundup: float = None) -> np.ndarray:
     Jpapbp : np.ndarray
         Array of Jpapbp values.
     roundup : float, optional
-        Value to round Jplower, by default None.
+        Round the lower lightness bound up to a multiple of this positive
+        step. None or 0 leaves the lower bound unchanged.
 
     Returns
     -------
@@ -665,13 +712,17 @@ def adjust_circular(Jpapbp: np.ndarray, roundup: float = None) -> np.ndarray:
     array([[55., 20., 10.],
            [60., 30., 15.]])
     """
+    Jpapbp = _as_color_table(Jpapbp)
     Jp = Jpapbp[:, 0]
     x_extr = extrema(Jp)
+    if len(x_extr) == 0:
+        raise ValueError(
+            "A circular map needs an interior lightness extremum."
+        )
     h = x_extr[0]
-    H = h + 1
     N = Jpapbp.shape[0]
-    # h = (N + 1) // 2 - 1  # == H-1 if even; == H if odd
-    # H = N // 2
+    # Odd maps share their center between branches and emit it only once.
+    H = h if N % 2 else h + 1
 
     if Jp[1] > Jp[0]:  # hill
         Jplower = max(Jp[0], Jp[-1])
@@ -679,7 +730,7 @@ def adjust_circular(Jpapbp: np.ndarray, roundup: float = None) -> np.ndarray:
     else:  # valley
         Jplower = max(Jp[h], Jp[H])
         Jpupper = min(Jp[0], Jp[-1])
-    if roundup is not None:
+    if roundup not in (None, 0):
         Jplower = np.ceil(Jplower / roundup) * roundup
 
     L = uniformize(Jpapbp[: h + 1, :], Jplower=Jplower, Jpupper=Jpupper)
@@ -703,7 +754,8 @@ def adjust_divergent(
     Jpapbp : np.ndarray
         Array of Jpapbp values.
     roundup : float, optional
-        Value to round Jplower, by default None.
+        Round the lower lightness bound up to a multiple of this positive
+        step. None or 0 leaves the lower bound unchanged.
     circular : bool, optional
         Whether to make the colormap circular, by default False.
     symmetric : bool, optional
@@ -727,28 +779,30 @@ def adjust_divergent(
     array([[55., 20., 10.],
            [60., 30., 15.]])
     """
+    Jpapbp = _as_color_table(Jpapbp)
     Jp = Jpapbp[:, 0]
     out = Jpapbp.copy()
     x_extr = extrema(Jp)
+    if len(x_extr) == 0:
+        raise ValueError(
+            "A diverging map needs an interior lightness extremum."
+        )
     h = x_extr[0]
-    H = h + 1
     N = Jpapbp.shape[0]
-    # h = (N + 1) // 2 - 1  # == H-1 if even; == H if odd
-    # H = N // 2
+    # Odd maps share their center between branches and emit it only once.
+    H = h if N % 2 else h + 1
 
-    if Jp[1] > Jp[0] and symmetric:  # hill
+    if not symmetric:
+        bounds = Jp[[0, h, H, -1]]
+        Jplower = bounds.min()
+        Jpupper = bounds.max()
+    elif Jp[1] > Jp[0]:  # hill
         Jplower = max(Jp[0], Jp[-1])
         Jpupper = min(Jp[h], Jp[H])
-    elif Jp[1] > Jp[0] and not symmetric:  # hill
-        Jplower = Jp[0]
-        Jpupper = Jp[h]
-    elif Jp[1] < Jp[0] and symmetric:  # valley
+    else:  # valley
         Jplower = max(Jp[h], Jp[H])
         Jpupper = min(Jp[0], Jp[-1])
-    else:
-        Jplower = Jp[h]
-        Jpupper = Jp[-1]
-    if roundup is not None:
+    if roundup not in (None, 0):
         Jplower = np.ceil(Jplower / roundup) * roundup
 
     L = uniformize(Jpapbp[: h + 1, :], Jplower=Jplower, Jpupper=Jpupper)
@@ -781,7 +835,8 @@ def uniformize_cmap(
     name : str, optional
         The name of the new colormap, by default "new_cmap".
     lift : float, optional
-        Value to round Jplower, by default None.
+        Round the lower lightness bound up to a multiple of this positive
+        step: ceil(Jplower / lift) * lift. None or 0 applies no rounding.
     uniformized : bool, optional
         Indicates whether the colormap is already uniformized, by default False.
 
@@ -789,7 +844,8 @@ def uniformize_cmap(
     -------
     Tuple[ListedColormap, bool]
         A tuple containing the uniformized colormap and a boolean indicating if
-        the colormap was uniformized.
+        the colormap was uniformized. The flag is False if its lightness
+        pattern is unknown and no uniformization was performed.
 
     Notes
     -----
@@ -837,7 +893,7 @@ def uniformize_cmap(
                 "The colormap {} type is unknown (not recognized as sequential or divergent)\n"
                 "Not uniformized".format(name)
             )
-            lin_ctab = t_ctab
+            return ListedColormap(ctab, name=name), False
 
         lin_cmap = transform(ctab=lin_ctab, inverse=True)
 
@@ -926,7 +982,8 @@ def unif_sym_cmap(
     name : str, optional
         The name of the new colormap, by default "new_cmap".
     lift : float, optional
-        A parameter controlling the degree of uniformization, by default None.
+        Round the lower lightness bound up to a multiple of this positive
+        step: ceil(Jplower / lift) * lift. None or 0 applies no rounding.
     uniformized : bool, optional
         If True, skip uniformization step if the colormap is already uniformized,
         by default False.

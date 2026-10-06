@@ -22,13 +22,28 @@ Stability policy
 - Add new sections without breaking existing ``llms.txt`` entries.
 - Regenerate LLM assets after each docs build.
 
+Generate assets from installed commands
+----------------------------------------
+
+Both v1 commands work from an installed wheel. Build or supply the HTML first;
+Sphinx and documentation sources are only needed to build the HTML itself.
+
+.. code-block:: shell
+
+   scicomap docs-llm --html-dir path/to/html --json
+   scicomap docs llm-assets --html-dir path/to/html --json
+
+The repository script calls the same packaged generator. Code fences preserve
+whitespace and their language, and ordinary documentation tables retain their
+rows and columns.
+
 Parser assumptions
 ------------------
 
 - The parser prefers ``<main>`` and supports ``role=\"main\"`` as fallback.
 - Sidebar and navigation blocks are excluded by tag and selector rules.
 - If your Sphinx theme changes, review parser selectors in
-  ``scripts/build_llm_assets.py``.
+  ``src/scicomap/_llm_assets.py``.
 
 Theme upgrade checklist
 -----------------------

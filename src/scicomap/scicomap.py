@@ -104,7 +104,7 @@ class SciCoMap:
     uniformize_cmap(lift=None)
         Uniformize the colormap (linearize the brightness J').
     symmetrize_cmap(bitonic=True, diffuse=True)
-        Symmetrize the hue (h').
+        Symmetrize the chroma (C').
     unif_sym_cmap(lift=None, bitonic=True, diffuse=True)
         Uniformize and symmetrize at once.
     get_color_map_names()
@@ -195,18 +195,18 @@ class SciCoMap:
 
     def symmetrize_cmap(self, bitonic: bool = True, diffuse: bool = True):
         """
-        Symmetrize the colormap (the hue) in the CAM02-UCS color space.
-        It can be symmetrized in a bitonic way or not (if bitonic, the hue
+        Symmetrize the colormap chroma in the CAM02-UCS color space.
+        It can be symmetrized in a bitonic way or not (if bitonic, the chroma
         curve will be symmetric with an extremum at its center).
 
-        The hue curve can be smoothed (diffuse) or not (edges might occur).
+        The chroma curve can be smoothed (diffuse) or not (edges might occur).
 
         Parameters
         ----------
         bitonic : bool, optional (default=True)
-            Bitonic symmetrization or not (extremum located at the center of the hue curve).
+            Bitonic symmetrization or not (extremum located at the center of the chroma curve).
         diffuse : bool, optional (default=True)
-            Smooth hue curve or not (if not, edges might occur).
+            Smooth chroma curve or not (if not, edges might occur).
 
         Returns
         -------
@@ -227,11 +227,11 @@ class SciCoMap:
         First, uniformize the colormap, meaning linearizing the brightness (J')
         in the CAM02-UCS color space.
 
-        Second, symmetrize the colormap (the hue) in the CAM02-UCS color space.
-        It can be symmetrized in a bitonic way or not (if bitonic, the hue
+        Second, symmetrize the colormap chroma in the CAM02-UCS color space.
+        It can be symmetrized in a bitonic way or not (if bitonic, the chroma
         curve will be symmetric with an extremum at its center).
 
-        The hue curve can be smoothed (diffuse) or not (edges might occur).
+        The chroma curve can be smoothed (diffuse) or not (edges might occur).
 
         Parameters
         ----------
@@ -239,9 +239,9 @@ class SciCoMap:
             Round the lower lightness bound up to a multiple of this step:
             ceil(Jplower / lift) * lift. None or 0 applies no rounding.
         bitonic : bool, optional (default=True)
-            Bitonic symmetrization or not (extremum located at the center of the hue curve).
+            Bitonic symmetrization or not (extremum located at the center of the chroma curve).
         diffuse : bool, optional (default=True)
-            Smooth hue curve or not (if not, edges might occur).
+            Smooth chroma curve or not (if not, edges might occur).
 
         Returns
         -------
@@ -403,9 +403,10 @@ class ScicoSequential(SciCoMap):
 
     Examples
     --------
-    sc_map = ScicoSequential(cname='chroma')
-    mpl_map = sc_map.get_mpl_color_map()
-    sc_map.draw_example()
+    >>> from scicomap import ScicoSequential
+    >>> sc_map = ScicoSequential(cmap="chroma")
+    >>> mpl_map = sc_map.get_mpl_color_map()
+    >>> fig = sc_map.draw_example()
 
     References
     ----------
@@ -502,9 +503,10 @@ class ScicoMultiSequential(SciCoMap):
 
     Examples
     --------
-    sc_map = ScicoMultiSequential(cname='chroma')
-    mpl_map = sc_map.get_mpl_color_map()
-    sc_map.draw_example()
+    >>> from scicomap import ScicoMultiSequential
+    >>> sc_map = ScicoMultiSequential(cmap="bukavu")
+    >>> mpl_map = sc_map.get_mpl_color_map()
+    >>> fig = sc_map.draw_example()
 
     References
     ----------
@@ -601,9 +603,10 @@ class ScicoDiverging(SciCoMap):
 
     Examples
     --------
-    sc_map = ScicoDiverging(cname='redshift')
-    mpl_map = sc_map.get_mpl_color_map()
-    sc_map.draw_example()
+    >>> from scicomap import ScicoDiverging
+    >>> sc_map = ScicoDiverging(cmap="redshift")
+    >>> mpl_map = sc_map.get_mpl_color_map()
+    >>> fig = sc_map.draw_example()
 
     References
     ----------
@@ -697,9 +700,10 @@ class ScicoCircular(SciCoMap):
 
     Examples
     --------
-    sc_map = ScicoCircular(cname='colorwheel')
-    mpl_map = sc_map.get_mpl_color_map()
-    sc_map.draw_example()
+    >>> from scicomap import ScicoCircular
+    >>> sc_map = ScicoCircular(cmap="colorwheel")
+    >>> mpl_map = sc_map.get_mpl_color_map()
+    >>> fig = sc_map.draw_example()
 
     References
     ----------
@@ -794,9 +798,10 @@ class ScicoMiscellaneous(SciCoMap):
 
     Examples
     --------
-    sc_map = ScicoSequential(cname='chroma')
-    mpl_map = sc_map.get_mpl_color_map()
-    sc_map.draw_example()
+    >>> from scicomap import ScicoMiscellaneous
+    >>> sc_map = ScicoMiscellaneous(cmap="turbo")
+    >>> mpl_map = sc_map.get_mpl_color_map()
+    >>> fig = sc_map.draw_example()
 
     References
     ----------
@@ -888,9 +893,10 @@ class ScicoQualitative(SciCoMap):
 
     Examples
     --------
-    sc_map = ScicoQualitative(cname='glasbey_dark')
-    mpl_map = sc_map.get_mpl_color_map()
-    sc_map.draw_example()
+    >>> from scicomap import ScicoQualitative
+    >>> sc_map = ScicoQualitative(cmap="glasbey_dark")
+    >>> mpl_map = sc_map.get_mpl_color_map()
+    >>> fig = sc_map.draw_example()
 
     References
     ----------

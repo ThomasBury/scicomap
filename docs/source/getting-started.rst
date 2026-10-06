@@ -99,11 +99,11 @@ Choose a colormap family
 
          scicomap list
 
-Typical output:
+Python output (the CLI lists the same families in a table):
 
 .. code-block:: text
 
-   dict_keys(['diverging', 'sequential', 'multi-sequential', 'circular', 'miscellaneous', 'qualitative'])
+   ['diverging', 'sequential', 'multi-sequential', 'circular', 'miscellaneous', 'qualitative']
 
 Get a Matplotlib colormap object
 --------------------------------

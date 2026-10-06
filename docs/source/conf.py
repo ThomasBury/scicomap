@@ -25,7 +25,10 @@ copyright = "2023, Thomas Bury"
 author = "Thomas Bury"
 
 # The full version, including alpha/beta/rc tags
-release = "1.0.1"
+from scicomap import __version__
+
+release = __version__
+version = ".".join(release.split(".")[:2])
 
 # If extensions (or modules to document with autodoc) are in another
 # directory, add these directories to sys.path here. If the directory is

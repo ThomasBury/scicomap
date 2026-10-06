@@ -118,7 +118,7 @@ diagnostic module; a bootstrap regression verifies dependency installation,
 worker-relative URL resolution, and importing that module. Marimo retains its
 existing formatting warnings. Live browser verification remains part of M9.
 
-### [ ] M4 — Documentation integrity and v1 package readiness
+### [x] M4 — Documentation integrity and v1 package readiness
 
 **Outcome:** documented examples and installed commands work outside the checkout.
 
@@ -134,6 +134,30 @@ existing formatting warnings. Live browser verification remains part of M9.
 **Acceptance:** tests and current lint checks pass; strict documentation builds
 pass; generated examples remain executable; wheel smoke checks verify data
 resources and advertised commands.
+
+**Completed:** `just check` passed (216 tests, Ruff lint and formatting).
+Parser regressions cover highlighted tokens, indentation, blank lines, inline
+code, table rows/cells, and installed docs command aliases. A fresh strict
+Sphinx build and all 34 generated Python examples passed, including exact
+notebook cell comparisons after Sphinx trims trailing line whitespace.
+Numerical, dataset, and family-class docstring examples passed.
+The documentation version comes from the package version; units, chroma
+correction descriptions, sample inputs/results, family output, and contributor
+commands are corrected. Patch fixes are recorded in `CHANGELOG.md`.
+`just build` passed for the sdist and wheel, including Twine validation.
+An isolated wheel installation verified all five packaged data resources and
+13 v1 commands outside the checkout. Typer is bounded below 0.26 because that
+release replaced the Click group internals used by the v1 JSON error handling;
+revisit the bound during M6. Additional validation used:
+
+```bash
+UV_PROJECT_ENVIRONMENT=.venv.just uv run sphinx-build -n -W -b html docs/source docs/build/html
+UV_PROJECT_ENVIRONMENT=.venv.just uv run python scripts/build_llm_assets.py
+uv run --isolated --no-project --with ./dist/scicomap-1.1.1-py3-none-any.whl python scripts/smoke_wheel.py
+UV_PROJECT_ENVIRONMENT=.venv.just uv run ruff check scripts/build_llm_assets.py scripts/smoke_wheel.py
+UV_PROJECT_ENVIRONMENT=.venv.just uv run ruff format --check scripts/build_llm_assets.py scripts/smoke_wheel.py
+uv lock --check
+```
 
 **Branch transition:** merge the completed fixes into `main`, then create
 `feat/v2`. Breaking changes begin only after this checkpoint.

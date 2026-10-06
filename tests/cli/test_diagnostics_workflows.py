@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from click import unstyle
 from matplotlib import pyplot as plt
 from matplotlib.colors import ListedColormap
 from PIL import Image
@@ -304,10 +305,11 @@ def test_json_validation_failures(args) -> None:
     ],
 )
 def test_text_usage_errors_keep_help_guidance(args) -> None:
-    result = CliRunner().invoke(cli.app, args)
+    result = CliRunner().invoke(cli.app, args, env={"FORCE_COLOR": "1"})
     assert result.exit_code == 2
-    assert "Usage:" in result.output
-    assert "--help" in result.output
+    output = unstyle(result.output)
+    assert "Usage:" in output
+    assert "--help" in output
 
 
 @pytest.mark.parametrize("workflow", ["wizard", "report"])
